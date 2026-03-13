@@ -1,0 +1,689 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Representa a un usuario de la plataforma Vorian Logistics, incluyendo clientes, administradores y conductores.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para la entidad User."
+        },
+        "email": {
+          "type": "string",
+          "description": "Correo electrónico del usuario.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "Nombre(s) del usuario."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Apellido(s) del usuario."
+        },
+        "rut": {
+          "type": "string",
+          "description": "Rol Único Tributario, identificador de Chile."
+        },
+        "address": {
+          "type": "string",
+          "description": "Dirección del usuario."
+        },
+        "role": {
+          "type": "string",
+          "description": "El rol del usuario en el sistema. Valores posibles: 'client', 'admin', 'driver', 'company'."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Número de teléfono de contacto del usuario."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp de cuando se creó el perfil de usuario.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp de la última actualización del perfil de usuario.",
+          "format": "date-time"
+        },
+        "driverProfileId": {
+          "type": "string",
+          "description": "Referencia a DriverProfile si el usuario tiene el rol de 'driver'. (Relación: User 1:1 DriverProfile)"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "role",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DriverProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DriverProfile",
+      "type": "object",
+      "description": "Almacena detalles específicos para usuarios con el rol de 'conductor', incluyendo información del vehículo y ubicación actual.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para la entidad DriverProfile."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Referencia a la entidad User a la que pertenece este perfil. (Relación: User 1:1 DriverProfile)"
+        },
+        "companyId": {
+          "type": "string",
+          "description": "ID de la empresa de transporte a la que pertenece el conductor, si aplica."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "Tipo de vehículo que opera el conductor.",
+          "enum": ["Auto", "Motocicleta", "Van", "Furgon", "Camion Ligero", "Camion Pesado"]
+        },
+        "licensePlate": {
+          "type": "string",
+          "description": "Número de matrícula del vehículo."
+        },
+        "currentLatitude": {
+          "type": "number",
+          "description": "Latitud geográfica actual del vehículo del conductor."
+        },
+        "currentLongitude": {
+          "type": "number",
+          "description": "Longitud geográfica actual del vehículo del conductor."
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Booleano que indica si el conductor está actualmente disponible para nuevas asignaciones de fletes."
+        },
+        "lastLocationUpdate": {
+          "type": "string",
+          "description": "Timestamp de la última actualización de ubicación conocida del conductor.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "vehicleType",
+        "licensePlate",
+        "isAvailable"
+      ]
+    },
+    "CompanyProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CompanyProfile",
+      "type": "object",
+      "description": "Almacena detalles para usuarios con el rol 'company', que representan a empresas de transporte.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para el perfil de la empresa, que coincide con el UID del usuario."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Referencia a la entidad User a la que pertenece este perfil de empresa."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "El nombre legal o comercial de la empresa de transporte."
+        },
+        "rut": {
+          "type": "string",
+          "description": "Rol Único Tributario de la empresa."
+        },
+        "address": {
+          "type": "string",
+          "description": "Dirección fiscal de la empresa."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Número de teléfono de contacto de la empresa."
+        },
+        "vehicleTypes": {
+          "type": "array",
+          "description": "Tipos de vehículos que opera la empresa.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Auto",
+              "Motocicleta",
+              "Van",
+              "Furgon",
+              "Camion Ligero",
+              "Camion Pesado"
+            ]
+          }
+        }
+      },
+      "required": ["id", "userId", "companyName", "rut", "address"]
+    },
+    "Pedido": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Pedido",
+      "type": "object",
+      "description": "Representa una única solicitud de servicio de flete o envío activo dentro del sistema Vorian Logistics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para la entidad Pedido."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Referencia al Usuario que solicitó el servicio de flete. (Relación: Usuario 1:N Pedido)"
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Referencia opcional al Usuario (conductor) asignado a este flete. (Relación: Usuario 1:N Pedido)"
+        },
+        "originLatitude": {
+          "type": "number",
+          "description": "Coordenada de latitud del lugar de recogida del flete."
+        },
+        "originLongitude": {
+          "type": "number",
+          "description": "Coordenada de longitud del lugar de recogida del flete."
+        },
+        "originAddress": {
+          "type": "string",
+          "description": "Dirección descriptiva del lugar de recogida del flete."
+        },
+        "destinationLatitude": {
+          "type": "number",
+          "description": "Coordenada de latitud del lugar de entrega del flete."
+        },
+        "destinationLongitude": {
+          "type": "number",
+          "description": "Coordenada de longitud del lugar de entrega del flete."
+        },
+        "destinationAddress": {
+          "type": "string",
+          "description": "Dirección descriptiva del lugar de entrega del flete."
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "Precio total calculado para el servicio de flete."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "El tipo de vehículo requerido para el pedido.",
+          "enum": [
+            "Auto",
+            "Motocicleta",
+            "Van",
+            "Furgon",
+            "Camion Ligero",
+            "Camion Pesado"
+          ]
+        },
+        "distanceKm": {
+          "type": "number",
+          "description": "Distancia total estimada para el flete en kilómetros."
+        },
+        "estimatedTimeMinutes": {
+          "type": "number",
+          "description": "Tiempo total estimado para el flete en minutos."
+        },
+        "status": {
+          "type": "string",
+          "description": "Estado actual del servicio de flete. Valores posibles: 'pending', 'assigned', 'in_progress', 'completed', 'cancelled'."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp de cuando se creó la solicitud de flete.",
+          "format": "date-time"
+        },
+        "assignedAt": {
+          "type": "string",
+          "description": "Timestamp de cuando se asignó un conductor al flete.",
+          "format": "date-time"
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "Timestamp de cuando comenzó oficialmente el servicio de flete (el conductor inició el viaje).",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Timestamp de cuando se completó el servicio de flete.",
+          "format": "date-time"
+        },
+        "cancelledAt": {
+          "type": "string",
+          "description": "Timestamp de cuando se canceló el servicio de flete.",
+          "format": "date-time"
+        },
+        "driverLatitude": {
+          "type": "number",
+          "description": "Latitud geográfica actual del conductor asignado a este pedido."
+        },
+        "driverLongitude": {
+          "type": "number",
+          "description": "Longitud geográfica actual del conductor asignado a este pedido."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "originLatitude",
+        "originLongitude",
+        "originAddress",
+        "destinationLatitude",
+        "destinationLongitude",
+        "destinationAddress",
+        "totalPrice",
+        "vehicleType",
+        "distanceKm",
+        "estimatedTimeMinutes",
+        "status",
+        "createdAt"
+      ]
+    },
+    "GlobalSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GlobalSettings",
+      "type": "object",
+      "description": "Almacena variables de configuración global utilizadas en toda la plataforma Vorian Logistics. Se espera que esta entidad sea un singleton, típicamente identificada por un ID fijo como 'global'.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para la entidad GlobalSettings. Típicamente una cadena fija como 'global'."
+        },
+        "dieselCostPerLiter": {
+          "type": "number",
+          "description": "Costo del diésel por litro, utilizado en los cálculos de precios."
+        },
+        "lastUpdatedByUserId": {
+          "type": "string",
+          "description": "Referencia al Usuario (admin) que actualizó por última vez esta configuración."
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "Timestamp de la última actualización de esta configuración global.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "dieselCostPerLiter",
+        "lastUpdatedByUserId",
+        "lastUpdatedAt"
+      ]
+    },
+    "VehicleRate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VehicleRate",
+      "type": "object",
+      "description": "Almacena las tarifas y costos operativos específicos para un tipo de vehículo.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "El tipo de vehículo, ej: 'Auto', 'Camion Pesado'."
+        },
+        "baseFare": {
+          "type": "number",
+          "description": "Tarifa base que cubre costos fijos y las primeras horas de operación (carga/descarga)."
+        },
+        "costPerKm": {
+          "type": "number",
+          "description": "Costo por kilómetro que cubre mantenimiento, depreciación y otros desgastes del vehículo (no incluye combustible)."
+        },
+        "costPerMinute": {
+          "type": "number",
+          "description": "Costo por minuto para cubrir el tiempo del conductor y otros costos variables de tiempo."
+        },
+        "fuelEfficiency": {
+          "type": "number",
+          "description": "Rendimiento del vehículo en kilómetros por litro (km/L)."
+        },
+        "maxPayload": {
+          "type": "number",
+          "description": "Capacidad de carga máxima del vehículo en kilogramos (kgs)."
+        },
+        "overnightStay": {
+          "type": "number",
+          "description": "Recargo por viajes que requieren que el conductor pernocte."
+        },
+        "lastUpdatedByUserId": {
+          "type": "string",
+          "description": "Referencia al Usuario (admin) que actualizó por última vez esta tarifa."
+        },
+        "lastUpdatedAt": {
+          "type": "string",
+          "description": "Timestamp de la última actualización de esta tarifa.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "baseFare",
+        "costPerKm",
+        "costPerMinute",
+        "fuelEfficiency"
+      ]
+    },
+    "Shipment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Shipment",
+      "type": "object",
+      "description": "Representa una reserva de envío de carga, inspirada en Uber Freight.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para el envío."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "El ID del usuario (cliente) que creó el envío."
+        },
+        "equipment": {
+          "type": "string",
+          "enum": [
+            "Dry van",
+            "Reefer",
+            "Flatbed"
+          ],
+          "description": "Tipo de equipamiento del camión requerido."
+        },
+        "pickup_address": {
+          "type": "string",
+          "description": "La dirección completa para la recogida."
+        },
+        "pickup_latitude": {
+          "type": "number"
+        },
+        "pickup_longitude": {
+          "type": "number"
+        },
+        "delivery_address": {
+          "type": "string",
+          "description": "La dirección completa para la entrega."
+        },
+        "delivery_latitude": {
+          "type": "number"
+        },
+        "delivery_longitude": {
+          "type": "number"
+        },
+        "pickup_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "La fecha programada para la recogida."
+        },
+        "pickup_window": {
+          "type": "string",
+          "description": "El rango de tiempo para la recogida (ej: 8:00 AM - 12:00 PM)."
+        },
+        "delivery_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "La fecha programada para la entrega."
+        },
+        "delivery_window": {
+          "type": "string",
+          "description": "El rango de tiempo para la entrega (ej: 1:00 PM - 5:00 PM)."
+        },
+        "commodity": {
+          "type": "string",
+          "description": "Descripción de la carga."
+        },
+        "weight_lbs": {
+          "type": "number",
+          "description": "Peso de la carga en libras."
+        },
+        "pallets": {
+          "type": "number",
+          "description": "Número de pallets."
+        },
+        "dimensions": {
+          "type": "string",
+          "description": "Dimensiones generales de la carga."
+        },
+        "itemDescription": {
+          "type": "string",
+          "description": "Descripción del ítem del pallet."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Cantidad de ítems."
+        },
+        "totalVolume": {
+          "type": "number",
+          "description": "Volumen total calculado."
+        },
+        "tempControlled": {
+          "type": "boolean"
+        },
+        "hazardous": {
+          "type": "boolean"
+        },
+        "requiresPermit": {
+          "type": "boolean"
+        },
+        "requiresTarping": {
+          "type": "boolean"
+        },
+        "tarpType": {
+          "type": "string"
+        },
+        "oversize": {
+          "type": "boolean"
+        },
+        "estimated_price": {
+          "type": "number",
+          "description": "El precio estimado al momento de la reserva."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Pending",
+            "Booked",
+            "In transit",
+            "Delivered",
+            "Cancelled"
+          ],
+          "description": "El estado actual del envío."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accessorials": {
+          "type": "object",
+          "properties": {
+            "forklift": { "type": "boolean" },
+            "insideDelivery": { "type": "boolean" },
+            "appointment": { "type": "boolean" },
+            "driverAssist": { "type": "boolean" },
+            "palletExchange": { "type": "boolean" },
+            "liftgate": { "type": "boolean" }
+          }
+        },
+        "carrierRating": { "type": "number" },
+        "uberFreightPreferred": { "type": "boolean" },
+        "cargoNotes": { "type": "string" }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "equipment",
+        "pickup_address",
+        "delivery_address",
+        "pickup_date",
+        "delivery_date",
+        "commodity",
+        "weight_lbs",
+        "estimated_price",
+        "status",
+        "createdAt"
+      ]
+    },
+    "FuelPriceRecord": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FuelPriceRecord",
+      "type": "object",
+      "description": "Registra un punto de datos histórico para el precio del combustible.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Identificador único para el registro."
+        },
+        "pricePerLiter": {
+          "type": "number",
+          "description": "El precio del combustible por litro en el momento del registro."
+        },
+        "updatedByUserId": {
+          "type": "string",
+          "description": "El ID del administrador que actualizó el precio."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de cuándo se registró este precio."
+        }
+      },
+      "required": ["id", "pricePerLiter", "updatedByUserId", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/userProfiles/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Almacena perfiles de usuario para clientes, administradores y conductores. El acceso se basa principalmente en la ruta, donde el ID del documento `userId` debe coincidir con `request.auth.uid`, asegurando que los usuarios solo puedan leer/escribir sus propios perfiles. Incluye timestamps estándar para la integridad.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "El ID único del usuario, que típicamente coincide con el UID de Firebase Authentication."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/driverProfiles/{userId}",
+        "definition": {
+          "entityName": "DriverProfile",
+          "schema": {
+            "$ref": "#/backend/entities/DriverProfile"
+          },
+          "description": "Almacena detalles específicos para usuarios con el rol de 'conductor'. El ID del documento coincide con el UID del usuario para búsquedas directas y aplicación de propiedad. Esta colección de nivel superior permite a los administradores consultar eficientemente todas las ubicaciones de los conductores.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "El ID único del conductor, que coincide con su UID de Firebase Authentication."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/companyProfiles/{userId}",
+        "definition": {
+          "entityName": "CompanyProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CompanyProfile"
+          },
+          "description": "Almacena perfiles para empresas de transporte. El ID del documento coincide con el UID del usuario para búsquedas directas. Los administradores de la empresa pueden gestionar a sus conductores.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "El ID único del usuario administrador de la empresa, que coincide con su UID de Firebase Authentication."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/pedidos/{pedidoId}",
+        "definition": {
+          "entityName": "Pedido",
+          "schema": {
+            "$ref": "#/backend/entities/Pedido"
+          },
+          "description": "Representa una única solicitud de servicio de flete o envío activo. Incluye campos denormalizados 'clientId' y 'driverId' (cuando se asigna) para la independencia de la autorización, permitiendo que las reglas de seguridad verifiquen directamente la propiedad sin búsquedas jerárquicas. El campo 'status' modela explícitamente el estado del flete para un control de acceso claro.",
+          "params": [
+            {
+              "name": "pedidoId",
+              "description": "El identificador único para una solicitud de servicio de flete específica."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/settings/global",
+        "definition": {
+          "entityName": "GlobalSettings",
+          "schema": {
+            "$ref": "#/backend/entities/GlobalSettings"
+          },
+          "description": "Un documento singleton (ID fijo 'global') que almacena variables de configuración globales. El acceso está restringido solo a administradores.",
+          "params": []
+        }
+      },
+      {
+        "path": "/vehicleRates/{vehicleType}",
+        "definition": {
+          "entityName": "VehicleRate",
+          "schema": {
+            "$ref": "#/backend/entities/VehicleRate"
+          },
+          "description": "Almacena las tarifas de flete para cada tipo de vehículo. El ID del documento es el nombre del tipo de vehículo.",
+          "params": [
+            {
+              "name": "vehicleType",
+              "description": "El tipo de vehículo (ej. 'Auto', 'Camion Pesado')."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shipments/{shipmentId}",
+        "definition": {
+          "entityName": "Shipment",
+          "schema": {
+            "$ref": "#/backend/entities/Shipment"
+          },
+          "description": "Almacena las reservas de envío de carga inspiradas en Uber Freight. Los clientes pueden crear y leer sus propios envíos.",
+          "params": [
+            {
+              "name": "shipmentId",
+              "description": "El identificador único para una reserva de envío específica."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/precios_combustible/{recordId}",
+        "definition": {
+          "entityName": "FuelPriceRecord",
+          "schema": {
+            "$ref": "#/backend/entities/FuelPriceRecord"
+          },
+          "description": "Almacena un registro histórico de los precios del combustible. Solo los administradores pueden escribir nuevos registros.",
+          "params": [
+            {
+              "name": "recordId",
+              "description": "El identificador único para un registro de precio específico."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "La estructura de datos de Firestore para Vorian Logistics está diseñada para ser segura, escalable y depurable. La autorización se logra sin requerir llamadas `get()` costosas en las reglas de seguridad siempre que sea posible. Para datos de usuario como perfiles (`User`), la propiedad basada en la ruta (`/userProfiles/{userId}`) vincula directamente el documento con el ID del usuario autenticado. Para los documentos de `Pedido`, se emplea la denormalización: los campos `clientId` y `driverId` se incluyen directamente en cada documento de `Pedido`. Esto permite a las reglas de seguridad verificar la propiedad sin obtener documentos padres. Los roles de administrador se manejan mediante un campo `role` dentro del perfil del usuario. Una colección `/driverProfiles` de nivel superior utiliza el UID del usuario como ID del documento, lo que permite a los administradores consultar las ubicaciones de todos los conductores."
+  }
+}

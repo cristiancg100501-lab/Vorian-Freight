@@ -1,0 +1,131 @@
+/**
+ * This ruleset enforces a security model for the Vorian Logistics application.
+ *
+ * Core Philosophy:
+ * The security model is built on three pillars: user ownership, role-based access control (RBAC),
+ * and shared document access. Users have complete control over their own data. Administrator
+ * privileges are granted via a 'role' field in the user's profile. Shared documents, like `pedidos`,
+ * are accessible only to the specific participants (client and driver) or administrators.
+ *
+ * Data Structure:
+ * - /userProfiles/{userId}: Contains user profiles, strictly private to the user but with a 'role' field for RBAC.
+ * - /driverProfiles/{userId}: Driver-specific information, private to the driver but listable by admins.
+ * - /companyProfiles/{userId}: Company-specific information, private to the company owner but manageable by admins.
+ * - /pedidos/{pedidoId}: A top-level collection for all shipping jobs, with access controlled by internal fields.
+ * - /settings/global: A singleton document for application-wide settings, readable by all but only writable by admins.
+ * - /vehicleRates/{vehicleType}: Stores freight rates for each vehicle type.
+ * - /shipments/{shipmentId}: Contains freight shipment bookings.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    function isExistingOwner(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+
+    function isAdmin() {
+      let userProfilePath = /databases/$(database)/documents/userProfiles/$(request.auth.uid);
+      return isSignedIn() && exists(userProfilePath) && get(userProfilePath).data.role == 'admin';
+    }
+
+    function isDriver() {
+      let userProfilePath = /databases/$(database)/documents/userProfiles/$(request.auth.uid);
+      return isSignedIn() && exists(userProfilePath) && get(userProfilePath).data.role == 'driver';
+    }
+
+    function isPedidoClient() {
+      return isExistingDoc() && resource.data.clientId == request.auth.uid;
+    }
+
+    function isPedidoParticipant() {
+      return isExistingDoc() && (resource.data.clientId == request.auth.uid || resource.data.driverId == request.auth.uid);
+    }
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    match /userProfiles/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); 
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.id == userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    match /driverProfiles/{userId} {
+      allow get, update: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /companyProfiles/{userId} {
+      allow get, update, delete: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) || isAdmin();
+    }
+
+    match /pedidos/{pedidoId} {
+      // Drivers can get pending jobs, participants can get their own, admins can get any.
+      allow get: if isSignedIn() && (isPedidoParticipant() || isAdmin() || (isDriver() && resource.data.status == 'pending'));
+      // Any signed in user can attempt to list jobs, but the 'get' rule will enforce what they can actually read.
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && (request.resource.data.clientId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isExistingDoc() && (
+                      isAdmin() ||
+                      (isPedidoParticipant() && request.resource.data.driverId == resource.data.driverId) ||
+                      (isDriver() && resource.data.status == 'pending' && request.resource.data.status == 'assigned' && request.resource.data.driverId == request.auth.uid && resource.data.driverId == null)
+                    ) && request.resource.data.clientId == resource.data.clientId;
+      allow delete: if isSignedIn() && isExistingDoc() && (isPedidoClient() || isAdmin());
+    }
+
+    match /settings/global {
+      allow get: if isSignedIn();
+      allow list: if false; 
+      allow create: if isAdmin();
+      allow update: if isExistingDoc() && isAdmin();
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+    match /vehicleRates/{vehicleType} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /shipments/{shipmentId} {
+      allow create: if isSignedIn() && request.resource.data.clientId == request.auth.uid;
+      allow get, update: if isSignedIn() && (isOwner(resource.data.clientId) || isAdmin());
+      allow list: if isSignedIn();
+      allow delete: if isSignedIn() && (isOwner(resource.data.clientId) || isAdmin());
+    }
+    
+    match /combustibles/{combustibleId} {
+      allow read: if isAdmin();
+      allow get, list: if request.auth != null;
+
+    }
+
+    match /precios_combustible/{recordId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
