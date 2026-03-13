@@ -16,6 +16,7 @@ import {
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/firebase";
 import { signOut as firebaseSignOut } from "firebase/auth";
+import Image from "next/image";
 
 type NavItem = {
   href: string;
@@ -74,16 +75,6 @@ export function Sidebar({ role }: { role: string }) {
     }
   };
   
-  const getBrandName = (role: string) => {
-    switch (role) {
-        case "admin": return "Vorian (Admin)";
-        case "client": return "Vorian Logistics";
-        case "driver": return "Vorian Driver";
-        case "company": return "Vorian Empresas";
-        default: return "Vorian";
-    }
-  }
-  
   const getBrandLink = (role: string) => {
     switch (role) {
         case "admin": return "/admin";
@@ -98,9 +89,15 @@ export function Sidebar({ role }: { role: string }) {
     <div className="hidden md:block p-4">
       <div className="sticky top-4 flex h-full max-h-[calc(100vh-2rem)] flex-col gap-2 rounded-lg border bg-card text-card-foreground shadow-lg">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Link href={getBrandLink(role)} className="flex items-center gap-2 font-semibold">
-            <Truck className="h-6 w-6" />
-            <span className="">{getBrandName(role)}</span>
+          <Link href={getBrandLink(role)} className="flex items-center justify-center w-full">
+            <Image
+              src="https://firebasestorage.googleapis.com/v0/b/studio-821157708-eec98.firebasestorage.app/o/assets%2FAdd%20a%20heading%20(1)%20(1).png?alt=media&token=6bb5e615-303b-4ebf-ab7c-8571d213b0d8"
+              width={140}
+              height={40}
+              alt="Vorian Logistics Logo"
+              priority
+              className="dark:invert-0 invert"
+            />
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto">
