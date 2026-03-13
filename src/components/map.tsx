@@ -113,7 +113,11 @@ const Map = ({ drivers, route, origin, destination }: MapProps) => {
 
       map.current.on('style.load', styleLoadHandler);
       setMapReady(false);
-      map.current.setStyle(mapStyle, { diff: false });
+      map.current.setStyle(mapStyle, { 
+        diff: false, 
+        localFontFamily: undefined, 
+        localIdeographFontFamily: undefined 
+      });
       
       return () => {
         if (map.current?.getStyle()) { // check if map still exists and is usable
