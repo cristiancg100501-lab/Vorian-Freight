@@ -91,7 +91,7 @@ export function Sidebar({ role }: { role: string }) {
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
           <Link href={getBrandLink(role)} className="flex items-center justify-center w-full">
             <Image
-              src="https://firebasestorage.googleapis.com/v0/b/studio-821157708-eec98.firebasestorage.app/o/assets%2FAdd%20a%20heading%20(1)%20(1).png?alt=media&token=6bb5e615-303b-4ebf-ab7c-8571d213b0d8"
+              src="https://firebasestorage.googleapis.com/v0/b/studio-821157708-eec98.firebasestorage.app/o/assets%2FAdd_a_heading__2___1_-removebg-preview.png?alt=media&token=b87ae379-ebfb-423e-a3a1-b4b2d902444b"
               width={140}
               height={40}
               alt="Vorian Logistics Logo"
