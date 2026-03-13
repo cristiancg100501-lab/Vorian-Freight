@@ -96,7 +96,7 @@ export function Sidebar({ role }: { role: string }) {
               height={40}
               alt="Vorian Logistics Logo"
               priority
-              className="dark:invert-0 invert"
+              className="dark:invert"
             />
           </Link>
         </div>
