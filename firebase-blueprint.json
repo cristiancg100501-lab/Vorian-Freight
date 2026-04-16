@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "User Profile",
+      "description": "Information about a user in the system.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the user." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "firstName": { "type": "string", "description": "The user's first name." },
+        "lastName": { "type": "string", "description": "The user's last name." },
+        "rut": { "type": "string", "description": "The user's RUT (Chilean ID)." },
+        "role": { "type": "string", "enum": ["admin", "client", "driver", "company"], "description": "The user's role." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the profile was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "When the profile was last updated." }
+      },
+      "required": ["id", "email", "firstName", "lastName", "role"]
+    },
+    "driverProfile": {
+      "title": "Driver Profile",
+      "description": "Information specific to a driver.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the driver (matches userId)." },
+        "userId": { "type": "string", "description": "The ID of the user." },
+        "rut": { "type": "string", "description": "The driver's RUT (Chilean ID)." },
+        "companyId": { "type": "string", "description": "The ID of the company the driver belongs to (optional)." },
+        "vehicleType": { "type": "string", "description": "The type of vehicle the driver uses." },
+        "licensePlate": { "type": "string", "description": "The vehicle's license plate." },
+        "isAvailable": { "type": "boolean", "description": "Whether the driver is currently available for jobs." },
+        "currentLatitude": { "type": "number", "description": "The driver's current latitude." },
+        "currentLongitude": { "type": "number", "description": "The driver's current longitude." },
+        "lastLocationUpdate": { "type": "string", "format": "date-time", "description": "When the location was last updated." }
+      },
+      "required": ["id", "userId", "vehicleType", "licensePlate", "isAvailable"]
+    },
+    "vehicle": {
+      "title": "Vehicle",
+      "description": "Information about a vehicle in a company's fleet.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the vehicle." },
+        "companyId": { "type": "string", "description": "The ID of the company that owns the vehicle." },
+        "make": { "type": "string", "description": "The make of the vehicle (e.g., Toyota)." },
+        "model": { "type": "string", "description": "The model of the vehicle (e.g., Hilux)." },
+        "year": { "type": "number", "description": "The year of the vehicle." },
+        "licensePlate": { "type": "string", "description": "The vehicle's license plate." },
+        "type": { "type": "string", "description": "The type of vehicle (e.g., Truck, Van)." },
+        "status": { "type": "string", "enum": ["active", "maintenance", "inactive"], "description": "The current status of the vehicle." }
+      },
+      "required": ["id", "companyId", "make", "model", "licensePlate", "type", "status"]
+    },
+    "pedido": {
+      "title": "Pedido (Load)",
+      "description": "Information about a load or shipment.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The unique ID of the load." },
+        "clientId": { "type": "string", "description": "The ID of the client who created the load." },
+        "origin": { "type": "string", "description": "The origin address." },
+        "destination": { "type": "string", "description": "The destination address." },
+        "originCoords": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "destinationCoords": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "status": { "type": "string", "enum": ["pending", "assigned", "in_transit", "delivered", "cancelled"], "description": "The current status of the load." },
+        "driverId": { "type": "string", "description": "The ID of the driver assigned to the load (optional)." },
+        "price": { "type": "number", "description": "The price of the shipment." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the load was created." }
+      },
+      "required": ["id", "clientId", "origin", "destination", "status", "price", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/userProfiles/{userId}": {
+      "schema": "userProfile",
+      "description": "User profile documents."
+    },
+    "/driverProfiles/{userId}": {
+      "schema": "driverProfile",
+      "description": "Driver profile documents."
+    },
+    "/vehicles/{vehicleId}": {
+      "schema": "vehicle",
+      "description": "Vehicle documents for company fleets."
+    },
+    "/pedidos/{pedidoId}": {
+      "schema": "pedido",
+      "description": "Load/shipment documents."
+    }
+  }
+}

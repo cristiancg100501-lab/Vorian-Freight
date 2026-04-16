@@ -1,0 +1,5 @@
+{
+  "name": "Vorian Logistics",
+  "description": "Plataforma de logística y transporte de carga con gestión de flota y conductores para empresas.",
+  "requestFramePermissions": ["geolocation"]
+}
