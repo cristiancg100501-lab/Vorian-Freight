@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { LocationHistoryPoint, MOCK_PLANNED_ROUTE } from "@/lib/mock-audit-data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Navigation, Truck, PackageCheck } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 export default function ShipmentAuditPlayerPage() {
   const { id } = useParams() as { id: string };
