@@ -218,9 +218,39 @@ export default function TollsCalculatorPage() {
         const mm = dateObj.getMinutes().toString().padStart(2, '0');
         const timeStr = `${hh}:${mm}`;
 
+        // LISTA DE FERIADOS NACIONALES (CHILE)
+        const isHoliday = (date: Date) => {
+            const m = date.getMonth() + 1;
+            const d = date.getDate();
+            const holidays = [
+                '1-1',   // Año Nuevo
+                '3-29',  // Viernes Santo
+                '3-30',  // Sábado Santo
+                '5-1',   // Día del Trabajo
+                '5-21',  // Glorias Navales
+                '6-20',  // Pueblos Originarios
+                '6-29',  // San Pedro y San Pablo
+                '7-16',  // Virgen del Carmen
+                '8-15',  // Asunción
+                '9-18',  // Fiestas Patrias
+                '9-19',  // Fiestas Patrias
+                '9-20',  // Fiestas Patrias
+                '10-12', // Encuentro Dos Mundos
+                '10-31', // Iglesias Evangélicas
+                '11-1',  // Todos los Santos
+                '12-8',  // Inmaculada Concepción
+                '12-25'  // Navidad
+            ];
+            return holidays.includes(`${m}-${d}`);
+        };
+
         const isSaturday = dateObj.getDay() === 6;
         const isSunday = dateObj.getDay() === 0;
-        const isWeekend = isSaturday || isSunday;
+        const isNationalHoliday = isHoliday(dateObj);
+        
+        // Si es feriado nacional, se comporta como Sábado según requerimiento
+        const treatsAsSaturday = isSaturday || isNationalHoliday;
+        const isWeekend = isSunday || treatsAsSaturday;
 
         const parsePrice = (val: any) => {
             if (val === null || val === undefined || val === '') return 0;
@@ -239,12 +269,16 @@ export default function TollsCalculatorPage() {
 
         const currentMinutes = timeToMinutes(timeStr);
 
-        const isInWindow = (windowsStr: string | null) => {
+        const isInWindow = (windowsStr: string | null, requireHolidayMark: boolean = false) => {
             if (!windowsStr || currentMinutes === null) return false;
             
             const bands = windowsStr.split('/').map(s => s.trim());
             for (const b of bands) {
-                const range = b.split('-').map(s => s.trim());
+                const hasHolidayMark = b.includes('[H]');
+                if (requireHolidayMark && !hasHolidayMark) continue;
+
+                const cleanBand = b.replace('[H]', '').trim();
+                const range = cleanBand.split('-').map(s => s.trim());
                 if (range.length !== 2) continue;
                 
                 const startMins = timeToMinutes(range[0]);
@@ -262,7 +296,15 @@ export default function TollsCalculatorPage() {
         }
 
         if (currentMinutes !== null) {
-            if (!isWeekend) {
+            if (isNationalHoliday) {
+                // Lógica Granular: Buscamos cualquier ventana marcada con [H] en cualquier día
+                if (isInWindow(data.ts_laboral, true) || isInWindow(data.ts_sabado, true) || isInWindow(data.ts_domingo, true)) {
+                    return { price: parsePrice(data.price_ts), tag: 'TS FERIADO', color: 'red-500' };
+                }
+                if (isInWindow(data.tbp_laboral, true) || isInWindow(data.tbp_sabado, true) || isInWindow(data.tbp_domingo, true)) {
+                    return { price: parsePrice(data.price_tbp), tag: 'TBP FERIADO', color: 'blue-500' };
+                }
+            } else if (!isWeekend) {
                 if (isInWindow(data.ts_laboral)) return { price: parsePrice(data.price_ts), tag: 'TS LABORAL', color: 'red-500' };
                 if (isInWindow(data.tbp_laboral)) return { price: parsePrice(data.price_tbp), tag: 'TBP LABORAL', color: 'amber-500' };
             } else if (isSaturday) {

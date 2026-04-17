@@ -127,16 +127,55 @@ const MatrixEditor = React.memo(({ category, tariffs, onTariffChange }: any) => 
         onTariffChange(category, field, windows.join(" / "));
     };
 
-    const WindowInput = ({ value, onChange, onRemove, placeholder }: any) => (
-        <div className="flex items-center gap-2 mb-1 group animate-in fade-in duration-200">
-            <OptimizedLocalInput value={value} onChange={(val: any) => onChange(val)} placeholder={placeholder} className="h-9 text-xs font-mono" />
-            <Button variant="ghost" size="icon" onClick={onRemove} className="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-        </div>
-    );
+    const WindowInput = ({ value, onChange, onRemove, placeholder }: any) => {
+        const isHoliday = value?.includes('[H]');
+        const displayValue = value?.replace('[H]', '').trim();
+
+        const toggleHoliday = () => {
+            if (isHoliday) {
+                onChange(displayValue);
+            } else {
+                onChange(`${displayValue} [H]`);
+            }
+        };
+
+        return (
+            <div className={`flex items-center gap-2 mb-1 group animate-in fade-in duration-200 p-1.5 rounded-lg border transition-all ${isHoliday ? 'bg-orange-500/5 border-orange-500/30' : 'border-transparent'}`}>
+                <div className="relative flex-1">
+                    <OptimizedLocalInput 
+                        value={displayValue} 
+                        onChange={(val: any) => onChange(isHoliday ? `${val} [H]` : val)} 
+                        placeholder={placeholder} 
+                        className={`h-9 text-xs font-mono shadow-none border-none bg-transparent focus-visible:ring-0 ${isHoliday ? 'text-orange-700 font-bold' : ''}`} 
+                    />
+                    {isHoliday && (
+                        <Badge className="absolute -top-3 -left-1 bg-orange-500 text-[8px] h-4 px-1 pointer-events-none shadow-sm">FERIADO</Badge>
+                    )}
+                </div>
+                
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={toggleHoliday} 
+                    className={`h-8 w-8 rounded-md shrink-0 transition-colors ${isHoliday ? 'text-orange-500 bg-orange-500/10' : 'text-muted-foreground/30 hover:text-orange-500'}`}
+                    title="Activar para Feriados"
+                >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                </Button>
+
+                <Button variant="ghost" size="icon" onClick={onRemove} className="h-8 w-8 text-muted-foreground/30 hover:text-destructive shrink-0"><Trash2 className="h-3.5 w-3.5" /></Button>
+            </div>
+        );
+    };
 
     const ScheduleGroup = ({ title, field, icon: Icon, colorClass, windows, onUpdate }: any) => (
         <TableRow>
-            <TableCell className={`font-bold flex items-center gap-2 text-[10px] md:text-sm ${colorClass}`}><Icon className="h-3.5 w-3.5" /> {title}</TableCell>
+            <TableCell className={`font-bold py-4 ${colorClass}`}>
+                <div className="flex items-center gap-3">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[10px] md:text-sm uppercase tracking-tight">{title}</span>
+                </div>
+            </TableCell>
             <TableCell>
                 <div className="flex flex-col gap-1">
                     {windows.map((w: string, idx: number) => (
@@ -173,12 +212,15 @@ const MatrixEditor = React.memo(({ category, tariffs, onTariffChange }: any) => 
 
             <Table>
                 <TableHeader>
-                    <TableRow><TableHead className="w-[180px]">TARIFA</TableHead><TableHead>VENTANAS HORARIAS</TableHead></TableRow>
+                    <TableRow><TableHead className="w-[180px]">TARIFA / DÍA</TableHead><TableHead>VENTANAS HORARIAS</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
                     <ScheduleGroup title="TS LABORAL" field="ts_laboral" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_laboral")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TS SÁBADO" field="ts_sabado" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_sabado")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TS DOMINGO" field="ts_domingo" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_domingo")} onUpdate={updateWindows} />
+                    
+                    <TableRow className="bg-muted/30 h-1"><TableCell colSpan={2} className="p-0"></TableCell></TableRow>
+
                     <ScheduleGroup title="TBP LABORAL" field="tbp_laboral" icon={Clock3} colorClass="text-yellow-600" windows={getWindows("tbp_laboral")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TBP SÁBADO" field="tbp_sabado" icon={CalendarDays} colorClass="text-blue-500" windows={getWindows("tbp_sabado")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TBP DOMINGO" field="tbp_domingo" icon={CalendarDays} colorClass="text-blue-700" windows={getWindows("tbp_domingo")} onUpdate={updateWindows} />
@@ -294,25 +336,30 @@ export default function TollRatesMatrixPage() {
 
   const normalizeTimeFormat = (val: string) => {
       if (!val) return null;
+      const isHoliday = val.includes('[H]');
+      
       // 1. Replace dots with colon
-      let cleaned = val.replace(/\./g, ':').trim();
+      let cleaned = val.replace(/\[H\]/g, '').replace(/\./g, ':').trim();
       
       // 2. Handle ranges (HH:MM-HH:MM or HH:MMHH:MM)
       // Attempt to find two time patterns
       const timeRegex = /(\d{1,2})[:](\d{1,2})/g;
       const matches = [...cleaned.matchAll(timeRegex)];
       
+      let result = cleaned;
       if (matches.length === 2) {
           const format = (m: any) => {
               const h = m[1].padStart(2, '0');
               const min = m[2].padStart(2, '0');
               return `${h}:${min}`;
           };
-          return `${format(matches[0])} - ${format(matches[1])}`;
+          result = `${format(matches[0])} - ${format(matches[1])}`;
+      } else {
+          // Fallback for single time or malformed (just cleaning spaces)
+          result = cleaned.replace(/\s+/g, '');
       }
-      
-      // Fallback for single time or malformed (just cleaning spaces)
-      return cleaned.replace(/\s+/g, '');
+
+      return isHoliday ? `${result} [H]` : result;
   };
 
   const handleSave = async () => {
