@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Navigation, Truck, PackageCheck } from "lucide-react";
 import { useCallback, useMemo } from "react";
 
+// Re-forcing build to ensure useMemo is recognized by Vercel
+
 export default function ShipmentAuditPlayerPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
