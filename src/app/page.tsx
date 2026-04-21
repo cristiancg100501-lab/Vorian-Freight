@@ -202,13 +202,7 @@ export default function Home() {
     <div className={cn("min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500", resolvedTheme === 'light' ? 'bg-white' : 'bg-black')}>
       {/* Background with dynamic map */}
       <div className="absolute inset-0 h-full w-full">
-        <LoginMap />
-        <div className={cn(
-          "absolute inset-0 h-full w-full transition-opacity duration-700",
-          resolvedTheme === 'light' 
-            ? "bg-gradient-to-b from-white/40 via-white/80 to-white opacity-90" 
-            : "bg-gradient-to-b from-black/40 via-black/60 to-black opacity-100"
-        )} />
+        <LoginMap theme={resolvedTheme} key={resolvedTheme} />
       </div>
       
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
@@ -218,16 +212,7 @@ export default function Home() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[440px] relative"
         >
-          {/* Subtle glow behind the card */}
-          <div className={cn(
-            "absolute -inset-1 blur-2xl rounded-[2rem] opacity-50",
-            resolvedTheme === 'light' ? 'bg-gradient-to-r from-black/5 to-black/10' : 'bg-gradient-to-r from-white/5 to-white/10'
-          )} />
-          
-          <div className={cn(
-            "relative rounded-[2rem] border shadow-2xl backdrop-blur-2xl overflow-hidden transition-all duration-500",
-            resolvedTheme === 'light' ? 'bg-white/70 border-black/5 text-slate-900' : 'bg-black/40 border-white/10 text-white'
-          )}>
+          <div className="relative rounded-[2rem] border border-border/10 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-500 bg-background/70 text-foreground">
             <div className="p-8 md:p-12">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -241,9 +226,9 @@ export default function Home() {
                   height={45}
                   alt="Vorian Logistics Logo"
                   className={cn(
-                    "transition-all duration-300", 
+                    "transition-all duration-300 drop-shadow-md", 
                     !mounted && "opacity-0",
-                    resolvedTheme === 'light' && "invert"
+                    "dark:invert"
                   )}
                   priority
                   unoptimized
@@ -256,10 +241,10 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <h1 className="text-3xl font-light tracking-tight text-white/90">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">
                   Bienvenido
                 </h1>
-                <p className="text-white/40 mt-2 font-light text-sm">
+                <p className="text-muted-foreground mt-2 font-medium text-sm">
                   Inicia sesión para acceder a tu panel de control.
                 </p>
               </motion.div>
@@ -271,7 +256,7 @@ export default function Home() {
                   transition={{ delay: 0.4 }}
                   className="space-y-2"
                 >
-                  <Label htmlFor="email" className="text-xs font-medium uppercase tracking-widest text-white/40 ml-1">
+                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
                     Email o RUT
                   </Label>
                   <Input
@@ -281,7 +266,7 @@ export default function Home() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nombre@empresa.com o 12.345.678-9"
                     required
-                    className="h-12 rounded-xl border-white/5 bg-white/[0.03] px-4 text-white placeholder:text-white/20 focus:border-white/20 focus:bg-white/[0.05] focus:ring-0 transition-all duration-300"
+                    className="h-12 rounded-xl border-border bg-background/50 px-4 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
                   />
                 </motion.div>
                 
@@ -292,10 +277,10 @@ export default function Home() {
                   className="space-y-2"
                 >
                   <div className="flex justify-between items-center px-1">
-                    <Label htmlFor="password" className="text-xs font-medium uppercase tracking-widest text-white/40">
+                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                       Contraseña
                     </Label>
-                    <Link href="#" className="text-[10px] font-medium uppercase tracking-widest text-white/30 hover:text-white/60 transition-colors">
+                    <Link href="#" className="flex hover:underline opacity-60 hover:opacity-100 text-[10px] font-bold uppercase tracking-widest text-primary transition-all">
                       ¿Olvidaste?
                     </Link>
                   </div>
@@ -307,12 +292,12 @@ export default function Home() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="h-12 rounded-xl border-white/5 bg-white/[0.03] px-4 pr-12 text-white placeholder:text-white/20 focus:border-white/20 focus:bg-white/[0.05] focus:ring-0 transition-all duration-300"
+                      className="h-12 rounded-xl border-border bg-background/50 px-4 pr-12 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -325,7 +310,7 @@ export default function Home() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="text-red-400/80 text-xs font-light px-1"
+                      className="text-destructive font-semibold text-xs px-1"
                     >
                       {error}
                     </motion.p>
@@ -339,14 +324,11 @@ export default function Home() {
                 >
                   <Button
                     type="submit"
-                    className={cn(
-                      "w-full h-14 rounded-xl font-semibold text-sm transition-all duration-300 group flex items-center justify-center gap-2",
-                      resolvedTheme === 'light' ? "bg-black text-white hover:bg-black/90" : "bg-white text-black hover:bg-white/90"
-                    )}
+                    className="w-full h-14 rounded-xl font-bold text-sm bg-foreground hover:bg-foreground/90 text-background shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="h-5 w-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                      <div className="h-5 w-5 border-2 border-background/20 border-t-background rounded-full animate-spin" />
                     ) : (
                       <>
                         Entrar
@@ -362,13 +344,13 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="border-t border-white/5 bg-white/[0.02] p-6 text-center"
+              className="border-t border-border/50 bg-muted/30 p-6 text-center backdrop-blur-md"
             >
-              <p className="text-xs text-white/30 font-light tracking-wide">
+              <p className="text-xs text-muted-foreground font-semibold tracking-wide">
                 ¿Aún no eres parte?{" "}
                 <Link
                   href="/signup"
-                  className="font-medium text-white/60 hover:text-white transition-colors underline underline-offset-4"
+                  className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
                 >
                   Crea una cuenta
                 </Link>
@@ -376,9 +358,6 @@ export default function Home() {
             </motion.div>
           </div>
           
-          {/* Decorative elements */}
-          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 blur-3xl rounded-full pointer-events-none" />
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/5 blur-3xl rounded-full pointer-events-none" />
         </motion.div>
       </main>
     </div>

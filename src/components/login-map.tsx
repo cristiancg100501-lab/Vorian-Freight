@@ -5,7 +5,7 @@ import mapboxgl from 'mapbox-gl';
 
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 
-export function LoginMap() {
+export function LoginMap({ theme }: { theme?: string }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const animationFrameId = useRef<number | null>(null);
@@ -24,7 +24,7 @@ export function LoginMap() {
     // Initialize map
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: theme === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11',
       zoom: 12,
       center: [-70.6693, -33.4489],
       interactive: true,
@@ -99,6 +99,8 @@ export function LoginMap() {
           if (!map.current || routes.length === 0) return;
           const mapInstance = map.current;
 
+          const particleColor = theme === 'light' ? '#000000' : '#FFFFFF';
+
           // Source for the faint route lines (the "trails")
           mapInstance.addSource('routes-lines', {
               'type': 'geojson',
@@ -111,7 +113,7 @@ export function LoginMap() {
               'type': 'line',
               'source': 'routes-lines',
               'paint': { 
-                  'line-color': '#FFFFFF', 
+                  'line-color': particleColor, 
                   'line-width': 1, 
                   'line-opacity': 0.3 // Slightly more visible trail
               }
@@ -142,7 +144,7 @@ export function LoginMap() {
               'type': 'circle',
               'paint': { 
                   'circle-radius': 7,
-                  'circle-color': '#FFFFFF',
+                  'circle-color': particleColor,
                   'circle-opacity': 0.2, // Low opacity for the glow
                   'circle-blur': 2.5 // Increased blur
               }
@@ -155,7 +157,7 @@ export function LoginMap() {
               'type': 'circle',
               'paint': { 
                   'circle-radius': 1.5,
-                  'circle-color': '#FFFFFF',
+                  'circle-color': particleColor,
                   'circle-opacity': 1 // Solid core
               }
           });
