@@ -98,6 +98,17 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
     }, 200);
 
     mapInstance.on("load", () => {
+        const layers = mapInstance.getStyle()?.layers || [];
+        for (const layer of layers) {
+            if (
+                layer.id.includes('poi') || 
+                layer.id.includes('building') || 
+                layer.id.includes('park') ||
+                layer.id.includes('landuse')
+            ) {
+                mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
+            }
+        }
       // 1. Add Origin and Destination Markers
       if (originCoords) {
         const el = document.createElement('div');
@@ -215,6 +226,18 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
     const handleStyleLoad = () => {
       const m = map.current;
       if (!m) return;
+
+        const layers = m.getStyle()?.layers || [];
+        for (const layer of layers) {
+            if (
+                layer.id.includes('poi') || 
+                layer.id.includes('building') || 
+                layer.id.includes('park') ||
+                layer.id.includes('landuse')
+            ) {
+                m.setLayoutProperty(layer.id, 'visibility', 'none');
+            }
+        }
 
       const currentDisplayHistory = fakeRouteHistoryRef.current || history;
       const actualCoords = currentDisplayHistory.map((pt) => [pt.longitude, pt.latitude]);

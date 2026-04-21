@@ -21,6 +21,8 @@ export function SignUpForm() {
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState("client");
   const [vehicleType, setVehicleType] = useState("Auto");
+  const [companyName, setCompanyName] = useState("");
+  const [companyRut, setCompanyRut] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,25 @@ export function SignUpForm() {
 
         if (driverError) {
           console.error("Error al insertar perfil de conductor:", driverError);
-          // Non-critical error, the user is already created
+        }
+      }
+
+      if (role === "company") {
+        // Wait a bit for the trigger to finish userProfiles creation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log("Intentando crear perfil de empresa...");
+        const { error: companyError } = await supabase.from("companyProfiles").insert({
+          id: user.id, // Usually companies use the same ID as userId
+          userId: user.id,
+          companyName: companyName,
+          rut: companyRut,
+          address: "Por completar", // Placeholder
+          vehicleTypes: []
+        });
+
+        if (companyError) {
+          console.error("Error al insertar perfil de empresa:", companyError);
         }
       }
 
@@ -90,8 +110,15 @@ export function SignUpForm() {
 
     } catch (err: any) {
       console.error("Error completo en handleSignUp:", err);
-      const errorMessage =
-        err.message || "Error al crear la cuenta. El correo electrónico podría estar ya en uso.";
+      
+      let errorMessage = "Error al crear la cuenta. Inténtelo de nuevo.";
+      
+      if (err.message?.includes("already registered") || err.code === "user_already_exists") {
+        errorMessage = "Este correo electrónico ya está registrado. Por favor, intenta iniciar sesión.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -170,6 +197,7 @@ export function SignUpForm() {
             <SelectContent className="bg-popover border text-popover-foreground">
               <SelectItem value="client">Cliente</SelectItem>
               <SelectItem value="driver">Conductor</SelectItem>
+              <SelectItem value="company">Empresa (Transportista)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -193,6 +221,40 @@ export function SignUpForm() {
             </Select>
           </div>
         )}
+
+        {role === 'company' && (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="companyName" className="text-muted-foreground font-medium">
+                Nombre de la Empresa
+              </Label>
+              <Input
+                id="companyName"
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Transportes Vorian S.A."
+                required
+                className="mt-2 bg-background border h-12"
+              />
+            </div>
+            <div>
+              <Label htmlFor="companyRut" className="text-muted-foreground font-medium">
+                RUT de la Empresa
+              </Label>
+              <Input
+                id="companyRut"
+                type="text"
+                value={companyRut}
+                onChange={(e) => setCompanyRut(e.target.value)}
+                placeholder="76.123.456-7"
+                required
+                className="mt-2 bg-background border h-12"
+              />
+            </div>
+          </div>
+        )}
+
         {error && <p className="text-destructive text-sm bg-destructive/10 p-3 rounded-md border border-destructive/20">{error}</p>}
         
         {success && (

@@ -14,12 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const { supabase } = useSupabase();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -192,11 +199,16 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full text-foreground relative overflow-hidden bg-black">
+    <div className={cn("min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500", resolvedTheme === 'light' ? 'bg-white' : 'bg-black')}>
       {/* Background with dynamic map */}
       <div className="absolute inset-0 h-full w-full">
         <LoginMap />
-        <div className="absolute inset-0 h-full w-full bg-gradient-to-b from-black/40 via-black/60 to-black" />
+        <div className={cn(
+          "absolute inset-0 h-full w-full transition-opacity duration-700",
+          resolvedTheme === 'light' 
+            ? "bg-gradient-to-b from-white/40 via-white/80 to-white opacity-90" 
+            : "bg-gradient-to-b from-black/40 via-black/60 to-black opacity-100"
+        )} />
       </div>
       
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
@@ -207,9 +219,15 @@ export default function Home() {
           className="w-full max-w-[440px] relative"
         >
           {/* Subtle glow behind the card */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-white/5 to-white/10 blur-2xl rounded-[2rem] opacity-50" />
+          <div className={cn(
+            "absolute -inset-1 blur-2xl rounded-[2rem] opacity-50",
+            resolvedTheme === 'light' ? 'bg-gradient-to-r from-black/5 to-black/10' : 'bg-gradient-to-r from-white/5 to-white/10'
+          )} />
           
-          <div className="relative rounded-[2rem] border border-white/10 bg-black/40 text-white shadow-2xl backdrop-blur-2xl overflow-hidden">
+          <div className={cn(
+            "relative rounded-[2rem] border shadow-2xl backdrop-blur-2xl overflow-hidden transition-all duration-500",
+            resolvedTheme === 'light' ? 'bg-white/70 border-black/5 text-slate-900' : 'bg-black/40 border-white/10 text-white'
+          )}>
             <div className="p-8 md:p-12">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -218,10 +236,15 @@ export default function Home() {
                 className="flex justify-center mb-10"
               >
                 <Image
-                  src="https://firebasestorage.googleapis.com/v0/b/studio-821157708-eec98.firebasestorage.app/o/assets%2FAdd_a_heading__2___1_-removebg-preview.png?alt=media&token=b87ae379-ebfb-423e-a3a1-b4b2d902444b"
+                  src="/logo-white.png"
                   width={180}
                   height={45}
                   alt="Vorian Logistics Logo"
+                  className={cn(
+                    "transition-all duration-300", 
+                    !mounted && "opacity-0",
+                    resolvedTheme === 'light' && "invert"
+                  )}
                   priority
                   unoptimized
                   referrerPolicy="no-referrer"
@@ -316,7 +339,10 @@ export default function Home() {
                 >
                   <Button
                     type="submit"
-                    className="w-full h-14 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition-all duration-300 group flex items-center justify-center gap-2"
+                    className={cn(
+                      "w-full h-14 rounded-xl font-semibold text-sm transition-all duration-300 group flex items-center justify-center gap-2",
+                      resolvedTheme === 'light' ? "bg-black text-white hover:bg-black/90" : "bg-white text-black hover:bg-white/90"
+                    )}
                     disabled={isLoading}
                   >
                     {isLoading ? (

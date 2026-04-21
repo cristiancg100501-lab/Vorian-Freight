@@ -18,7 +18,8 @@ import {
   Waypoints,
   Activity,
   Map,
-  FileUp
+  FileUp,
+  Mail
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -46,6 +47,7 @@ const adminNavItems: NavItem[] = [
   { group: "OTROS", href: "/admin/rates/tolls-import", icon: FileUp, label: "Importador GeoJSON" },
   { group: "OTROS", href: "/admin/rates/tolls-calculator", icon: Waypoints, label: "Simulador de Rutas" },
   { group: "OTROS", href: "/admin/rates", icon: DollarSign, label: "APIs y tarifas" },
+  { group: "OTROS", href: "/admin/testing", icon: Mail, label: "Simulador Mails" },
   { group: "OTROS", href: "/admin/reportes", icon: LineChart, label: "Reportes" },
 ];
 
@@ -153,16 +155,15 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                 <Truck className="h-6 w-6" />
             ) : (
                 <Image
-                src="https://firebasestorage.googleapis.com/v0/b/studio-821157708-eec98.firebasestorage.app/o/assets%2FAdd_a_heading__2___1_-removebg-preview.png?alt=media&token=b87ae379-ebfb-423e-a3a1-b4b2d902444b"
+                src="/logo-white.png"
                 width={140}
                 height={40}
                 alt="Vorian Logistics Logo"
-                className={cn("transition-all duration-300", !mounted && "opacity-0")}
-                style={{
-                  filter: mounted && resolvedTheme === 'light' 
-                    ? 'invert(1)' 
-                    : 'none'
-                }}
+                className={cn(
+                  "transition-all duration-300", 
+                  !mounted && "opacity-0",
+                  resolvedTheme === 'light' && "invert"
+                )}
                 priority
                 unoptimized
                 referrerPolicy="no-referrer"

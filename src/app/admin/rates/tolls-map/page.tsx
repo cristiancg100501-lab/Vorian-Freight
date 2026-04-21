@@ -8,9 +8,12 @@ import { useSupabase } from "@/components/providers/supabase-provider";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Maximize2, Zap, Clock3, CalendarDays, Loader2, Navigation, PenSquare } from "lucide-react";
+import { MapPin, Maximize2, Zap, Clock3, CalendarDays, Loader2, Navigation, PenSquare, Save, Plus, Info, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 
@@ -22,6 +25,7 @@ interface Portico {
     longitude: number;
     is_active: boolean;
     tariffs_json: any;
+    concession_name?: string;
 }
 
 export default function TollsMapPage() {
@@ -34,6 +38,16 @@ export default function TollsMapPage() {
     const [porticos, setPorticos] = useState<Portico[]>([]);
     const [selectedPorticoId, setSelectedPorticoId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDraggingPortico, setIsDraggingPortico] = useState(false);
+    const [draggedCoords, setDraggedCoords] = useState<{lat: number, lng: number} | null>(null);
+    const [isSavingPosition, setIsSavingPosition] = useState(false);
+    
+    // Create Portico State
+    const [isAddingPortico, setIsAddingPortico] = useState(false);
+    const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [newPorticoData, setNewPorticoData] = useState({ name: "", reference_code: "", latitude: 0, longitude: 0, concession_name: "" });
+    const [isCreating, setIsCreating] = useState(false);
+    
     const router = useRouter();
 
     const fetchPorticos = async () => {
@@ -41,7 +55,7 @@ export default function TollsMapPage() {
         // Get all porticos
         const { data, error } = await supabase
             .from("porticos")
-            .select("*");
+            .select("*, concession_name");
             
         if (!error && data) {
             setPorticos(data);
@@ -66,6 +80,20 @@ export default function TollsMapPage() {
 
         // Add Navigation controls
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        map.current.on('style.load', () => {
+            const layers = map.current?.getStyle()?.layers || [];
+            for (const layer of layers) {
+                if (
+                    layer.id.includes('poi') || 
+                    layer.id.includes('building') || 
+                    layer.id.includes('park') ||
+                    layer.id.includes('landuse')
+                ) {
+                    map.current?.setLayoutProperty(layer.id, 'visibility', 'none');
+                }
+            }
+        });
 
         return () => {
             map.current?.remove();
@@ -105,9 +133,14 @@ export default function TollsMapPage() {
             bounds.extend([portico.longitude, portico.latitude]);
             
             const isSelected = selectedPorticoId === portico.id;
+            const isAVO = portico.concession_name === 'AVO';
+            const isRuta78 = portico.concession_name === 'Ruta 78';
             const hasTariffs = portico.tariffs_json && typeof portico.tariffs_json === 'object' && Object.keys(portico.tariffs_json).length > 0;
+            
             const markerColorClass = isSelected 
                 ? "bg-purple-500 scale-150 z-50 ring-4 ring-purple-500/30" 
+                : isAVO ? "bg-yellow-500 hover:scale-110 shadow-[0_0_15px_rgba(250,204,21,0.5)]"
+                : isRuta78 ? "bg-blue-500 hover:scale-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                 : hasTariffs ? "bg-green-500 hover:scale-110" : "bg-red-500 hover:scale-110";
 
             let marker = markersRef.current.get(portico.id);
@@ -139,7 +172,7 @@ export default function TollsMapPage() {
                     setSelectedPorticoId(portico.id);
                 });
 
-                const newMarker = new mapboxgl.Marker(el)
+                const newMarker = new mapboxgl.Marker({ element: el })
                     .setLngLat([portico.longitude, portico.latitude])
                     .addTo(mapInstance);
                     
@@ -167,6 +200,164 @@ export default function TollsMapPage() {
             }
         }
     }, [selectedPorticoId, porticos]);
+    
+    // Handle Toggle Draggable for Selected Portico
+    useEffect(() => {
+        if (!map.current || !selectedPorticoId) return;
+        
+        const marker = markersRef.current.get(selectedPorticoId);
+        if (!marker) return;
+
+        if (isDraggingPortico) {
+            marker.setDraggable(true);
+            
+            // Listen for drag events
+            const onDrag = () => {
+                const lngLat = marker.getLngLat();
+                setDraggedCoords({ lat: lngLat.lat, lng: lngLat.lng });
+            };
+            
+            marker.on('drag', onDrag);
+            return () => {
+                marker.setDraggable(false);
+                marker.off('drag', onDrag);
+            };
+        } else {
+            marker.setDraggable(false);
+        }
+    }, [isDraggingPortico, selectedPorticoId]);
+
+    // Handle Map Click for New Portico
+    useEffect(() => {
+        if (!map.current || !isAddingPortico) return;
+
+        const mapInstance = map.current;
+        mapInstance.getCanvas().style.cursor = 'crosshair';
+
+        const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+            const { lng, lat } = e.lngLat;
+            setNewPorticoData({
+                name: "",
+                reference_code: "",
+                latitude: lat,
+                longitude: lng,
+                concession_name: ""
+            });
+            setIsAddingPortico(false);
+            setShowCreateDialog(true);
+        };
+
+        mapInstance.on('click', handleMapClick);
+
+        return () => {
+            mapInstance.off('click', handleMapClick);
+            mapInstance.getCanvas().style.cursor = '';
+        };
+    }, [isAddingPortico]);
+
+    const handleCreatePortico = async () => {
+        if (!newPorticoData.name || !newPorticoData.reference_code) {
+            alert("Nombre y Código son obligatorios");
+            return;
+        }
+
+        if (isNaN(newPorticoData.latitude) || isNaN(newPorticoData.longitude)) {
+            alert("Las coordenadas deben ser números válidos");
+            return;
+        }
+
+        setIsCreating(true);
+        try {
+            const { data, error } = await supabase
+                .from('porticos')
+                .insert({
+                    name: newPorticoData.name,
+                    reference_code: newPorticoData.reference_code,
+                    latitude: Number(newPorticoData.latitude),
+                    longitude: Number(newPorticoData.longitude),
+                    concession_name: newPorticoData.concession_name || null,
+                    is_active: true,
+                    tariffs_json: { cat1: {}, cat2: {}, cat3: {} },
+                    location: `SRID=4326;POINT(${newPorticoData.longitude} ${newPorticoData.latitude})`
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Refresh and select
+            await fetchPorticos();
+            setShowCreateDialog(false);
+            if (data) setSelectedPorticoId(data.id);
+            
+        } catch (err) {
+            console.error("Error creating portico:", err);
+            alert("Error al crear el pórtico");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleAddClick = () => {
+        const center = map.current?.getCenter() || { lng: -70.6693, lat: -33.4489 };
+        setNewPorticoData({
+            name: "",
+            reference_code: "",
+            latitude: center.lat,
+            longitude: center.lng,
+            concession_name: ""
+        });
+        setShowCreateDialog(true);
+    };
+
+    const handlePickFromMap = () => {
+        setShowCreateDialog(false);
+        setIsAddingPortico(true);
+    };
+
+    const handleStartDragging = () => {
+        if (!selectedPortico) return;
+        setDraggedCoords({ lat: selectedPortico.latitude, lng: selectedPortico.longitude });
+        setIsDraggingPortico(true);
+    };
+
+    const handleCancelDragging = () => {
+        if (!selectedPorticoId) return;
+        const marker = markersRef.current.get(selectedPorticoId);
+        if (marker && selectedPortico) {
+            marker.setLngLat([selectedPortico.longitude, selectedPortico.latitude]);
+        }
+        setIsDraggingPortico(false);
+        setDraggedCoords(null);
+    };
+
+    const handleSavePosition = async () => {
+        if (!selectedPorticoId || !draggedCoords) return;
+        
+        setIsSavingPosition(true);
+        try {
+            const { error } = await supabase
+                .from('porticos')
+                .update({
+                    latitude: draggedCoords.lat,
+                    longitude: draggedCoords.lng,
+                    location: `SRID=4326;POINT(${draggedCoords.lng} ${draggedCoords.lat})`
+                })
+                .eq('id', selectedPorticoId);
+
+            if (error) throw error;
+            
+            // Success
+            await fetchPorticos();
+            setIsDraggingPortico(false);
+            setDraggedCoords(null);
+        } catch (err) {
+            console.error("Error saving position:", err);
+            alert("Error al guardar la nueva ubicación");
+        } finally {
+            setIsSavingPosition(false);
+        }
+    };
 
     const selectedPortico = useMemo(() => {
         return porticos.find(p => p.id === selectedPorticoId) || null;
@@ -263,6 +454,41 @@ export default function TollsMapPage() {
             <div className="flex-1 w-full bg-muted mt-16" ref={mapContainer} />
 
             {/* Detail Panel */}
+            {/* Instrucciones Modo Añadir */}
+            <AnimatePresence>
+                {isAddingPortico && (
+                    <motion.div 
+                        initial={{ y: -100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -100, opacity: 0 }}
+                        className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+                    >
+                        <div className="bg-primary text-primary-foreground px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-white/20 backdrop-blur-md">
+                            <MapPin className="h-5 w-5 animate-bounce" />
+                            <span className="text-sm font-black uppercase tracking-widest">Haz clic en el mapa para situar el nuevo pórtico</span>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setIsAddingPortico(false)}
+                                className="h-6 w-6 rounded-full hover:bg-white/20 pointer-events-auto ml-2"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Floating Action Buttons */}
+            <div className="absolute top-24 right-6 z-20 flex flex-col gap-2">
+                <Button 
+                    onClick={handleAddClick}
+                    className="h-12 w-12 rounded-full shadow-xl bg-primary hover:bg-primary/90 transition-all duration-300"
+                >
+                    <Plus className="h-6 w-6" />
+                </Button>
+            </div>
+
             <AnimatePresence>
                 {selectedPortico && (
                     <motion.div
@@ -278,6 +504,12 @@ export default function TollsMapPage() {
                                         <CardTitle className="text-lg font-black uppercase leading-tight">{selectedPortico.name}</CardTitle>
                                         <div className="text-sm text-muted-foreground font-mono flex items-center gap-2">
                                             <Badge variant="secondary" className="text-[10px]">{selectedPortico.reference_code}</Badge>
+                                            {selectedPortico.concession_name === 'AVO' && (
+                                                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200 text-[9px] font-bold uppercase">AVO</Badge>
+                                            )}
+                                            {selectedPortico.concession_name === 'Ruta 78' && (
+                                                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200 text-[9px] font-bold uppercase">Ruta 78</Badge>
+                                            )}
                                             {selectedPortico.is_active ? 
                                                 <span className="text-green-500 font-bold uppercase text-[9px]">Activo</span> : 
                                                 <span className="text-red-500 font-bold uppercase text-[9px]">Inactivo</span>
@@ -285,7 +517,10 @@ export default function TollsMapPage() {
                                         </div>
                                     </div>
                                     <button 
-                                        onClick={() => setSelectedPorticoId(null)}
+                                        onClick={() => {
+                                            if (isDraggingPortico) handleCancelDragging();
+                                            setSelectedPorticoId(null);
+                                        }}
                                         className="p-1.5 hover:bg-muted rounded-full transition-colors shrink-0 absolute right-4 top-4"
                                     >
                                         <Maximize2 className="h-4 w-4 text-muted-foreground" />
@@ -293,22 +528,82 @@ export default function TollsMapPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-4 px-5">
-                                <div className="flex items-center gap-2 mb-4 bg-primary/5 p-2 rounded-lg border border-primary/10">
-                                    <Navigation className="h-4 w-4 text-primary shrink-0" />
-                                    <div className="text-[10px] font-mono opacity-80 grid gap-0.5">
-                                        <span>Lat: {selectedPortico.latitude}</span>
-                                        <span>Lng: {selectedPortico.longitude}</span>
+                                <div className={`flex items-center gap-2 mb-4 p-2 rounded-lg border transition-all ${isDraggingPortico ? 'bg-yellow-500/10 border-yellow-500/50 animate-pulse' : 'bg-primary/5 border-primary/10'}`}>
+                                    <Navigation className={`h-4 w-4 shrink-0 ${isDraggingPortico ? 'text-yellow-600' : 'text-primary'}`} />
+                                    <div className="text-[10px] font-mono opacity-80 grid gap-0.5 flex-1">
+                                        <div className="flex justify-between">
+                                            <span>Lat:</span>
+                                            <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
+                                                {isDraggingPortico ? draggedCoords?.lat.toFixed(6) : selectedPortico.latitude}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Lng:</span>
+                                            <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
+                                                {isDraggingPortico ? draggedCoords?.lng.toFixed(6) : selectedPortico.longitude}
+                                            </span>
+                                        </div>
                                     </div>
+                                    {isDraggingPortico && <Badge className="bg-yellow-500 text-[8px] h-4">MOVIENDO</Badge>}
                                 </div>
+
+                                {selectedPortico.concession_name === 'AVO' && (
+                                    <div className="mb-4 bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-lg border border-yellow-200 dark:border-yellow-900/20">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Clock3 className="h-4 w-4 text-yellow-600" />
+                                            <span className="text-xs font-bold text-yellow-700 uppercase">Horario Punta (TBP)</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-yellow-800 dark:text-yellow-200">
+                                            <div className="bg-yellow-100/50 dark:bg-yellow-900/20 p-1.5 rounded text-center">07:30 - 09:30</div>
+                                            <div className="bg-yellow-100/50 dark:bg-yellow-900/20 p-1.5 rounded text-center">17:30 - 19:30</div>
+                                        </div>
+                                        <p className="text-[9px] mt-2 text-yellow-600 italic">Tarifas aplicables según matriz de tramos AVO</p>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                     {renderTariffDetails(selectedPortico.tariffs_json?.cat1, "Ligeros (CAT 1)")}
                                     {renderTariffDetails(selectedPortico.tariffs_json?.cat2, "Medianos (CAT 2)")}
                                     {renderTariffDetails(selectedPortico.tariffs_json?.cat3, "Pesados (CAT 3)")}
                                 </div>
-                                <Button className="w-full mt-4" onClick={() => router.push(`/admin/rates/tolls?id=${selectedPortico.id}`)}>
-                                    <PenSquare className="w-4 h-4 mr-2" /> Editar Tarifas y Horarios
-                                </Button>
+                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                    {isDraggingPortico ? (
+                                        <>
+                                            <Button 
+                                                variant="outline"
+                                                onClick={handleCancelDragging}
+                                                className="uppercase text-[10px] font-black"
+                                                disabled={isSavingPosition}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                            <Button 
+                                                onClick={handleSavePosition}
+                                                className="bg-yellow-500 hover:bg-yellow-600 text-white uppercase text-[10px] font-black"
+                                                disabled={isSavingPosition}
+                                            >
+                                                {isSavingPosition ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Save className="h-3 w-3 mr-2" />}
+                                                Guardar
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Button 
+                                                variant="outline"
+                                                onClick={handleStartDragging}
+                                                className="uppercase text-[10px] font-black"
+                                            >
+                                                <Maximize2 className="h-3 w-3 mr-2" /> Mover
+                                            </Button>
+                                            <Button 
+                                                onClick={() => router.push(`/admin/rates/tolls?id=${selectedPortico.id}`)}
+                                                className="uppercase text-[10px] font-black"
+                                            >
+                                                <PenSquare className="h-3 w-3 mr-2" /> Editar
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -323,12 +618,124 @@ export default function TollsMapPage() {
                         <span className="text-[10px] font-bold uppercase text-muted-foreground">Tarifa Configurada</span>
                     </div>
                     <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-yellow-500 border border-background shadow-sm" />
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Concesión AVO</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full bg-blue-500 border border-background shadow-sm" />
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Ruta 78</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-red-500 border border-background shadow-sm" />
                         <span className="text-[10px] font-bold uppercase text-muted-foreground">Sin Configurar</span>
                     </div>
                 </div>
             </div>
             
+            
+            {/* Dialogo de Creación */}
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8 border-2">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Nuevo Pórtico Tag</DialogTitle>
+                        <DialogDescription className="text-xs uppercase font-bold text-muted-foreground tracking-widest">
+                            Configura los detalles básicos de la infraestructura
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-6 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="name" className="text-[10px] font-black uppercase opacity-60 ml-1">Nombre Oficial</Label>
+                            <Input 
+                                id="name" 
+                                value={newPorticoData.name}
+                                onChange={(e) => setNewPorticoData({...newPorticoData, name: e.target.value})}
+                                placeholder="Ej: Las Mercedes (Entrada)" 
+                                className="h-12 rounded-xl border-2 font-bold"
+                            />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="code" className="text-[10px] font-black uppercase opacity-60 ml-1">Código (ID)</Label>
+                                <Input 
+                                    id="code" 
+                                    value={newPorticoData.reference_code}
+                                    onChange={(e) => setNewPorticoData({...newPorticoData, reference_code: e.target.value})}
+                                    placeholder="P101" 
+                                    className="h-12 rounded-xl border-2 font-black uppercase text-primary bg-primary/5"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="concession" className="text-[10px] font-black uppercase opacity-60 ml-1">Concesión</Label>
+                                <Input 
+                                    id="concession" 
+                                    value={newPorticoData.concession_name}
+                                    onChange={(e) => setNewPorticoData({...newPorticoData, concession_name: e.target.value})}
+                                    placeholder="AVO" 
+                                    className="h-12 rounded-xl border-2 font-black uppercase bg-yellow-500/5 text-yellow-600"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="lat" className="text-[10px] font-black uppercase opacity-60 ml-1">Latitud</Label>
+                                <Input 
+                                    id="lat" 
+                                    type="number"
+                                    step="any"
+                                    value={isNaN(newPorticoData.latitude) ? "" : newPorticoData.latitude}
+                                    onChange={(e) => {
+                                        const val = e.target.value === "" ? NaN : parseFloat(e.target.value);
+                                        setNewPorticoData({...newPorticoData, latitude: val});
+                                    }}
+                                    className="h-12 rounded-xl border-2 font-mono"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="lng" className="text-[10px] font-black uppercase opacity-60 ml-1">Longitud</Label>
+                                <Input 
+                                    id="lng" 
+                                    type="number"
+                                    step="any"
+                                    value={isNaN(newPorticoData.longitude) ? "" : newPorticoData.longitude}
+                                    onChange={(e) => {
+                                        const val = e.target.value === "" ? NaN : parseFloat(e.target.value);
+                                        setNewPorticoData({...newPorticoData, longitude: val});
+                                    }}
+                                    className="h-12 rounded-xl border-2 font-mono"
+                                />
+                            </div>
+                        </div>
+
+                        <Button 
+                            variant="outline" 
+                            onClick={handlePickFromMap}
+                            className="bg-muted hover:bg-primary/5 border-dashed border-2 py-6 rounded-2xl flex items-center justify-center gap-3"
+                        >
+                            <MapPin className="h-5 w-5 text-primary" />
+                            <div className="text-left">
+                                <div className="text-xs font-black uppercase">Seleccionar en Mapa</div>
+                                <div className="text-[9px] text-muted-foreground uppercase">Hacer clic visualmente para capturar</div>
+                            </div>
+                        </Button>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowCreateDialog(false)} className="rounded-xl h-12 uppercase font-black text-xs">Descartar</Button>
+                        <Button 
+                            onClick={handleCreatePortico} 
+                            disabled={isCreating}
+                            className="rounded-xl h-12 px-8 uppercase font-black text-xs bg-primary shadow-lg shadow-primary/20"
+                        >
+                            {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                            Crear e Instalar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 4px;

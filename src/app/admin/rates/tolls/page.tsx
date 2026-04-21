@@ -28,7 +28,8 @@ import {
   Loader2,
   ArrowLeft,
   Edit3,
-  ChevronLeft
+  ChevronLeft,
+  Navigation
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -70,7 +71,7 @@ const TableBody = ({ children, className }: any) => <tbody className={`[&_tr:las
 const TableRow = ({ children, className }: any) => <tr className={`border-b transition-colors hover:bg-muted/30 ${className}`}>{children}</tr>;
 const TableHead = ({ children, className }: any) => <th className={`h-10 px-4 text-left align-middle font-semibold text-muted-foreground text-xs uppercase tracking-wider ${className}`}>{children}</th>;
 const TableCell = ({ children, className }: any) => <td className={`p-3 align-middle ${className}`}>{children}</td>;
-const Label = ({ children, className }: any) => <label className={`text-xs font-bold uppercase tracking-tight text-muted-foreground/80 ${className}`}>{children}</label>;
+const TollsLabel = ({ children, className }: any) => <label className={`text-xs font-bold uppercase tracking-tight text-muted-foreground/80 ${className}`}>{children}</label>;
 
 const INITIAL_TARIFFS = {
   price_tbfp: 0, price_tbp: 0, price_ts: 0,
@@ -204,7 +205,7 @@ const MatrixEditor = React.memo(({ category, tariffs, onTariffChange }: any) => 
                     { label: 'SATURACIÓN (TS)', field: 'price_ts', color: 'red' }
                 ].map((item: any) => (
                     <div key={`${category}-${item.field}`} className={`p-4 bg-muted/10 rounded-xl border-2 border-transparent hover:border-${item.color}-500/20 transition-all shadow-sm`}>
-                        <Label className={`text-[10px] text-${item.color}-600 block text-center mb-2 font-black tracking-widest`}>{item.label}</Label>
+                        <TollsLabel className={`text-[10px] text-${item.color}-600 block text-center mb-2 font-black tracking-widest`}>{item.label}</TollsLabel>
                         <OptimizedLocalInput type="number" value={data[item.field]} onChange={(val: any) => onTariffChange(category, item.field, val)} className="font-mono text-2xl text-center font-black border-none bg-background shadow-inner h-10 focus-visible:ring-0 rounded-lg" />
                     </div>
                 ))}
@@ -216,12 +217,14 @@ const MatrixEditor = React.memo(({ category, tariffs, onTariffChange }: any) => 
                 </TableHeader>
                 <TableBody>
                     <ScheduleGroup title="TS LABORAL" field="ts_laboral" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_laboral")} onUpdate={updateWindows} />
+                    <ScheduleGroup title="TS VIERNES" field="ts_viernes" icon={Zap} colorClass="text-red-400" windows={getWindows("ts_viernes")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TS SÁBADO" field="ts_sabado" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_sabado")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TS DOMINGO" field="ts_domingo" icon={Zap} colorClass="text-red-500" windows={getWindows("ts_domingo")} onUpdate={updateWindows} />
                     
                     <TableRow className="bg-muted/30 h-1"><TableCell colSpan={2} className="p-0"></TableCell></TableRow>
 
                     <ScheduleGroup title="TBP LABORAL" field="tbp_laboral" icon={Clock3} colorClass="text-yellow-600" windows={getWindows("tbp_laboral")} onUpdate={updateWindows} />
+                    <ScheduleGroup title="TBP VIERNES" field="tbp_viernes" icon={Clock3} colorClass="text-blue-600" windows={getWindows("tbp_viernes")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TBP SÁBADO" field="tbp_sabado" icon={CalendarDays} colorClass="text-blue-500" windows={getWindows("tbp_sabado")} onUpdate={updateWindows} />
                     <ScheduleGroup title="TBP DOMINGO" field="tbp_domingo" icon={CalendarDays} colorClass="text-blue-700" windows={getWindows("tbp_domingo")} onUpdate={updateWindows} />
                 </TableBody>
@@ -249,7 +252,7 @@ export default function TollRatesMatrixPage() {
   const [selectedPortico, setSelectedPortico] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [tariffs, setTariffs] = useState<any>({ cat1: { ...INITIAL_TARIFFS }, cat2: { ...INITIAL_TARIFFS }, cat3: { ...INITIAL_TARIFFS } });
-  const [generalInfo, setGeneralInfo] = useState({ name: "", reference_code: "", latitude: 0, longitude: 0, is_active: true });
+  const [generalInfo, setGeneralInfo] = useState({ name: "", reference_code: "", latitude: 0, longitude: 0, is_active: true, concession_name: "" });
 
   // Effects
   useEffect(() => {
@@ -303,7 +306,15 @@ export default function TollRatesMatrixPage() {
       setSelectedPortico(portico);
       const data = portico.tariffs_json || {};
       setTariffs({ cat1: data.cat1 || { ...INITIAL_TARIFFS }, cat2: data.cat2 || { ...INITIAL_TARIFFS }, cat3: data.cat3 || { ...INITIAL_TARIFFS }});
-      setGeneralInfo({ name: portico.name || "", reference_code: portico.reference_code || "", latitude: portico.latitude || 0, longitude: portico.longitude || 0, is_active: portico.is_active ?? true });
+      setGeneralInfo({ 
+          name: portico.name || "", 
+          reference_code: portico.reference_code || "", 
+          latitude: portico.latitude || 0, 
+          longitude: portico.longitude || 0, 
+          is_active: portico.is_active ?? true,
+          concession_name: portico.concession_name || "",
+          via: portico.tariffs_json?.via || "santiago"
+      });
       setViewMode('edit');
   };
 
@@ -414,9 +425,13 @@ export default function TollRatesMatrixPage() {
         const { error } = await supabase
           .from("porticos")
           .update({ 
-            name: generalInfo.name, reference_code: generalInfo.reference_code,
-            latitude: generalInfo.latitude, longitude: generalInfo.longitude,
-            is_active: generalInfo.is_active, tariffs_json: cleanedTariffs,
+            name: generalInfo.name, 
+            reference_code: generalInfo.reference_code,
+            latitude: generalInfo.latitude, 
+            longitude: generalInfo.longitude,
+            is_active: generalInfo.is_active, 
+            tariffs_json: { ...cleanedTariffs, via: generalInfo.via },
+            concession_name: generalInfo.concession_name,
             location: `SRID=4326;POINT(${generalInfo.longitude} ${generalInfo.latitude})`
           }).eq("id", selectedPortico.id);
 
@@ -571,13 +586,19 @@ export default function TollRatesMatrixPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                        <div className="space-y-8">
                           <div className="space-y-3">
-                             <Label>NOMBRE OFICIAL DEL PÓRTICO</Label>
-                             <OptimizedLocalInput defaultValue={generalInfo.name} onChange={(val: string) => setGeneralInfo({...generalInfo, name: val})} className="h-12 text-sm font-black border-2 rounded-xl" />
+                             <TollsLabel>NOMBRE OFICIAL DEL PÓRTICO</TollsLabel>
+                             <OptimizedLocalInput value={generalInfo.name} onChange={(val: string) => setGeneralInfo({...generalInfo, name: val})} className="h-12 text-sm font-black border-2 rounded-xl" />
                           </div>
-                          <div className="space-y-3">
-                             <Label>CÓDIGO INTERNO (EXCEL / SYNC)</Label>
-                             <OptimizedLocalInput defaultValue={generalInfo.reference_code} onChange={(val: string) => setGeneralInfo({...generalInfo, reference_code: val})} className="h-12 text-sm font-black uppercase text-primary bg-primary/5 border-2 border-primary/20 rounded-xl" />
-                          </div>
+                           <div className="grid grid-cols-2 gap-4">
+                               <div className="space-y-3">
+                                  <TollsLabel>CÓDIGO REFERENCIA (ID)</TollsLabel>
+                                  <OptimizedLocalInput value={generalInfo.reference_code} onChange={(val: string) => setGeneralInfo({...generalInfo, reference_code: val})} className="h-12 text-sm font-black uppercase text-primary bg-primary/5 border-2 border-primary/20 rounded-xl" />
+                               </div>
+                               <div className="space-y-3">
+                                  <TollsLabel>CONCESIÓN (EJ. AVO)</TollsLabel>
+                                  <OptimizedLocalInput value={generalInfo.concession_name} onChange={(val: string) => setGeneralInfo({...generalInfo, concession_name: val})} className="h-12 text-sm font-black uppercase bg-yellow-500/5 text-yellow-600 border-2 border-yellow-500/20 rounded-xl" />
+                               </div>
+                           </div>
                           <div className="flex items-center justify-between p-6 bg-card rounded-2xl border-2 border-dashed shadow-sm">
                              <div className="flex flex-col gap-1">
                                 <span className="text-sm font-black uppercase tracking-tight">ESTADO DEL PÓRTICO</span>
@@ -585,6 +606,32 @@ export default function TollRatesMatrixPage() {
                              </div>
                              <Switch checked={generalInfo.is_active} onCheckedChange={(val) => setGeneralInfo({...generalInfo, is_active: val})} className="scale-125" />
                           </div>
+                          
+                          {generalInfo.concession_name === 'Ruta 78' && (
+                             <div className="space-y-4 p-6 bg-blue-500/10 rounded-2xl border-2 border-blue-500/30 animate-in zoom-in-95 duration-300">
+                                <div className="flex items-center gap-2">
+                                   <Navigation className="h-4 w-4 text-blue-600" />
+                                   <TollsLabel className="text-blue-700">DIFERENCIACIÓN DE VÍA (RUTA 78)</TollsLabel>
+                                </div>
+                                <div className="flex gap-2">
+                                   <Button 
+                                      variant={generalInfo.via === 'santiago' ? 'default' : 'outline'} 
+                                      className={`flex-1 h-12 rounded-xl text-[10px] font-black uppercase transition-all ${generalInfo.via === 'santiago' ? 'bg-blue-600 shadow-lg shadow-blue-500/30' : 'border-blue-200 text-blue-400'}`}
+                                      onClick={() => setGeneralInfo({...generalInfo, via: 'santiago'})}
+                                   >
+                                      Vía Santiago
+                                   </Button>
+                                   <Button 
+                                      variant={generalInfo.via === 'san-antonio' ? 'default' : 'outline'} 
+                                      className={`flex-1 h-12 rounded-xl text-[10px] font-black uppercase transition-all ${generalInfo.via === 'san-antonio' ? 'bg-blue-600 shadow-lg shadow-blue-500/30' : 'border-blue-200 text-blue-400'}`}
+                                      onClick={() => setGeneralInfo({...generalInfo, via: 'san-antonio'})}
+                                   >
+                                      Vía San Antonio
+                                   </Button>
+                                </div>
+                                <p className="text-[9px] text-blue-600/60 font-black uppercase tracking-widest text-center">Afecta la lógica de horarios punta automática</p>
+                             </div>
+                          )}
                        </div>
                        
                        <div className="p-10 bg-primary/5 rounded-[3rem] border-2 border-primary/10 space-y-8 flex flex-col justify-center relative overflow-hidden">
@@ -592,13 +639,13 @@ export default function TollRatesMatrixPage() {
                           <h4 className="text-xs font-black uppercase tracking-[0.3em] flex items-center gap-3 text-primary opacity-60"><MapPin className="h-5 w-5" /> COORDENADAS POSTGIS (GEOPUNTOS)</h4>
                           <div className="grid grid-cols-1 gap-8 z-10">
                              <div className="space-y-2">
-                                <Label className="text-[10px] opacity-60 ml-2">LATITUD EXACTA</Label>
-                                <OptimizedLocalInput type="number" defaultValue={generalInfo.latitude} onChange={(val: any) => setGeneralInfo({...generalInfo, latitude: parseFloat(val)})} className="font-mono text-3xl h-auto border-none bg-transparent shadow-none p-0 focus-visible:ring-0 font-black tracking-tighter" />
+                                <TollsLabel className="text-[10px] opacity-60 ml-2">LATITUD EXACTA</TollsLabel>
+                                <OptimizedLocalInput type="number" value={generalInfo.latitude} onChange={(val: any) => setGeneralInfo({...generalInfo, latitude: parseFloat(val)})} className="font-mono text-3xl h-auto border-none bg-transparent shadow-none p-0 focus-visible:ring-0 font-black tracking-tighter" />
                              </div>
                              <div className="h-px bg-primary/20 w-full" />
                              <div className="space-y-2">
-                                <Label className="text-[10px] opacity-60 ml-2">LONGITUD EXACTA</Label>
-                                <OptimizedLocalInput type="number" defaultValue={generalInfo.longitude} onChange={(val: any) => setGeneralInfo({...generalInfo, longitude: parseFloat(val)})} className="font-mono text-3xl h-auto border-none bg-transparent shadow-none p-0 focus-visible:ring-0 font-black tracking-tighter" />
+                                <TollsLabel className="text-[10px] opacity-60 ml-2">LONGITUD EXACTA</TollsLabel>
+                                <OptimizedLocalInput type="number" value={generalInfo.longitude} onChange={(val: any) => setGeneralInfo({...generalInfo, longitude: parseFloat(val)})} className="font-mono text-3xl h-auto border-none bg-transparent shadow-none p-0 focus-visible:ring-0 font-black tracking-tighter" />
                              </div>
                           </div>
                        </div>

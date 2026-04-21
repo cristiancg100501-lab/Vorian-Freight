@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
+import { getTollsForRoute } from '@/utils/tollsEngine';
 import Map from '@/components/map';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,6 +22,22 @@ import { Switch } from '@/components/ui/switch';
 
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
+
+// --- VORIAN FAVORITE PORTS ---
+const VORIAN_PORTS = [
+    { 
+        id: 'vorian-sti', 
+        place_name: 'Puerto STI (San Antonio Terminal Internacional), Chile', 
+        center: [-71.6111, -33.5857], // Slightly adjusted for better snapping
+        is_port: true
+    },
+    { 
+        id: 'vorian-dpworld', 
+        place_name: 'Puerto DP WORLD (San Antonio), Chile', 
+        center: [-71.6214, -33.5843], // Slightly adjusted for better snapping
+        is_port: true
+    }
+];
 
 const Stepper = ({ step }: { step: number }) => (
   <ol className="flex items-center w-full">
@@ -139,17 +156,33 @@ export default function NewClientShipmentPage() {
     const [tollsCount, setTollsCount] = useState(0);
     const [tollCost, setTollCost] = useState(0);
     const [tollsNames, setTollsNames] = useState<string[]>([]);
+    const [tollsBreakdown, setTollsBreakdown] = useState<any[]>([]);
+    const [showTollsDetail, setShowTollsDetail] = useState(true);
 
     useEffect(() => {
         const fetchSettings = async () => {
             const { data, error } = await supabase.from("settings").select().eq("id", "global").single();
             if (data) {
-                setGlobalSettings(data);
+                setGlobalSettings((prev: any) => ({ ...prev, ...data }));
             } else if (error) {
                 setError("No se encontraron los ajustes globales para el cálculo de precio.");
             }
         };
+        const fetchTollData = async () => {
+            const [porticosRes, matricesRes] = await Promise.all([
+                supabase.from('porticos').select('*').eq('is_active', true),
+                supabase.from('concession_matrices').select('*').eq('concession_name', 'AVO').eq('category', 3)
+            ]);
+            if (porticosRes.data && matricesRes.data) {
+                setGlobalSettings((prev: any) => ({
+                    ...prev,
+                    porticos: porticosRes.data,
+                    avoMatrix: matricesRes.data
+                }));
+            }
+        };
         fetchSettings();
+        fetchTollData();
     }, [supabase]);
 
 
@@ -158,7 +191,7 @@ export default function NewClientShipmentPage() {
           if (pickup.coords && delivery.coords) {
             try {
               const response = await fetch(
-                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickup.coords.join(',')};${delivery.coords.join(',')}?geometries=geojson&access_token=${MAPBOX_TOKEN}`
+                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickup.coords.join(',')};${delivery.coords.join(',')}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`
               ).then(res => res.json());
     
               if (response.routes && response.routes[0]) {
@@ -226,7 +259,7 @@ export default function NewClientShipmentPage() {
                     p_minutes: Math.round((routeDetails.duration || 0) / 60),
                     p_vehicle_type: vehicleType,
                     p_pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
-                    p_delivery_date: deliveryDate?.toISOString(),
+                    p_delivery_date: deliveryDate?.toISOString() || new Date().toISOString(),
                     p_weather_main: weatherCondition,
                     p_region_cod: pickupRegionCod,
                     p_route_geometry: routeDetails.geometry // Geometría cruda para PostGIS
@@ -253,13 +286,36 @@ export default function NewClientShipmentPage() {
                     return;
                 }
 
-                // Update pricing states from centralized DB result
+                // --- CLIENT-SIDE PRECISION TOLL CALCULATION ---
+                let localTollsCost = 0;
+                let localTollsBreakdown: any[] = [];
+                let localTollsCount = 0;
+                let localTollsNames: string[] = [];
+
+                if (globalSettings?.porticos?.length && routeDetails.geometry) {
+                    const categoryKey = ['furgon', 'pickup', 'camioneta'].includes(vehicleType) ? 'cat1' : ['camion', 'simple', 'camion_simple'].includes(vehicleType) ? 'cat2' : 'cat3';
+                    const tollResults = getTollsForRoute(
+                        routeDetails.geometry,
+                        globalSettings.porticos,
+                        globalSettings.avoMatrix,
+                        pickupDate || new Date(),
+                        categoryKey
+                    );
+                    
+                    localTollsCost = tollResults.tollsCost;
+                    localTollsBreakdown = tollResults.breakdowns;
+                    localTollsCount = tollResults.tollsCount;
+                    localTollsNames = tollResults.tollNames;
+                }
+
+                // Update pricing states from centralized DB result + Local Precision Tolls
                 setCarrierPayment(data.subtotal);
                 setPlatformFee(data.commission);
-                setEstimatedPrice(data.total);
-                setTollsCount(data.tolls_detected || 0);
-                setTollCost(data.tolls_cost || 0);
-                setTollsNames(data.tolls_names || []);
+                setEstimatedPrice(data.total - (data.tolls_cost || 0) + localTollsCost); // Replace RPC tolls with local tolls
+                setTollsCount(localTollsCount);
+                setTollCost(localTollsCost);
+                setTollsNames(localTollsNames);
+                setTollsBreakdown(localTollsBreakdown);
                 
                 // --- END VORIAN INTELLIGENCE ---
             } catch (err: any) {
@@ -288,14 +344,27 @@ export default function NewClientShipmentPage() {
         }
 
         try {
-        const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-            value
-            )}.json?access_token=${MAPBOX_TOKEN}&country=CL&autocomplete=true&limit=5`
-        ).then((res) => res.json());
-        setSuggestions(response.features || []);
+            // 1. Local Search for Vorian Ports
+            const searchTerm = value.toLowerCase();
+            const localMatches = VORIAN_PORTS.filter(p => 
+                p.place_name.toLowerCase().includes(searchTerm) || 
+                searchTerm.includes("puerto") ||
+                (searchTerm.includes("sti") && p.id.includes("sti")) ||
+                (searchTerm.includes("dp") && p.id.includes("dp"))
+            );
+
+            // 2. Mapbox Search
+            const response = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+                value
+                )}.json?access_token=${MAPBOX_TOKEN}&country=CL&autocomplete=true&limit=5`
+            ).then((res) => res.json());
+            
+            // 3. Combine results, prioritizing local ports
+            const combined = [...localMatches, ...(response.features || [])];
+            setSuggestions(combined);
         } catch (err) {
-        setSuggestions([]);
+            setSuggestions([]);
         }
     };
 
@@ -431,42 +500,90 @@ export default function NewClientShipmentPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <Button variant={"outline"} className={cn("justify-start text-left font-normal h-12 bg-muted/50 border-0", !pickupDate && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {pickupDate ? format(pickupDate, "PPP") : <span>Elige una fecha</span>}
-                                            </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={pickupDate} onSelect={setPickupDate} initialFocus /></PopoverContent>
-                                        </Popover>
-                                        <Input value={pickupWindow} onChange={e => setPickupWindow(e.target.value)} placeholder="Ventana de tiempo" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                    <div className="flex flex-col gap-4 mt-2">
+                                        <div className="flex items-end gap-3 w-full">
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Fecha</label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-semibold h-12 bg-muted/50 border-0 hover:bg-muted/80 transition-colors", !pickupDate && "text-muted-foreground")}>
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {pickupDate ? format(pickupDate, "d 'de' MMMM") : <span>Fecha</span>}
+                                                    </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={pickupDate} onSelect={setPickupDate} initialFocus /></PopoverContent>
+                                                </Popover>
+                                            </div>
+                                            <div className="w-32 space-y-1">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Hora</label>
+                                                <Input 
+                                                    type="time" 
+                                                    className="h-12 bg-muted/50 border-0 focus-visible:ring-primary font-bold text-center"
+                                                    value={pickupDate ? format(pickupDate, "HH:mm") : ""}
+                                                    onChange={(e) => {
+                                                        if (pickupDate) {
+                                                            const [hours, minutes] = e.target.value.split(':');
+                                                            const newDate = new Date(pickupDate);
+                                                            newDate.setHours(parseInt(hours), parseInt(minutes));
+                                                            setPickupDate(newDate);
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+
                                 {/* Delivery */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-foreground">Entrega</label>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-semibold text-foreground">Entrega</label>
+                                        {pickupDate && deliveryDate && format(pickupDate, "yyyy-MM-dd") !== format(deliveryDate, "yyyy-MM-dd") && (
+                                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold animate-pulse">
+                                                +1 DÍA
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input value={delivery.address} onChange={(e) => handleAddressChange(e.target.value, 'delivery')} placeholder="Ubicación" className="pl-10 h-12 bg-muted/50 border-0 focus-visible:ring-primary" autoComplete="off" />
+                                        <Input value={delivery.address} onChange={(e) => handleAddressChange(e.target.value, 'delivery')} placeholder="Destino del envío" className="pl-10 h-12 bg-muted/50 border-0 focus-visible:ring-primary" autoComplete="off" />
                                         {deliverySuggestions.length > 0 && (
                                             <div className="absolute z-20 w-full mt-1 bg-popover border rounded-md shadow-lg">
                                                 {deliverySuggestions.map((s, i) => <div key={`${s.id}-${i}`} onMouseDown={() => handleSelectSuggestion(s, 'delivery')} className="p-3 cursor-pointer hover:bg-accent">{s.place_name}</div>)}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <Button variant={"outline"} className={cn("justify-start text-left font-normal h-12 bg-muted/50 border-0", !deliveryDate && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {deliveryDate ? format(deliveryDate, "PPP") : <span>Elige una fecha</span>}
-                                            </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={deliveryDate} onSelect={setDeliveryDate} initialFocus /></PopoverContent>
-                                        </Popover>
-                                        <Input value={deliveryWindow} onChange={e => setDeliveryWindow(e.target.value)} placeholder="Ventana de tiempo" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                    <div className="flex flex-col gap-4 mt-2">
+                                        <div className="flex items-end gap-3 w-full">
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Fecha de Entrega</label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-semibold h-12 bg-muted/50 border-0 hover:bg-muted/80 transition-colors", !deliveryDate && "text-muted-foreground")}>
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {deliveryDate ? format(deliveryDate, "d 'de' MMMM") : <span>Fecha</span>}
+                                                    </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={deliveryDate} onSelect={setDeliveryDate} initialFocus /></PopoverContent>
+                                                </Popover>
+                                            </div>
+                                            <div className="w-32 space-y-1">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Hora</label>
+                                                <Input 
+                                                    type="time" 
+                                                    className="h-12 bg-muted/50 border-0 focus-visible:ring-primary font-bold text-center"
+                                                    value={deliveryDate ? format(deliveryDate, "HH:mm") : ""}
+                                                    onChange={(e) => {
+                                                        if (deliveryDate) {
+                                                            const [hours, minutes] = e.target.value.split(':');
+                                                            const newDate = new Date(deliveryDate);
+                                                            newDate.setHours(parseInt(hours), parseInt(minutes));
+                                                            setDeliveryDate(newDate);
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -758,7 +875,13 @@ export default function NewClientShipmentPage() {
                 {/* Right Column: Map and Summary */}
                 <div className="space-y-6">
                     <div className="h-64 w-full rounded-lg overflow-hidden border">
-                        <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} activeTollNames={tollsNames} />
+                        <Map 
+                            route={routeDetails.geometry} 
+                            origin={pickup.coords} 
+                            destination={delivery.coords} 
+                            activeTolls={tollsBreakdown} 
+                            vehicleType={vehicleType}
+                        />
                     </div>
                     <Card className="bg-card border shadow-lg">
                         <CardHeader>
@@ -787,15 +910,29 @@ export default function NewClientShipmentPage() {
                                             <span className="font-semibold text-foreground">${(carrierPayment || 0).toLocaleString()}</span>
                                         </div>
                                         {tollCost > 0 && (
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between">
-                                                    <span className="text-muted-foreground">Peajes (TAG) Detectados</span>
-                                                    <span className="font-medium text-foreground">${(tollCost || 0).toLocaleString()}</span>
+                                            <div className="space-y-1 pb-1">
+                                                <div 
+                                                    className="flex justify-between items-center cursor-pointer hover:opacity-80 transition-opacity" 
+                                                    onClick={() => setShowTollsDetail(!showTollsDetail)}
+                                                >
+                                                    <span className="text-muted-foreground text-[11px] uppercase tracking-wider font-semibold">Peajes (TAG)</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-semibold text-foreground text-sm">${(tollCost || 0).toLocaleString()}</span>
+                                                        <span className={cn("text-[10px] transition-transform", showTollsDetail ? "rotate-90" : "")}>▶</span>
+                                                    </div>
                                                 </div>
-                                                {tollsNames.length > 0 && (
-                                                    <p className="text-[10px] text-muted-foreground leading-tight italic pl-2 border-l-2 border-primary/20">
-                                                        Incluye: {tollsNames.join(', ')}
-                                                    </p>
+                                                {showTollsDetail && (
+                                                    <div className="space-y-1 mt-1">
+                                                        {tollsBreakdown.map((toll, idx) => (
+                                                            <div key={`${toll.name}-${idx}`} className="flex justify-between items-start text-[10px] py-1 border-b border-dashed">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-muted-foreground font-medium">{toll.name}</span>
+                                                                    {toll.tag && <span className="text-[9px] text-primary/70 italic font-bold uppercase tracking-tight">{toll.tag}</span>}
+                                                                </div>
+                                                                <span className="font-mono font-bold text-foreground text-xs">${(toll.cost || 0).toLocaleString()}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         )}

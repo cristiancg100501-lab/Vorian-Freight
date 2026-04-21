@@ -45,6 +45,18 @@ export function LoginMap() {
     mapInstance.on('dragstart', stopAnimation);
 
     mapInstance.on('load', () => {
+        const layers = mapInstance.getStyle()?.layers || [];
+        for (const layer of layers) {
+            if (
+                layer.id.includes('poi') || 
+                layer.id.includes('building') || 
+                layer.id.includes('park') ||
+                layer.id.includes('landuse')
+            ) {
+                mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
+            }
+        }
+        
       // Santiago bounding box approx.
       const bounds = {
         minLon: -70.8,

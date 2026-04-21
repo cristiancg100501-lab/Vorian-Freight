@@ -194,7 +194,18 @@ export default function CompanyShipmentsPage() {
                 pitch: 45,
             });
 
-            map.current.on('load', () => {
+            map.current.on('style.load', () => {
+                const layers = map.current?.getStyle()?.layers || [];
+                for (const layer of layers) {
+                    if (
+                        layer.id.includes('poi') || 
+                        layer.id.includes('building') || 
+                        layer.id.includes('park') ||
+                        layer.id.includes('landuse')
+                    ) {
+                        map.current?.setLayoutProperty(layer.id, 'visibility', 'none');
+                    }
+                }
                 map.current?.resize();
             });
 
