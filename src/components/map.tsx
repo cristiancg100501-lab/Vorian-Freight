@@ -14,6 +14,9 @@ interface VorianMapProps {
   destination: [number, number] | null;
   activeTolls?: any[];
   vehicleType?: string;
+  drivers?: any[];
+  selectedDriver?: any;
+  onDriverSelect?: (id: string) => void;
 }
 
 const isValidLngLat = (coords: any): coords is [number, number] => {
@@ -26,14 +29,15 @@ const isValidLngLat = (coords: any): coords is [number, number] => {
     );
 };
 
-export default function VorianMap({ route, origin, destination, activeTolls = [], vehicleType = 'camion_rampla' }: VorianMapProps) {
+export default function VorianMap({ route, origin, destination, activeTolls = [], vehicleType = 'camion_rampla', drivers = [], selectedDriver, onDriverSelect }: VorianMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const tollMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const driverMarkersRef = useRef<{ [id: string]: mapboxgl.Marker }>({});
   const { supabase } = useSupabase();
   const { theme } = useTheme();
   const themeRef = useRef(theme);
-  const [mapReady, setMapReady] = useState(false);
+  const [styleLoadedCount, setStyleLoadedCount] = useState(0);
 
   useEffect(() => {
      themeRef.current = theme;
@@ -56,6 +60,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
       center: [-70.6693, -33.4489], 
       zoom: 11,
       pitch: 0,
+      projection: { name: 'mercator' } as any,
     });
     
     map.current.on('style.load', () => {
@@ -65,6 +70,21 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         
         mapInstance.dragRotate.disable();
         mapInstance.touchZoomRotate.disableRotation();
+        if ((mapInstance as any).dragPitch) (mapInstance as any).dragPitch.disable();
+        
+        // --- Force purely 2D layout and strip unnecessary artifacts ---
+        const layers = mapInstance.getStyle()?.layers || [];
+        for (const layer of layers) {
+            if (
+                layer.id.includes('poi') || 
+                layer.id.includes('building') || 
+                layer.id.includes('park') ||
+                layer.id.includes('landuse') ||
+                layer.type === 'fill-extrusion'
+            ) {
+                 mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
+            }
+        }
         
         // --- Sources Initialization ---
         if (!mapInstance.getSource('route')) {
@@ -109,7 +129,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             });
         }
 
-        setMapReady(true);
+        setStyleLoadedCount(c => c + 1);
     });
 
     // Start snake animation loop
@@ -123,7 +143,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         if (progress > 1.2) progress = 0;
 
         try {
-            if (map.current.getLayer('route-animation')) {
+            if (map.current.getStyle() && map.current.getLayer('route-animation')) {
                 const start = progress - 0.15; // El snake ocupa 15% de la ruta
                 const end = progress;
                 
@@ -166,7 +186,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   // 2. Load Porticos & AVO Matrices
   useEffect(() => {
     const syncFinancialData = async () => {
-        if (!mapReady || !map.current) return;
+        if (styleLoadedCount === 0 || !map.current) return;
         const mapInstance = map.current;
 
         // Fetch All Data
@@ -174,6 +194,8 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
           supabase.from('porticos').select('*').eq('is_active', true),
           supabase.from('concession_matrices').select('*').eq('concession_name', 'AVO').eq('category', 3)
         ]);
+
+        if (!map.current || !map.current.getStyle()) return;
 
         if (!porticosRes.data) return;
         const porticos = porticosRes.data;
@@ -205,9 +227,9 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
           return null;
         }).filter(Boolean);
 
-        if (!mapInstance.getSource('avo-mesh')) {
-            mapInstance.addSource('avo-mesh', { type: 'geojson', data: { type: 'FeatureCollection', features: matrixFeatures } as any });
-            mapInstance.addLayer({
+        if (!map.current.getSource('avo-mesh')) {
+            map.current.addSource('avo-mesh', { type: 'geojson', data: { type: 'FeatureCollection', features: matrixFeatures } as any });
+            map.current.addLayer({
                 id: 'avo-lines',
                 type: 'line',
                 source: 'avo-mesh',
@@ -219,17 +241,74 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 }
             });
         } else {
-            (mapInstance.getSource('avo-mesh') as mapboxgl.GeoJSONSource).setData({ type: 'FeatureCollection', features: matrixFeatures } as any);
+            (map.current.getSource('avo-mesh') as mapboxgl.GeoJSONSource).setData({ type: 'FeatureCollection', features: matrixFeatures } as any);
         }
     };
     syncFinancialData();
-  }, [mapReady, activeTolls, categoryKey, supabase]);
+  }, [styleLoadedCount, activeTolls, categoryKey, supabase]);
+
+  // 2.5 Render Driver Locations
+  useEffect(() => {
+    if (styleLoadedCount === 0 || !map.current || !map.current.getStyle()) return;
+    const mapInstance = map.current;
+
+    // Track which drivers we still have
+    const activeDriverIds = new Set(drivers.map(d => d.id));
+
+    // Remove stale drivers
+    Object.keys(driverMarkersRef.current).forEach(id => {
+        if (!activeDriverIds.has(id)) {
+            driverMarkersRef.current[id].remove();
+            delete driverMarkersRef.current[id];
+        }
+    });
+
+    // Render active drivers
+    drivers.forEach(driver => {
+        if (driver.currentLatitude === null || driver.currentLongitude === null) return;
+        
+        const coords: [number, number] = [driver.currentLongitude, driver.currentLatitude];
+        const isSelected = selectedDriver?.id === driver.id;
+
+        if (!driverMarkersRef.current[driver.id]) {
+            const el = document.createElement('div');
+            el.className = `w-8 h-8 rounded-full border-[3px] shadow-xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 z-40 bg-card`;
+            
+            const dot = document.createElement('div');
+            dot.className = `w-3 h-3 rounded-full ${driver.currentOrderId ? 'bg-orange-500' : 'bg-green-500'}`;
+            el.appendChild(dot);
+
+            el.onclick = () => onDriverSelect?.(driver.id);
+
+            const marker = new mapboxgl.Marker({ element: el, pitchAlignment: 'map' })
+                .setLngLat(coords)
+                .addTo(mapInstance);
+            
+            driverMarkersRef.current[driver.id] = marker;
+        } else {
+            driverMarkersRef.current[driver.id].setLngLat(coords);
+            const el = driverMarkersRef.current[driver.id].getElement();
+            const dot = el.firstChild as HTMLDivElement;
+            if (dot) dot.className = `w-3 h-3 rounded-full ${driver.currentOrderId ? 'bg-orange-500' : 'bg-green-500'}`;
+            
+            if (isSelected) {
+                el.style.borderColor = 'hsl(var(--foreground))';
+                el.style.transform = 'scale(1.2)';
+                el.style.zIndex = '50';
+            } else {
+                el.style.borderColor = 'hsl(var(--border))';
+                el.style.transform = 'scale(1)';
+                el.style.zIndex = '40';
+            }
+        }
+    });
+  }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect]);
 
   const odMarkersRef = useRef<{origin?: mapboxgl.Marker, destination?: mapboxgl.Marker}>({});
 
   // 3. Handle Route Update & Bounds & Endpoints
   useEffect(() => {
-    if (!mapReady || !map.current) return;
+    if (styleLoadedCount === 0 || !map.current || !map.current.getStyle()) return;
     const mapInstance = map.current;
     
     // Manage origin and destination markers
@@ -267,7 +346,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
           mapInstance.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 1500 });
       }
     }
-  }, [mapReady, route, origin, destination]);
+  }, [styleLoadedCount, route, origin, destination]);
 
   // 4. Style Change Sync
   useEffect(() => {
@@ -279,7 +358,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   return (
     <div className="w-full h-full relative group">
       <div ref={mapContainer} className="w-full h-full" />
-      {!mapReady && (
+      {styleLoadedCount === 0 && (
         <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
