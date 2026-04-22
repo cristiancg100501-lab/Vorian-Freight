@@ -97,13 +97,16 @@ export default function ClientShipmentsPage() {
                       </div>
                     </td>
                      <td className="px-6 py-4">
-                      {format(new Date(shipment.pickup_date), "dd MMM, yyyy")}
+                       {(() => {
+                          const d = shipment.pickup_date ? new Date(shipment.pickup_date) : null;
+                          return d && !isNaN(d.getTime()) ? format(d, "dd MMM, yyyy") : "N/A";
+                       })()}
                     </td>
                      <td className="px-6 py-4 font-medium">
                         {shipment.bookingMethod === 'quote' ? 'Cotización' : 'Instantáneo'}
                       </td>
                      <td className="px-6 py-4 font-semibold">
-                       {shipment.bookingMethod === 'quote' ? 'Por cotizar' : `$${shipment.estimated_price.toLocaleString('es-CL')}`}
+                       {shipment.bookingMethod === 'quote' ? 'Por cotizar' : shipment.estimated_price != null ? `$${Number(shipment.estimated_price).toLocaleString('es-CL')}` : 'N/A'}
                     </td>
                     <td className="px-6 py-4">
                       <span

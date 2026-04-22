@@ -6,6 +6,9 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useTheme } from "next-themes";
 import { useSupabase } from "@/components/providers/supabase-provider";
 
+import truckDark from "@/assets/truck.png";
+import truckLight from "@/assets/truck2.png";
+
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 
 interface VorianMapProps {
@@ -34,10 +37,63 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   const map = useRef<mapboxgl.Map | null>(null);
   const tollMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const driverMarkersRef = useRef<{ [id: string]: mapboxgl.Marker }>({});
+  const driverAnimStatesRef = useRef<{ [id: string]: { current: [number, number], target: [number, number] } }>({});
+  const breadcrumbsRef = useRef<[number, number][]>([]);
   const { supabase } = useSupabase();
   const { theme } = useTheme();
   const themeRef = useRef(theme);
   const [styleLoadedCount, setStyleLoadedCount] = useState(0);
+
+  // Animation loop for smooth driver movement (Advanced Velocity-Based)
+  useEffect(() => {
+    let frameId: number;
+    let lastTime = performance.now();
+
+    const animate = (time: number) => {
+      const deltaTimeMs = time - lastTime;
+      const deltaTime = deltaTimeMs / 16.666; // Normalize to 60fps
+      lastTime = time;
+
+      Object.entries(driverAnimStatesRef.current).forEach(([id, state]) => {
+        const marker = driverMarkersRef.current[id];
+        if (!marker) return;
+
+        // --- CONSTANT VELOCITY GLIDE ---
+        const deltaLng = state.target[0] - state.current[0];
+        const deltaLat = state.target[1] - state.current[1];
+        const distance = Math.sqrt(deltaLng * deltaLng + deltaLat * deltaLat);
+
+        if (distance < 0.000001) {
+            state.current = [state.target[0], state.target[1]];
+        } else {
+            // We want to cover the distance in ~1000ms (the expected update interval)
+            const speedPerFrame = (distance / (1000 / 16.666)) * 1.2; 
+            const moveStep = speedPerFrame * deltaTime;
+            
+            const ratio = Math.min(moveStep / distance, 1.0);
+            const nextLng = state.current[0] + deltaLng * ratio;
+            const nextLat = state.current[1] + deltaLat * ratio;
+            state.current = [nextLng, nextLat];
+        }
+        
+        marker.setLngLat(state.current);
+      });
+
+      // --- Update Breadcrumb Visuals ---
+      if (map.current && map.current.isStyleLoaded() && map.current.getSource('breadcrumbs-source')) {
+         const source = map.current.getSource('breadcrumbs-source') as mapboxgl.GeoJSONSource;
+         source.setData({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: breadcrumbsRef.current },
+            properties: {}
+         });
+      }
+
+      frameId = requestAnimationFrame(animate);
+    };
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
 
   useEffect(() => {
      themeRef.current = theme;
@@ -94,6 +150,25 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
             });
         }
+
+        if (!mapInstance.getSource('breadcrumbs-source')) {
+            mapInstance.addSource('breadcrumbs-source', {
+                'type': 'geojson',
+                'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
+            });
+            mapInstance.addLayer({
+                'id': 'breadcrumbs-layer',
+                'type': 'line',
+                'source': 'breadcrumbs-source',
+                'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                'paint': {
+                    'line-color': '#22c55e', // Strong green
+                    'line-width': 2,
+                    'line-opacity': 0.6,
+                    'line-dasharray': [2, 1]
+                }
+            });
+        }
         
         // --- Layers ---
         if (!mapInstance.getLayer('route-base')) {
@@ -118,7 +193,6 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'layout': { 'line-join': 'round', 'line-cap': 'round' },
                 'paint': { 
                     'line-width': 5,
-                    // Inicializamos con un gradiente vacío para evitar warnings
                     'line-gradient': [
                         'step',
                         ['line-progress'],
@@ -143,7 +217,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         if (progress > 1.2) progress = 0;
 
         try {
-            if (map.current.getStyle() && map.current.getLayer('route-animation')) {
+            if (map.current.isStyleLoaded() && map.current.getLayer('route-animation')) {
                 const start = progress - 0.15; // El snake ocupa 15% de la ruta
                 const end = progress;
                 
@@ -151,7 +225,6 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 const snakeColor = currentTheme === 'dark' ? '#FFFFFF' : '#000000';
                 const transparent = 'rgba(0,0,0,0)';
                 
-                // Generamos array estrictamente creciente para Mapbox 'step'
                 const gradient: any[] = [
                     'step',
                     ['line-progress'],
@@ -189,31 +262,20 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         if (styleLoadedCount === 0 || !map.current) return;
         const mapInstance = map.current;
 
-        // Fetch All Data
         const [porticosRes, matricesRes] = await Promise.all([
           supabase.from('porticos').select('*').eq('is_active', true),
           supabase.from('concession_matrices').select('*').eq('concession_name', 'AVO').eq('category', 3)
         ]);
 
-        if (!map.current || !map.current.getStyle()) return;
+        if (!map.current || !map.current.isStyleLoaded()) return;
 
         if (!porticosRes.data) return;
         const porticos = porticosRes.data;
         const matrices = matricesRes.data || [];
 
-        // --- 1. Porticos (Markers + Prices) ---
         tollMarkersRef.current.forEach(m => m.remove());
         tollMarkersRef.current = [];
 
-        // USER REQUESTED TO HIDE TOLL ICONS FROM CLIENT UI
-        // We still fetch them so we could use them if needed, but we don't render the <div> markers.
-        /*
-        porticos.forEach((p: any) => {
-            // ... (Lógica de renderizado gráfico de pórticos oculta según decisión de diseño)
-        });
-        */
-
-        // --- 2. AVO Mesh (Lines) ---
         const matrixFeatures = matrices.map(m => {
           const entry = porticos.find(p => p.reference_code === m.entry_portico_ref);
           const exit = porticos.find(p => p.reference_code === m.exit_portico_ref);
@@ -249,66 +311,154 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
 
   // 2.5 Render Driver Locations
   useEffect(() => {
-    if (styleLoadedCount === 0 || !map.current || !map.current.getStyle()) return;
+    if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
     const mapInstance = map.current;
 
-    // Track which drivers we still have
     const activeDriverIds = new Set(drivers.map(d => d.id));
 
     // Remove stale drivers
-    Object.keys(driverMarkersRef.current).forEach(id => {
-        if (!activeDriverIds.has(id)) {
-            driverMarkersRef.current[id].remove();
-            delete driverMarkersRef.current[id];
-        }
-    });
+    if (activeDriverIds.size > 0) {
+        Object.keys(driverMarkersRef.current).forEach(id => {
+            if (!activeDriverIds.has(id)) {
+                driverMarkersRef.current[id].remove();
+                delete driverMarkersRef.current[id];
+                delete driverAnimStatesRef.current[id];
+            }
+        });
+    }
 
-    // Render active drivers
+    const getMarkerSize = (zoom: number) => {
+        // --- STABLE TWO-STAGE SCALING ---
+        // 1. DISTANT (Zoom < 14): Fixed 140px floor. Uber-style visibility.
+        // 2. CLOSE (Zoom >= 14): Linear growth to match map detail.
+        const floor = 140;
+        if (zoom < 14) return floor;
+        
+        const growth = (zoom - 14) * 65; 
+        return Math.min(floor + growth, 450); // Hard cap at 450px for extreme detail
+    };
+
+    const updateMarkerSizes = () => {
+        if (!map.current) return;
+        const zoom = map.current.getZoom();
+        const newSize = Math.round(getMarkerSize(zoom));
+        
+        Object.values(driverMarkersRef.current).forEach(marker => {
+            const el = marker.getElement();
+            const currentW = parseInt(el.style.width);
+            if (currentW !== newSize) {
+                el.style.width = `${newSize}px`;
+                el.style.height = `${newSize}px`;
+            }
+        });
+    };
+
+    mapInstance.on('zoom', updateMarkerSizes);
+
+    // Render drivers
     drivers.forEach(driver => {
         if (driver.currentLatitude === null || driver.currentLongitude === null) return;
         
-        const coords: [number, number] = [driver.currentLongitude, driver.currentLatitude];
+        const lat = Number(driver.currentLatitude);
+        const lng = Number(driver.currentLongitude);
+        const coords: [number, number] = [lng, lat];
+        const heading = driver.heading || 0;
         const isSelected = selectedDriver?.id === driver.id;
+
+        const currentTheme = themeRef.current;
+        const truckImgSrc = currentTheme === 'dark' ? truckDark.src : truckLight.src;
+        const currentSize = Math.round(getMarkerSize(mapInstance.getZoom()));
 
         if (!driverMarkersRef.current[driver.id]) {
             const el = document.createElement('div');
-            el.className = `w-8 h-8 rounded-full border-[3px] shadow-xl flex items-center justify-center cursor-pointer transition-all hover:scale-110 z-40 bg-card`;
+            el.className = 'driver-marker';
+            el.style.width = `${currentSize}px`;
+            el.style.height = `${currentSize}px`;
             
-            const dot = document.createElement('div');
-            dot.className = `w-3 h-3 rounded-full ${driver.currentOrderId ? 'bg-orange-500' : 'bg-green-500'}`;
-            el.appendChild(dot);
+            const container = document.createElement('div');
+            // Cleaned class: removed group and transition-500 to keep it crisp
+            container.className = 'w-full h-full flex items-center justify-center relative cursor-pointer';
+            
+            const statusColor = driver.currentOrderId ? '#f97316' : '#22c55e';
+            const img = document.createElement('img');
+            img.src = truckImgSrc;
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.transform = `rotate(${heading - 90}deg)`;
+            img.style.transition = 'transform 0.4s ease-out';
+            img.style.filter = `drop-shadow(0 0 10px ${statusColor})`;
+            
+            container.appendChild(img);
+            el.appendChild(container);
+            
+            container.onclick = () => onDriverSelect?.(driver.id);
 
-            el.onclick = () => onDriverSelect?.(driver.id);
-
-            const marker = new mapboxgl.Marker({ element: el, pitchAlignment: 'map' })
+            const marker = new mapboxgl.Marker({ element: el, pitchAlignment: 'map', rotationAlignment: 'map' })
                 .setLngLat(coords)
                 .addTo(mapInstance);
             
             driverMarkersRef.current[driver.id] = marker;
+            driverAnimStatesRef.current[driver.id] = { current: [...coords], target: [...coords] };
         } else {
-            driverMarkersRef.current[driver.id].setLngLat(coords);
             const el = driverMarkersRef.current[driver.id].getElement();
-            const dot = el.firstChild as HTMLDivElement;
-            if (dot) dot.className = `w-3 h-3 rounded-full ${driver.currentOrderId ? 'bg-orange-500' : 'bg-green-500'}`;
+            const container = el.firstChild as HTMLDivElement;
+            const img = container.firstChild as HTMLImageElement;
             
-            if (isSelected) {
-                el.style.borderColor = 'hsl(var(--foreground))';
-                el.style.transform = 'scale(1.2)';
-                el.style.zIndex = '50';
-            } else {
-                el.style.borderColor = 'hsl(var(--border))';
-                el.style.transform = 'scale(1)';
-                el.style.zIndex = '40';
+            // Stable sizing: only update DOM if values changed significantly
+            const sizeInt = Math.round(currentSize);
+            if (parseInt(el.style.width) !== sizeInt) {
+                el.style.width = `${sizeInt}px`;
+                el.style.height = `${sizeInt}px`;
+            }
+
+            if (driverAnimStatesRef.current[driver.id]) {
+                const prevTarget = driverAnimStatesRef.current[driver.id].target;
+                if (prevTarget[0] !== coords[0] || prevTarget[1] !== coords[1]) {
+                    driverAnimStatesRef.current[driver.id].target = coords;
+                    if (isSelected) {
+                        breadcrumbsRef.current.push(coords);
+                        if (breadcrumbsRef.current.length > 20) breadcrumbsRef.current.shift();
+                    }
+                }
+            }
+            
+            if (img && container) {
+                // Neutralized Colors: Slate-Gray for Available, Orange for Route
+                // This eliminates the "everything is green" complaint.
+                const statusColor = driver.currentOrderId ? '#f97316' : '#94a3b8';
+                const isSelected = selectedDriver && String(selectedDriver.id) === String(driver.id);
+                
+                img.src = truckImgSrc;
+                img.style.transform = `rotate(${heading - 90}deg)`;
+                
+                // Selection highlight: Sharp High-Contrast Glow
+                // Idle highlight: Subtle Status Halo
+                const glowColor = currentTheme === 'dark' ? 'white' : 'black';
+                const currentFilter = isSelected 
+                    ? `drop-shadow(0 0 2px ${glowColor}) drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` 
+                    : `drop-shadow(0 0 4px ${statusColor})`;
+                
+                if (img.style.filter !== currentFilter) {
+                    img.style.filter = currentFilter;
+                }
+
+                // Snappy z-index and scale transitions
+                container.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+                el.style.zIndex = isSelected ? '100' : '50';
             }
         }
     });
-  }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect]);
+
+    return () => {
+        mapInstance.off('zoom', updateMarkerSizes);
+    };
+  }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect, theme]);
 
   const odMarkersRef = useRef<{origin?: mapboxgl.Marker, destination?: mapboxgl.Marker}>({});
 
   // 3. Handle Route Update & Bounds & Endpoints
   useEffect(() => {
-    if (styleLoadedCount === 0 || !map.current || !map.current.getStyle()) return;
+    if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
     const mapInstance = map.current;
     
     // Manage origin and destination markers
