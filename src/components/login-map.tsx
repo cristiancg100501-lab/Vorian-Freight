@@ -28,6 +28,12 @@ export function LoginMap({ theme }: { theme?: string }) {
       zoom: 12,
       center: [-70.6693, -33.4489],
       interactive: true,
+      pitch: 0,
+      maxPitch: 0,
+      bearing: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
+      projection: { name: 'mercator' } as any,
     });
 
     const mapInstance = map.current;
@@ -45,6 +51,16 @@ export function LoginMap({ theme }: { theme?: string }) {
     mapInstance.on('dragstart', stopAnimation);
 
     mapInstance.on('load', () => {
+        // Disable all forms of rotation and pitch
+        mapInstance.dragRotate.disable();
+        mapInstance.touchZoomRotate.disableRotation();
+        mapInstance.keyboard.disable();
+
+        // Remove atmosphere
+        if (mapInstance.getStyle().layers) {
+            (mapInstance as any).setAtmosphere?.(null);
+        }
+
         const layers = mapInstance.getStyle()?.layers || [];
         for (const layer of layers) {
             if (
@@ -99,7 +115,7 @@ export function LoginMap({ theme }: { theme?: string }) {
           if (!map.current || routes.length === 0) return;
           const mapInstance = map.current;
 
-          const particleColor = theme === 'light' ? '#000000' : '#FFFFFF';
+          const particleColor = '#F5718E';
 
           // Source for the faint route lines (the "trails")
           mapInstance.addSource('routes-lines', {
@@ -115,7 +131,26 @@ export function LoginMap({ theme }: { theme?: string }) {
               'paint': { 
                   'line-color': particleColor, 
                   'line-width': 1, 
-                  'line-opacity': 0.3 // Slightly more visible trail
+                  'line-opacity': 0.15 
+              }
+          });
+
+          // Source for the moving points and their trails
+          mapInstance.addSource('animated-points', {
+              'type': 'geojson',
+              'data': { 'type': 'FeatureCollection', 'features': [] }
+          });
+          
+          // Layer for the bright core and trail
+          mapInstance.addLayer({
+              'id': 'points-layer',
+              'source': 'animated-points',
+              'type': 'circle',
+              'paint': { 
+                  'circle-radius': ['get', 'radius'],
+                  'circle-color': particleColor,
+                  'circle-opacity': ['get', 'opacity'],
+                  'circle-blur': ['get', 'blur']
               }
           });
 
@@ -124,56 +159,26 @@ export function LoginMap({ theme }: { theme?: string }) {
           routes.forEach(route => {
               for (let i = 0; i < numPointsPerRoute; i++) {
                   particles.push({
-                      type: 'Feature',
-                      geometry: { type: 'Point', coordinates: route.coordinates[0] },
-                      properties: { route: route.coordinates, progress: Math.random(), speed: 0.0005 + Math.random() * 0.001 }
+                      route: route.coordinates,
+                      progress: Math.random(),
+                      speed: 0.0003 + Math.random() * 0.0007,
+                      trail: [] 
                   });
               }
           });
 
-          // Source for the moving points
-          mapInstance.addSource('animated-points', {
-              'type': 'geojson',
-              'data': { 'type': 'FeatureCollection', 'features': particles }
-          });
-          
-          // Layer for the glow effect
-          mapInstance.addLayer({
-              'id': 'points-glow',
-              'source': 'animated-points',
-              'type': 'circle',
-              'paint': { 
-                  'circle-radius': 7,
-                  'circle-color': particleColor,
-                  'circle-opacity': 0.2, // Low opacity for the glow
-                  'circle-blur': 2.5 // Increased blur
-              }
-          });
-
-          // Layer for the bright core of the point
-          mapInstance.addLayer({
-              'id': 'points-core',
-              'source': 'animated-points',
-              'type': 'circle',
-              'paint': { 
-                  'circle-radius': 1.5,
-                  'circle-color': particleColor,
-                  'circle-opacity': 1 // Solid core
-              }
-          });
-
           const animate = () => {
-              if (!animationFrameId.current) return; // Stop if animation was cancelled
+              if (!animationFrameId.current) return;
 
-              particles.forEach(particle => {
-                  particle.properties.progress += particle.properties.speed;
-                  
-                  if (particle.properties.progress >= 1) {
-                      particle.properties.progress = 0;
-                  }
+              const features: any[] = [];
+              const trailLength = 8; 
 
-                  const route = particle.properties.route;
-                  const totalProgressInIndices = particle.properties.progress * (route.length - 1);
+              particles.forEach(p => {
+                  p.progress += p.speed;
+                  if (p.progress >= 1) p.progress = 0;
+
+                  const route = p.route;
+                  const totalProgressInIndices = p.progress * (route.length - 1);
                   const index1 = Math.floor(totalProgressInIndices);
                   const index2 = Math.min(index1 + 1, route.length - 1);
                   const subProgress = totalProgressInIndices - index1;
@@ -182,15 +187,32 @@ export function LoginMap({ theme }: { theme?: string }) {
                   const p2 = route[index2];
 
                   if(p1 && p2) {
-                    const newLon = p1[0] + (p2[0] - p1[0]) * subProgress;
-                    const newLat = p1[1] + (p2[1] - p1[1]) * subProgress;
-                    particle.geometry.coordinates = [newLon, newLat];
+                    const currentPos = [
+                        p1[0] + (p2[0] - p1[0]) * subProgress,
+                        p1[1] + (p2[1] - p1[1]) * subProgress
+                    ];
+                    
+                    p.trail.unshift(currentPos);
+                    if (p.trail.length > trailLength) p.trail.pop();
+
+                    p.trail.forEach((pos: any, idx: number) => {
+                        const isCore = idx === 0;
+                        features.push({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: pos },
+                            properties: {
+                                opacity: isCore ? 1 : (1 - idx / trailLength) * 0.5,
+                                radius: isCore ? 2 : (1 - idx / trailLength) * 4 + 1,
+                                blur: isCore ? 0 : 0.8
+                            }
+                        });
+                    });
                   }
               });
 
               if (mapInstance.getSource('animated-points')) {
                   (mapInstance.getSource('animated-points') as mapboxgl.GeoJSONSource).setData({
-                      type: 'FeatureCollection', features: particles
+                      type: 'FeatureCollection', features: features
                   });
               }
               animationFrameId.current = requestAnimationFrame(animate);

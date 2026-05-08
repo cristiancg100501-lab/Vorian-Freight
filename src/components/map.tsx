@@ -8,6 +8,7 @@ import { useSupabase } from "@/components/providers/supabase-provider";
 
 import truckDark from "@/assets/truck.png";
 import truckLight from "@/assets/truck2.png";
+import truck3 from "@/assets/truck3.svg";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 
@@ -116,17 +117,39 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
       center: [-70.6693, -33.4489], 
       zoom: 11,
       pitch: 0,
+      maxPitch: 0,
+      bearing: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
       projection: { name: 'mercator' } as any,
+      trackResize: true
     });
+
+    // Handle container resizing (e.g. sidebar collapse)
+    const resizeObserver = new ResizeObserver(() => {
+      if (map.current) {
+        map.current.resize();
+      }
+    });
+    
+    if (mapContainer.current) {
+      resizeObserver.observe(mapContainer.current);
+    }
     
     map.current.on('style.load', () => {
         const mapInstance = map.current;
         if (!mapInstance) return;
-        const currentTheme = themeRef.current;
         
+        // Disable all forms of rotation and pitch for a strictly 2D experience
         mapInstance.dragRotate.disable();
         mapInstance.touchZoomRotate.disableRotation();
-        if ((mapInstance as any).dragPitch) (mapInstance as any).dragPitch.disable();
+        mapInstance.keyboard.disable(); // Prevents arrow key pitching/rotation
+        
+        // Ensure no 3D atmosphere or terrain is present
+        if (mapInstance.getStyle().layers) {
+            (mapInstance as any).setAtmosphere?.(null);
+        }
+
         
         // --- Force purely 2D layout and strip unnecessary artifacts ---
         const layers = mapInstance.getStyle()?.layers || [];
@@ -169,6 +192,8 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 }
             });
         }
+        
+        const currentTheme = themeRef.current;
         
         // --- Layers ---
         if (!mapInstance.getLayer('route-base')) {
@@ -250,6 +275,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     
     return () => {
         cancelAnimationFrame(animationId);
+        resizeObserver.disconnect();
         map.current?.remove();
         map.current = null;
     }
@@ -328,14 +354,22 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     }
 
     const getMarkerSize = (zoom: number) => {
-        // --- STABLE TWO-STAGE SCALING ---
-        // 1. DISTANT (Zoom < 14): Fixed 140px floor. Uber-style visibility.
-        // 2. CLOSE (Zoom >= 14): Linear growth to match map detail.
-        const floor = 140;
-        if (zoom < 14) return floor;
+        // --- ADAPTIVE MULTI-STAGE SCALING ---
+        // Stage 1: Macro View (Zoom < 7) - Small markers for global context
+        if (zoom < 7) {
+            const progress = zoom / 7;
+            return 32 + (48 - 32) * progress;
+        }
         
-        const growth = (zoom - 14) * 65; 
-        return Math.min(floor + growth, 450); // Hard cap at 450px for extreme detail
+        // Stage 2: Regional View (7 <= Zoom < 13) - Scaling up to standard size
+        if (zoom < 13) {
+            const progress = (zoom - 7) / (13 - 7);
+            return 48 + (120 - 48) * progress;
+        }
+
+        // Stage 3: Tactical View (Zoom >= 13) - Large markers for street detail
+        const progress = Math.min((zoom - 13) / (20 - 13), 1);
+        return 120 + (380 - 120) * progress;
     };
 
     const updateMarkerSizes = () => {
@@ -366,7 +400,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         const isSelected = selectedDriver?.id === driver.id;
 
         const currentTheme = themeRef.current;
-        const truckImgSrc = currentTheme === 'dark' ? truckDark.src : truckLight.src;
+        const truckImgSrc = truck3.src;
         const currentSize = Math.round(getMarkerSize(mapInstance.getZoom()));
 
         if (!driverMarkersRef.current[driver.id]) {
@@ -384,8 +418,10 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             img.src = truckImgSrc;
             img.style.width = '100%';
             img.style.height = 'auto';
-            img.style.transform = `rotate(${heading - 90}deg)`;
-            img.style.transition = 'transform 0.4s ease-out';
+            // Rotation normalization: phone heading is 0=North. 
+            // Truck asset is facing East (90 deg) usually. Adjustment ensures correct orientation.
+            img.style.transform = `rotate(${heading}deg)`;
+            img.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
             img.style.filter = `drop-shadow(0 0 10px ${statusColor})`;
             
             container.appendChild(img);
@@ -393,7 +429,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             
             container.onclick = () => onDriverSelect?.(driver.id);
 
-            const marker = new mapboxgl.Marker({ element: el, pitchAlignment: 'map', rotationAlignment: 'map' })
+            const marker = new mapboxgl.Marker({ element: el, pitchAlignment: 'viewport', rotationAlignment: 'viewport' })
                 .setLngLat(coords)
                 .addTo(mapInstance);
             
@@ -425,11 +461,11 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             if (img && container) {
                 // Neutralized Colors: Slate-Gray for Available, Orange for Route
                 // This eliminates the "everything is green" complaint.
-                const statusColor = driver.currentOrderId ? '#f97316' : '#94a3b8';
+                const statusColor = driver.currentOrderId ? '#f97316' : '#a3a3a3';
                 const isSelected = selectedDriver && String(selectedDriver.id) === String(driver.id);
                 
                 img.src = truckImgSrc;
-                img.style.transform = `rotate(${heading - 90}deg)`;
+                img.style.transform = `rotate(${heading}deg)`;
                 
                 // Selection highlight: Sharp High-Contrast Glow
                 // Idle highlight: Subtle Status Halo

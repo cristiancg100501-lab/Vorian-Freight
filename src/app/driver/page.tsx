@@ -248,7 +248,7 @@ export default function DriverPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] uppercase text-muted-foreground font-bold">Pago Estimado</p>
-                          <p className="text-lg font-black text-primary">${load.estimatedPrice?.toLocaleString()}</p>
+                          <p className="text-lg font-black text-primary">CLP {load.estimatedPrice?.toLocaleString()}</p>
                         </div>
                       </div>
                       

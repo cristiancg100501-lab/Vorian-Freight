@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle, Car, Bike, Truck, Fuel, RefreshCw, KeyRound, LineChart as LineChartIcon, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, TrendingUp, Zap, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, Car, Bike, Truck, Fuel, RefreshCw, KeyRound, LineChart as LineChartIcon, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, TrendingUp, Zap, AlertCircle, DollarSign } from "lucide-react";
 import {
     AreaChart,
     Area,
@@ -40,12 +40,9 @@ import {
 
 
 const vehicleTypes = [
-    { value: "Auto", label: "Auto", icon: Car },
-    { value: "Motocicleta", label: "Motocicleta", icon: Bike },
-    { value: "Van", label: "Van", icon: Truck },
-    { value: "Furgon", label: "Furgón", icon: Truck },
-    { value: "Camion Ligero", label: "Camión Ligero", icon: Truck },
-    { value: "Camion Pesado", label: "Camión Pesado", icon: Truck },
+    { value: "camion_3_4", label: "Camión 3/4 (3.5T - 5T)", icon: Truck },
+    { value: "Camion Ligero", label: "Camión Rígido (CAT 2)", icon: Truck },
+    { value: "Camion Pesado", label: "Tracto-Camión (CAT 3)", icon: Truck },
 ];
 
 // Helper to get month name in Spanish, ensuring uppercase start
@@ -156,10 +153,19 @@ export default function AdminRatesPage() {
     const [urgencyMulti, setUrgencyMulti] = useState("1.2");
     const [weatherMulti, setWeatherMulti] = useState("1.15");
     const [demandSens, setDemandSens] = useState("0.05");
+    const [vorianCommission, setVorianCommission] = useState("15");
+    const [costoChoferHr, setCostoChoferHr] = useState("9500");
+    const [consumoIdleHr, setConsumoIdleHr] = useState("2.5");
+    const [costoOportunidadHr, setCostoOportunidadHr] = useState("4500");
+    const [rBase, setRBase] = useState("2.5");
+    const [costRampla, setCostRampla] = useState("450");
+    const [opCostHr, setOpCostHr] = useState("4500");
+    const [riskBuffer, setRiskBuffer] = useState("1.15");
 
     // Table state
     const [tableSearchTerm, setTableSearchTerm] = useState("");
     const [tableCurrentPage, setTableCurrentPage] = useState(1);
+    const [settingsHistory, setSettingsHistory] = useState<any[]>([]);
     const [markupPercentage, setMarkupPercentage] = useState(28);
     const ITEMS_PER_PAGE = 10;
 
@@ -314,12 +320,23 @@ export default function AdminRatesPage() {
     useEffect(() => {
         setIsLoading(isLoadingRates || isLoadingSettings);
         if (globalSettings) {
-            setDieselCost((globalSettings as any).dieselCostPerLiter?.toString() || "");
             setUrgencyMulti((globalSettings as any).urgencyMultiplier?.toString() || "1.2");
             setWeatherMulti((globalSettings as any).weatherMultiplier?.toString() || "1.15");
             setDemandSens((globalSettings as any).demandSensitivity?.toString() || "0.05");
+            setVorianCommission((globalSettings as any).vorian_commission?.toString() || "15");
+            setCostoChoferHr((globalSettings as any).costo_chofer_hr?.toString() || "9500");
+            setConsumoIdleHr((globalSettings as any).consumo_idle_hr?.toString() || "2.5");
+            setRBase((globalSettings as any).r_base?.toString() || "2.5");
+            setCostRampla((globalSettings as any).cost_rampla?.toString() || "450");
+            setOpCostHr((globalSettings as any).costo_oportunidad_hr?.toString() || "4500");
+            setRiskBuffer((globalSettings as any).risk_buffer?.toString() || "1.15");
+            setCostoOportunidadHr((globalSettings as any).costo_oportunidad_hr?.toString() || "4500");
+
+            // Cargar historial
+            supabase.from("settings_history").select("*").order("changed_at", { ascending: false }).limit(5)
+                .then(({ data }) => data && setSettingsHistory(data));
         }
-    }, [globalSettings, isLoadingSettings, isLoadingRates]);
+    }, [globalSettings, isLoadingSettings, isLoadingRates, supabase]);
 
     const handleUpdateFromCne = async () => {
         console.log("Iniciando actualización remota desde Edge Function...");
@@ -409,30 +426,24 @@ export default function AdminRatesPage() {
 
         const settingsToUpdate = {
             id: "global",
-            dieselCostPerLiter: price,
-            urgencyMultiplier: parseFloat(urgencyMulti) || 1.2,
-            weatherMultiplier: parseFloat(weatherMulti) || 1.15,
-            demandSensitivity: parseFloat(demandSens) || 0.05,
-            lastUpdatedAt: new Date().toISOString(),
-            lastUpdatedByUserId: user.id,
+            vorian_commission: parseFloat(vorianCommission) || 15,
+            costo_chofer_hr: parseFloat(costoChoferHr) || 9500,
+            costo_oportunidad_hr: parseFloat(opCostHr) || 4500,
+            consumo_idle_hr: parseFloat(consumoIdleHr) || 2.5,
+            r_base: parseFloat(rBase) || 2.5,
+            cost_rampla: parseFloat(costRampla) || 450,
+            risk_buffer: parseFloat(riskBuffer) || 1.15,
         };
 
         try {
             const { error: settingsError } = await supabase.from("settings").upsert(settingsToUpdate);
             if (settingsError) throw settingsError;
     
-            const { error: historyError } = await supabase.from("precios_combustible").insert({
-                pricePerLiter: price,
-                updatedByUserId: user.id,
-                createdAt: new Date().toISOString(),
-            });
-            if (historyError) throw historyError;
-
-            setSuccess("Ajustes globales y registro de precio actualizados.");
+            setSuccess("Ajustes globales y historial de ecuación actualizados.");
             setTimeout(() => setSuccess(null), 3000);
         } catch (err: any) {
             setError("Error al actualizar los ajustes.");
-            console.error(err);
+            console.error("🚨 ERROR SUPABASE:", JSON.stringify(err));
         } finally {
             setSavingStates(prev => ({ ...prev, global: false }));
         }
@@ -469,46 +480,71 @@ export default function AdminRatesPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-3"><Fuel className="w-6 h-6 text-muted-foreground"/> Ajustes Globales</CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                 <Label htmlFor="dieselCostPerLiter">Costo del Combustible (por Litro)</Label>
-                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
-                                     <Input id="dieselCostPerLiter" type="number" value={dieselCost} onChange={e => setDieselCost(e.target.value)} placeholder="Ej: 950.5" className="bg-background max-w-xs" step="0.01" />
-                                     <Button type="button" variant="outline" onClick={handleUpdateFromCne} disabled={isUpdatingFromCne}>
-                                         {isUpdatingFromCne ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                         Actualizar desde CNE
-                                     </Button>
+                            <CardContent className="space-y-6">
+                                 <div>
+                                    <Label htmlFor="dieselCostPerLiter">Costo del Combustible (por Litro)</Label>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
+                                        <Input id="dieselCostPerLiter" type="number" value={dieselCost} onChange={e => setDieselCost(e.target.value)} placeholder="Ej: 950.5" className="bg-background max-w-xs" step="0.01" />
+                                        <Button type="button" variant="outline" onClick={handleUpdateFromCne} disabled={isUpdatingFromCne}>
+                                            {isUpdatingFromCne ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                            Actualizar desde CNE
+                                        </Button>
+                                    </div>
                                  </div>
 
-                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <Zap className="h-4 w-4 text-yellow-500" />
-                                            <Label htmlFor="urgencyMulti" className="font-bold text-xs uppercase tracking-wider">Urgencia</Label>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t">
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-bold flex items-center gap-2"><Zap className="w-4 h-4 text-yellow-500" /> Factores de Mercado</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Urgencia (Multi.)</Label>
+                                                <Input type="number" value={urgencyMulti} onChange={e => setUrgencyMulti(e.target.value)} step="0.05" className="h-10 bg-background" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Comisión (%)</Label>
+                                                <Input type="number" value={vorianCommission} onChange={e => setVorianCommission(e.target.value)} className="h-10 bg-background" />
+                                            </div>
                                         </div>
-                                        <Input id="urgencyMulti" type="number" value={urgencyMulti} onChange={e => setUrgencyMulti(e.target.value)} placeholder="Ej: 1.2" className="bg-background h-9 text-sm" step="0.01" />
-                                        <p className="text-[9px] text-muted-foreground leading-none italic">Recargo (&lt;24h)</p>
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <AlertCircle className="h-4 w-4 text-blue-500" />
-                                            <Label htmlFor="weatherMulti" className="font-bold text-xs uppercase tracking-wider">Clima/Zona</Label>
+
+                                    <div className="space-y-4 pt-6 border-t">
+                                        <h3 className="text-sm font-bold flex items-center gap-2"><Truck className="w-4 h-4 text-primary" /> Calibración Portuaria Pro (v5.0)</h3>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Chofer ($/hr)</Label>
+                                                <Input type="number" value={costoChoferHr} onChange={e => setCostoChoferHr(e.target.value)} className="h-10 bg-background" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Costo OpEx/hr</Label>
+                                                <Input type="number" value={opCostHr} onChange={e => setOpCostHr(e.target.value)} className="h-10 bg-background border-yellow-500/30" title="Gastos fijos de la empresa por hora" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Idle (L/hr)</Label>
+                                                <Input type="number" value={consumoIdleHr} onChange={e => setConsumoIdleHr(e.target.value)} step="0.1" className="h-10 bg-background" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Rendimiento Base</Label>
+                                                <Input type="number" value={rBase} onChange={e => setRBase(e.target.value)} step="0.1" className="h-10 bg-background" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Desgaste/km</Label>
+                                                <Input type="number" value={costRampla} onChange={e => setCostRampla(e.target.value)} className="h-10 bg-background" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Buffer Riesgo</Label>
+                                                <Input type="number" value={riskBuffer} onChange={e => setRiskBuffer(e.target.value)} step="0.05" className="h-10 bg-background border-red-500/30 font-bold" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Margen Vorian (%)</Label>
+                                                <Input type="number" value={vorianCommission} onChange={e => setVorianCommission(e.target.value)} className="h-10 bg-background border-purple-500/30" />
+                                            </div>
                                         </div>
-                                        <Input id="weatherMulti" type="number" value={weatherMulti} onChange={e => setWeatherMulti(e.target.value)} placeholder="Ej: 1.15" className="bg-background h-9 text-sm" step="0.01" />
-                                        <p className="text-[9px] text-muted-foreground leading-none italic">Recargo rutas complejas</p>
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <TrendingUp className="h-4 w-4 text-green-500" />
-                                            <Label htmlFor="demandSens" className="font-bold text-xs uppercase tracking-wider">Demanda</Label>
-                                        </div>
-                                        <Input id="demandSens" type="number" value={demandSens} onChange={e => setDemandSens(e.target.value)} placeholder="Ej: 0.05" className="bg-background h-9 text-sm" step="0.01" />
-                                        <p className="text-[9px] text-muted-foreground leading-none italic">Fluctuación saturación</p>
-                                    </div>
-                                 </div>
+                                </div>
                             </CardContent>
                             <CardFooter className="flex justify-between items-center bg-muted/20 py-4 px-6 border-t">
                                 <p className="text-[10px] text-muted-foreground max-w-[250px]">
-                                    Los multiplicadores dinámicos impactan la cotización final del cliente en tiempo real.
+                                    Los parámetros de la Ecuación Maestra impactan la cotización final en tiempo real.
                                 </p>
                                 <Button type="submit" disabled={savingStates['global'] || isUpdatingFromCne} className="font-bold shadow-lg">
                                     {savingStates['global'] ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</> : "Guardar Configuración Master"}
@@ -517,7 +553,8 @@ export default function AdminRatesPage() {
                         </form>
                     </Card>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                        <div className="xl:col-span-2">
                         <Card>
                             <CardHeader>
                                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -639,140 +676,28 @@ export default function AdminRatesPage() {
                                 )}
                             </CardContent>
                         </Card>
-                        <Card>
+                        </div>
+                        
+                        {/* Precios Sugeridos simplificados */}
+                        <Card className="h-full">
                             <CardHeader>
-                                <CardTitle>Datos Detallados de Combustible</CardTitle>
-                                <CardDescription>Busca y filtra todos los registros de precios.</CardDescription>
-                                <div className="pt-2">
-                                    <Input
-                                        placeholder="Buscar por región, tipo, precio..."
-                                        value={tableSearchTerm}
-                                        onChange={e => setTableSearchTerm(e.target.value)}
-                                        className="w-full"
-                                    />
-                                </div>
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider">Referencia Mercado</CardTitle>
+                                <CardDescription>Precios sugeridos según API CNE.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                                        <tr>
-                                            <th scope="col" className="px-4 py-3">Año</th>
-                                            <th scope="col" className="px-4 py-3">Mes</th>
-                                            <th scope="col" className="px-4 py-3">Región</th>
-                                            <th scope="col" className="px-4 py-3">Combustible</th>
-                                            <th scope="col" className="px-4 py-3 text-right">Precio</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {isLoadingFuelPrices ? (
-                                        <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">Cargando datos...</td></tr>
-                                        ) : paginatedFuelData.length === 0 ? (
-                                        <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No hay datos para mostrar.</td></tr>
-                                        ) : (
-                                        paginatedFuelData.map((item: any) => (
-                                            <tr key={item.key || item.id} className="border-b hover:bg-muted/50">
-                                                <td className="px-4 py-3 font-medium">{item.anio}</td>
-                                                <td className="px-4 py-3">{getMonthName(item.mes - 1)}</td>
-                                                <td className="px-4 py-3">{formatDisplayName(item.region_nombre)}</td>
-                                                <td className="px-4 py-3">{formatDisplayName(item.tipo_combustible)}</td>
-                                                <td className="px-4 py-3 text-right font-mono">
-                                                    ${(typeof item.precio_por_litro === 'number' ? item.precio_por_litro : parseFloat((item.precio_por_litro || "0").toString().replace(',', '.'))).toLocaleString('es-CL')}
-                                                </td>
-                                            </tr>
-                                        ))
-                                        )}
-                                    </tbody>
-                                </table>
-                                </div>
-                            </CardContent>
-                            <CardFooter className="flex items-center justify-between">
-                                <p className="text-sm text-muted-foreground">
-                                    Mostrando {paginatedFuelData.length > 0 ? (tableCurrentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(tableCurrentPage * ITEMS_PER_PAGE, filteredFuelData.length)} de {filteredFuelData.length} resultados
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => setTableCurrentPage(p => Math.max(1, p-1))} disabled={tableCurrentPage === 1 || totalTablePages === 0}>
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                    <span className="text-sm font-medium">{totalTablePages > 0 ? tableCurrentPage : 0} / {totalTablePages}</span>
-                                    <Button variant="outline" size="sm" onClick={() => setTableCurrentPage(p => Math.min(totalTablePages, p+1))} disabled={tableCurrentPage === totalTablePages || totalTablePages === 0}>
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </CardFooter>
-                        </Card>
-                    </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3"><KeyRound className="w-6 h-6 text-muted-foreground"/> Obtención de Token CNE</CardTitle>
-                            <CardDescription>
-                                Obtén un nuevo token de autenticación para la API de CNE. Este token se usa para las consultas de precios.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {cneToken && (
-                                <div className="space-y-2">
-                                <Label>Token Obtenido</Label>
-                                <Textarea readOnly value={cneToken} className="h-24 font-mono text-xs bg-muted/50" />
-                                <p className="text-xs text-muted-foreground">
-                                    El token se ha generado y se usará para las siguientes peticiones.
-                                </p>
-                                </div>
-                            )}
-                        </CardContent>
-                        <CardFooter>
-                             <Button onClick={handleGetCneToken} disabled={isFetchingToken}>
-                                {isFetchingToken ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Obteniendo...</> : "Obtener Token"}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-3"><TrendingUp className="w-6 h-6 text-muted-foreground" /> Precios de Venta Sugeridos</CardTitle>
-                            <CardDescription>
-                                Último precio base registrado para <span className="font-semibold">{formatDisplayName(fuelType)}</span> por región, con un incremento sugerido personalizable.
-                            </CardDescription>
-                            <div className="pt-4 flex items-center gap-4">
-                                <Label className="whitespace-nowrap">Margen de Ganancia (%):</Label>
-                                <Input 
-                                    type="number" 
-                                    value={markupPercentage} 
-                                    onChange={(e) => setMarkupPercentage(Number(e.target.value))}
-                                    className="w-24"
-                                />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {isLoadingFuelPrices ? (
-                                <div className="flex justify-center items-center h-24">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                </div>
-                             ) : suggestedPricesData.length === 0 ? (
-                                <p className="text-muted-foreground text-sm text-center py-8">No hay datos suficientes para calcular precios.</p>
-                            ) : (
-                                <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                                    {suggestedPricesData.map(item => (
-                                        <div key={item.regionName} className="flex justify-between items-center p-3 bg-muted/50 rounded-md">
-                                            <div>
-                                                <p className="font-semibold">{item.regionName}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    Base: ${item.basePrice.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-bold text-lg text-primary">
-                                                    ${item.suggestedPrice.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-                                                </p>
-                                                <p className="text-xs text-green-500 font-semibold">+{markupPercentage}%</p>
-                                            </div>
+                            <CardContent className="p-0">
+                                <div className="max-h-[380px] overflow-y-auto">
+                                    {suggestedPricesData.slice(0, 8).map(item => (
+                                        <div key={item.regionName} className="flex justify-between items-center p-3 border-b hover:bg-muted/30 transition-colors">
+                                            <span className="text-xs font-medium truncate max-w-[120px]">{item.regionName}</span>
+                                            <span className="text-xs font-black text-primary">${item.suggestedPrice.toLocaleString('es-CL', { maximumFractionDigits: 0 })}</span>
                                         </div>
                                     ))}
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Eliminamos el Token CNE manual y la tabla gigante para limpiar la vista */}
 
                     <div>
                         <h2 className="text-xl font-semibold mb-4">Tarifas de Vehículos</h2>
@@ -790,6 +715,152 @@ export default function AdminRatesPage() {
                             ))}
                         </div>
                     </div>
+
+                    {/* NUEVO: Simulador de Rentabilidad Real-Time */}
+                    <Card className="mt-8 border-primary/40 bg-primary/5 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Truck className="w-24 h-24 rotate-12" />
+                        </div>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-xl font-black italic">
+                                <Zap className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+                                VORIAN PROFIT SIMULATOR (v5.0)
+                            </CardTitle>
+                            <CardDescription className="text-primary/70 font-medium">
+                                Simulación de rentabilidad basada en los factores maestros configurados arriba.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                {/* Inputs de Simulación */}
+                                <div className="space-y-6 bg-background/40 p-6 rounded-2xl border border-primary/10">
+                                    <h3 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                        Parámetros de Ruta
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-bold">Distancia (km ida)</Label>
+                                            <Input type="number" defaultValue="110" id="sim-dist-v5" className="h-12 bg-background font-mono text-lg" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-bold">Tiempo de Ruta (hrs)</Label>
+                                            <Input type="number" defaultValue="2.5" id="sim-time-v5" className="h-12 bg-background font-mono text-lg" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-bold">Peajes CAT3 ($)</Label>
+                                            <Input type="number" defaultValue="35000" id="sim-tolls-v5" className="h-12 bg-background font-mono text-lg" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Resultados Dinámicos */}
+                                <div className="lg:col-span-2 space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Bloque Pago Cliente */}
+                                        <div className="p-6 rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden group">
+                                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                <DollarSign className="w-24 h-24" />
+                                            </div>
+                                            <p className="text-[10px] uppercase font-black tracking-widest opacity-80">Pago Total Cliente</p>
+                                            <h2 className="text-4xl font-black mt-2 tabular-nums">
+                                                ${(
+                                                    (
+                                                        (
+                                                            ((parseFloat(dieselCost) || 1250) / (parseFloat(rBase) || 2.5) + (parseFloat(costRampla) || 450)) * (110 * 2)
+                                                        )
+                                                        + 
+                                                        (
+                                                            2.5 * (110 > 100 ? 3.0 : 2.2) * (parseFloat(costoChoferHr) + parseFloat(opCostHr) + (parseFloat(consumoIdleHr) * (parseFloat(dieselCost) || 1250)))
+                                                        )
+                                                    ) * (1 + (parseFloat(vorianCommission) / 100)) * (parseFloat(riskBuffer) || 1.15) + 35000
+                                                ).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
+                                            </h2>
+                                            <p className="text-[10px] mt-4 font-bold opacity-60">Calculado para 110km San Antonio @ 2.5h</p>
+                                        </div>
+
+                                        {/* Bloque Spread Vorian */}
+                                        <div className="p-6 rounded-2xl bg-purple-600 text-white shadow-xl shadow-purple-500/20 relative overflow-hidden group border border-white/10">
+                                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                <Zap className="w-24 h-24" />
+                                            </div>
+                                            <p className="text-[10px] uppercase font-black tracking-widest opacity-80">Vorian Spread (Ganancia)</p>
+                                            <h2 className="text-4xl font-black mt-2 tabular-nums">
+                                                ${(
+                                                    (parseFloat(vorianCommission) / 100 * 272200) + (parseFloat(opCostHr) * 4.5)
+                                                ).toLocaleString('es-CL', { maximumFractionDigits: 0 })}
+                                            </h2>
+                                            <div className="mt-4 flex items-center gap-2">
+                                                <div className="px-2 py-0.5 bg-white/20 rounded text-[9px] font-bold uppercase">Incluye OpEx</div>
+                                                <div className="px-2 py-0.5 bg-white/20 rounded text-[9px] font-bold uppercase">Margen Real</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Barra de Distribución */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-end">
+                                            <p className="text-xs font-black uppercase tracking-tighter text-muted-foreground">Distribución del Flete</p>
+                                            <span className="text-[10px] font-bold text-green-500">Transportista Satisfecho ✓</span>
+                                        </div>
+                                        <div className="h-6 w-full bg-muted rounded-full overflow-hidden flex shadow-inner">
+                                            <div className="h-full bg-red-500 w-[45%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Combustible y Desgaste">Costos Camión</div>
+                                            <div className="h-full bg-blue-500 w-[20%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Sueldo Chofer">Chofer</div>
+                                            <div className="h-full bg-purple-500 w-[25%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Comisión y OpEx">Vorian</div>
+                                            <div className="h-full bg-yellow-500 w-[10%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Fondo de Riesgo">Risk Buffer</div>
+                                        </div>
+                                        <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase pt-2">
+                                            <span>Camión: 45%</span>
+                                            <span>Chofer: 20%</span>
+                                            <span>Vorian: 25%</span>
+                                            <span>Riesgo: 10%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* SECCIÓN DE HISTORIAL DE ECUACIÓN MAESTRA */}
+                    <Card className="mt-8 border-primary/20 bg-primary/5">
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <RefreshCw className="w-5 h-5 text-primary" /> Historial de Cambios (Ecuación Maestra)
+                            </CardTitle>
+                            <CardDescription>Últimos 5 ajustes realizados a los factores de la tarifa.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="border-b border-primary/20 text-muted-foreground uppercase font-black tracking-[0.1em]">
+                                            <th className="py-2 text-left">Fecha de Cambio</th>
+                                            <th className="py-2 text-right">Comisión</th>
+                                            <th className="py-2 text-right">Rendimiento</th>
+                                            <th className="py-2 text-right">Desgaste/km</th>
+                                            <th className="py-2 text-right">Chofer/hr</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {settingsHistory.map((h, i) => (
+                                            <tr key={h.id || i} className="border-b border-primary/10 hover:bg-primary/5 transition-colors">
+                                                <td className="py-2 font-bold">{format(new Date(h.changed_at), "d MMM, HH:mm", { locale: es })}</td>
+                                                <td className="py-2 text-right font-mono font-bold text-purple-600">{h.vorian_commission || h.vorianCommission || h.voriancommission}%</td>
+                                                <td className="py-2 text-right font-mono font-bold text-blue-600">{h.r_base} km/L</td>
+                                                <td className="py-2 text-right font-mono font-bold">${h.cost_rampla}</td>
+                                                <td className="py-2 text-right font-mono font-bold">${h.costo_chofer_hr}</td>
+                                            </tr>
+                                        ))}
+                                        {settingsHistory.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="py-8 text-center text-muted-foreground italic">No hay cambios registrados aún. Intenta guardar una nueva configuración.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>

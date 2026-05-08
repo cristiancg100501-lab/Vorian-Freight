@@ -76,21 +76,42 @@ export default function TollsMapPage() {
             style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c',
             center: [-70.6693, -33.4489], 
             zoom: 11,
+            pitch: 0,
+            maxPitch: 0,
+            bearing: 0,
+            dragRotate: false,
+            pitchWithRotate: false,
+            projection: { name: 'mercator' } as any,
+            trackResize: true
         });
 
         // Add Navigation controls
-        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
 
         map.current.on('style.load', () => {
-            const layers = map.current?.getStyle()?.layers || [];
+            const mapInstance = map.current;
+            if (!mapInstance) return;
+
+            // Disable all forms of rotation and pitch
+            mapInstance.dragRotate.disable();
+            mapInstance.touchZoomRotate.disableRotation();
+            mapInstance.keyboard.disable();
+
+            // Remove atmosphere
+            if (mapInstance.getStyle().layers) {
+                (mapInstance as any).setAtmosphere?.(null);
+            }
+
+            const layers = mapInstance.getStyle()?.layers || [];
             for (const layer of layers) {
                 if (
                     layer.id.includes('poi') || 
                     layer.id.includes('building') || 
                     layer.id.includes('park') ||
-                    layer.id.includes('landuse')
+                    layer.id.includes('landuse') ||
+                    layer.type === 'fill-extrusion'
                 ) {
-                    map.current?.setLayoutProperty(layer.id, 'visibility', 'none');
+                    mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
                 }
             }
         });
@@ -426,7 +447,7 @@ export default function TollsMapPage() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] overflow-hidden -m-6 relative">
+        <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] lg:-m-6 -m-4 relative overflow-hidden bg-background">
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
@@ -451,7 +472,7 @@ export default function TollsMapPage() {
             )}
 
             {/* Main Map */}
-            <div className="flex-1 w-full bg-muted mt-16" ref={mapContainer} />
+            <div className="flex-1 w-full bg-muted mt-16 relative" ref={mapContainer} />
 
             {/* Detail Panel */}
             {/* Instrucciones Modo Añadir */}

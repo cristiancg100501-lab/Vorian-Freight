@@ -110,7 +110,7 @@ const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelect
                                 )}
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-[10px] font-mono text-muted-foreground">#{load.id.substring(0, 8)}</span>
-                                    <span className="text-sm font-bold text-primary">${load.price.toLocaleString('es-CL')}</span>
+                                    <span className="text-sm font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
                                 </div>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 text-xs">
@@ -191,22 +191,41 @@ export default function CompanyShipmentsPage() {
                 style: resolvedTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c',
                 center: [-70.6483, -33.4489], // Santiago, Chile
                 zoom: 11,
-                pitch: 45,
+                pitch: 0,
+                maxPitch: 0,
+                bearing: 0,
+                dragRotate: false,
+                pitchWithRotate: false,
+                projection: { name: 'mercator' } as any,
             });
 
             map.current.on('style.load', () => {
-                const layers = map.current?.getStyle()?.layers || [];
+                const mapInstance = map.current;
+                if (!mapInstance) return;
+
+                // Disable all forms of rotation and pitch
+                mapInstance.dragRotate.disable();
+                mapInstance.touchZoomRotate.disableRotation();
+                mapInstance.keyboard.disable();
+
+                // Remove atmosphere
+                if (mapInstance.getStyle().layers) {
+                    (mapInstance as any).setAtmosphere?.(null);
+                }
+
+                const layers = mapInstance.getStyle()?.layers || [];
                 for (const layer of layers) {
                     if (
                         layer.id.includes('poi') || 
                         layer.id.includes('building') || 
                         layer.id.includes('park') ||
-                        layer.id.includes('landuse')
+                        layer.id.includes('landuse') ||
+                        layer.type === 'fill-extrusion'
                     ) {
-                        map.current?.setLayoutProperty(layer.id, 'visibility', 'none');
+                        mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
                     }
                 }
-                map.current?.resize();
+                mapInstance.resize();
             });
 
             map.current.on('error', (e) => {
@@ -276,7 +295,7 @@ export default function CompanyShipmentsPage() {
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                             </div>
                             <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded px-2 py-1 text-[10px] font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                $${(load.price || 0).toLocaleString('es-CL')}
+                                CLP {(load.price || 0).toLocaleString('es-CL')}
                             </div>
                         </div>
                     `;
@@ -392,7 +411,7 @@ export default function CompanyShipmentsPage() {
                                                 <CardDescription className="text-xs">ID: {selectedLoad.id.substring(0, 8)}</CardDescription>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-lg font-bold text-primary">${selectedLoad.price.toLocaleString('es-CL')}</p>
+                                                <p className="text-lg font-bold text-primary">CLP {selectedLoad.price.toLocaleString('es-CL')}</p>
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -463,7 +482,7 @@ export default function CompanyShipmentsPage() {
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
-                                        <span className="text-lg font-bold text-primary">${load.price.toLocaleString('es-CL')}</span>
+                                        <span className="text-lg font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">

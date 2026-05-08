@@ -115,6 +115,14 @@ export default function NewShipmentPage() {
     const [cargoNotes, setCargoNotes] = useState('');
     const [bookingMethod, setBookingMethod] = useState('instant');
     
+    // Managed Freight State
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+    const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+    const [manualCarrierCost, setManualCarrierCost] = useState<string>('');
+    const [manualClientPrice, setManualClientPrice] = useState<string>('');
+    const [customers, setCustomers] = useState<any[]>([]);
+    const [drivers, setDrivers] = useState<any[]>([]);
+    
     const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([]);
     const [deliverySuggestions, setDeliverySuggestions] = useState<any[]>([]);
     const [routeDetails, setRouteDetails] = useState({ distance: 0, duration: 0, geometry: null as any });
@@ -137,7 +145,15 @@ export default function NewShipmentPage() {
                 setError("No se encontraron los ajustes globales para el cálculo de precio.");
             }
         };
+        const fetchUsers = async () => {
+            const { data: usersData } = await supabase.from("userProfiles").select("id, name, role, email");
+            if (usersData) {
+                setCustomers(usersData.filter((u: any) => u.role === 'customer' || u.role === 'client'));
+                setDrivers(usersData.filter((u: any) => u.role === 'driver' || u.role === 'company'));
+            }
+        };
         fetchSettings();
+        fetchUsers();
     }, [supabase]);
 
     useEffect(() => {
@@ -201,11 +217,26 @@ export default function NewShipmentPage() {
                     const driverTimeCost = eTime * costPerMinute;
                     const overnightCost = (eTime > 8 * 60) ? overnightStay : 0;
                     
-                    const calculatedPrice = baseFare + fuelCost + wearAndTearCost + driverTimeCost + overnightCost;
-                    const commission = calculatedPrice * 0.10;
-                    const finalPrice = calculatedPrice + commission;
+                    // --- MARKET INTELLIGENCE ENGINE ---
+                    let marketMultiplier = 1.0;
+                    
+                    // 1. Urgency Multiplier (Automated)
+                    const hoursUntilPickup = pickupDate ? (pickupDate.getTime() - Date.now()) / (1000 * 60 * 60) : 72;
+                    if (hoursUntilPickup < 24) {
+                        marketMultiplier *= (globalSettings.urgencyMultiplier || 1.2);
+                    }
 
-                    setCarrierPayment(Math.round(calculatedPrice));
+                    // 2. Base Calculation
+                    const baseCost = baseFare + fuelCost + wearAndTearCost + driverTimeCost + overnightCost;
+                    const dynamicBase = baseCost * marketMultiplier;
+                    
+                    // 3. Platform Commission (from Global Settings)
+                    const commissionRate = (globalSettings.vorianCommission || 15) / 100;
+                    const commission = dynamicBase * commissionRate;
+                    
+                    const finalPrice = dynamicBase + commission;
+
+                    setCarrierPayment(Math.round(dynamicBase));
                     setPlatformFee(Math.round(commission));
                     setEstimatedPrice(Math.round(finalPrice));
 
@@ -328,6 +359,11 @@ export default function NewShipmentPage() {
             estimated_price: finalBookingMethod === 'instant' ? estimatedPrice : 0,
             status: isInternalShipment ? 'Booked' : 'Pending',
             createdAt: new Date().toISOString(),
+            // Managed Freight Fields
+            customer_id: selectedCustomerId || null,
+            driver_id: selectedDriverId || null,
+            carrier_cost: parseFloat(manualCarrierCost) || carrierPayment,
+            client_price: parseFloat(manualClientPrice) || estimatedPrice,
           });
           
           if (insertError) throw insertError;
@@ -364,10 +400,34 @@ export default function NewShipmentPage() {
                         <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Ruta y Horario</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Client ID */}
+                                {/* Mandante (Customer) */}
+                                <div className="space-y-2 col-span-full md:col-span-1">
+                                    <label className="text-sm font-semibold text-foreground italic">Empresa Mandante (Customer)</label>
+                                    <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                                        <SelectTrigger className="h-12 bg-primary/5 border-primary/20 focus:ring-primary">
+                                            <SelectValue placeholder="Seleccionar Mandante" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name || c.email}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {/* Transportista de Confianza */}
+                                <div className="space-y-2 col-span-full md:col-span-1">
+                                    <label className="text-sm font-semibold text-foreground italic">Transporte de Confianza (Driver)</label>
+                                    <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                                        <SelectTrigger className="h-12 bg-primary/5 border-primary/20 focus:ring-primary">
+                                            <SelectValue placeholder="Asignar Conductor" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.name || d.email}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {/* Client ID (Broker/Original) */}
                                 <div className="space-y-2 col-span-full">
-                                    <label className="text-sm font-semibold text-foreground">Client ID</label>
-                                    <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="User ID of the client creating the shipment" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" required />
+                                    <label className="text-sm font-semibold text-foreground">Broker ID (Opcional)</label>
+                                    <Input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="ID del broker o cliente que solicita" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
                                 </div>
                                 {/* Pickup */}
                                 <div className="space-y-2">
@@ -659,6 +719,38 @@ export default function NewShipmentPage() {
                             {/* BOOKING METHOD */}
                             {!isInternalShipment && (
                                 <div>
+                                    <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Ajuste de Precios Gestionados</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6 bg-primary/5 border border-primary/20 rounded-xl mb-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-primary font-bold">Pago a Transportista (Costo)</Label>
+                                            <div className="relative">
+                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                                                <Input 
+                                                    type="number" 
+                                                    value={manualCarrierCost} 
+                                                    onChange={e => setManualCarrierCost(e.target.value)} 
+                                                    placeholder={carrierPayment.toString()} 
+                                                    className="pl-10 h-12 bg-background border-primary/30"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">Sugerido: ${carrierPayment.toLocaleString()}</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-primary font-bold">Cobro a Mandante (Precio)</Label>
+                                            <div className="relative">
+                                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                                                <Input 
+                                                    type="number" 
+                                                    value={manualClientPrice} 
+                                                    onChange={e => setManualClientPrice(e.target.value)} 
+                                                    placeholder={estimatedPrice.toString()} 
+                                                    className="pl-10 h-12 bg-background border-primary/30"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">Sugerido: ${estimatedPrice.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
                                     <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Método de Reserva</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <Card className={cn("cursor-pointer", bookingMethod === 'instant' ? "border-primary ring-1 ring-primary" : "")} onClick={() => setBookingMethod('instant')}>

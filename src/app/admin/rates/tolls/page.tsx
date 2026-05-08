@@ -252,7 +252,7 @@ export default function TollRatesMatrixPage() {
   const [selectedPortico, setSelectedPortico] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [tariffs, setTariffs] = useState<any>({ cat1: { ...INITIAL_TARIFFS }, cat2: { ...INITIAL_TARIFFS }, cat3: { ...INITIAL_TARIFFS } });
-  const [generalInfo, setGeneralInfo] = useState({ name: "", reference_code: "", latitude: 0, longitude: 0, is_active: true, concession_name: "" });
+  const [generalInfo, setGeneralInfo] = useState({ name: "", reference_code: "", latitude: 0, longitude: 0, is_active: true, concession_name: "", via: "santiago" });
 
   // Effects
   useEffect(() => {

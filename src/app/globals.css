@@ -6,70 +6,70 @@
 
 @layer base {
   :root {
-    --background: 240 4.8% 95.9%;
-    --foreground: 240 10% 3.9%;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 10% 3.9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 48 96% 90%;
-    --secondary-foreground: 48 95% 20%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 217 91% 94%;
-    --accent-foreground: 217 91% 30%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 350 93% 73%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
-    --radius: 0.5rem;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 350 93% 73%;
+    --radius: 1rem;
   }
  
   .dark {
-    --background: 240 5.9% 10%;
+    --background: 0 0% 7%;
     --foreground: 0 0% 98%;
-    --card: 240 3.7% 15.9%;
+    --card: 0 0% 12%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 5.9% 10%;
+    --popover: 0 0% 12%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 48 96% 12%;
-    --secondary-foreground: 48 95% 90%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 217 91% 14%;
-    --accent-foreground: 217 91% 90%;
+    --primary: 350 93% 73%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 350 93% 73%;
   }
 
   .dark .light-theme-override {
-    --background: 240 4.8% 95.9%;
-    --foreground: 240 10% 3.9%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 10% 3.9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 350 93% 73%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 350 93% 73%;
   }
 
   * {
@@ -77,8 +77,16 @@
   }
 
   body {
-    background-color: hsl(var(--background));
+    background: linear-gradient(135deg, #ffffff 0%, #f8faff 50%, #f0f4f8 100%);
+    background-attachment: fixed;
     color: hsl(var(--foreground));
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
+  }
+
+  .dark body {
+    background: #121212;
+    background-attachment: fixed;
   }
 }
  
@@ -144,7 +152,31 @@
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
+  .dark .mapboxgl-map {
+    filter: saturate(0.6) brightness(0.85) contrast(1.1);
+  }
+
   .driver-popup .mapboxgl-popup-tip {
     border-top-color: hsl(var(--border));
+  }
+}
+
+@layer utilities {
+  @keyframes scan {
+    0% { top: 0; }
+    100% { top: 100%; }
+  }
+
+  .animate-vibrate {
+    animation: vibrate 0.3s cubic-bezier(.36,.07,.19,.97) infinite;
+  }
+
+  @keyframes vibrate {
+    0% { transform: translate(0); }
+    20% { transform: translate(-1px, 1px); }
+    40% { transform: translate(-1px, -1px); }
+    60% { transform: translate(1px, 1px); }
+    80% { transform: translate(1px, -1px); }
+    100% { transform: translate(0); }
   }
 }

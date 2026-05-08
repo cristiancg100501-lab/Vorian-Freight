@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useSupabase, useUser } from '@/components/providers/supabase-provider';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -91,10 +91,10 @@ export default function NewClientShipmentPage() {
     const router = useRouter();
 
     // Multi-step form state
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState<number>(1);
 
     // Step 1 State
-    const [equipment, setEquipment] = useState('Dry van');
+    const [equipment, setEquipment] = useState('20 ST');
     const [isInternalShipment, setIsInternalShipment] = useState(false);
     const [pickup, setPickup] = useState({ address: '', coords: null as any });
     const [delivery, setDelivery] = useState({ address: '', coords: null as any });
@@ -102,8 +102,9 @@ export default function NewClientShipmentPage() {
     const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
     const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
     const [deliveryWindow, setDeliveryWindow] = useState('1:00 PM - 5:00 PM');
-    const [vehicleType, setVehicleType] = useState('Camion Rampla');
+    const [vehicleType, setVehicleType] = useState('camion_3_4');
     const [serviceType, setServiceType] = useState('FTL');
+    const [isRoundTrip, setIsRoundTrip] = useState(true); // Default to Round Trip as per user feedback
     const [weatherCondition, setWeatherCondition] = useState('Clear');
     const [pickupRegionCod, setPickupRegionCod] = useState<number | null>(null);
 
@@ -116,37 +117,55 @@ export default function NewClientShipmentPage() {
     
     // Step 2 State
     const [commodity, setCommodity] = useState('General Freight');
-    const [weightLbs, setWeightLbs] = useState('42000');
-    const [cargoDetailsType, setCargoDetailsType] = useState('Pallets');
-    const [pallets, setPallets] = useState('');
-    const [dimensions, setDimensions] = useState('');
-    const [itemDescription, setItemDescription] = useState('Pallet - General Goods');
-    const [quantity, setQuantity] = useState('20');
-    const [dimensionsPerItem, setDimensionsPerItem] = useState('48x40x72');
-    const [totalVolume, setTotalVolume] = useState('');
+    const [weightKgs, setWeightKgs] = useState('22000');
+    const [containerId, setContainerId] = useState('');
+    const [containerStatus, setContainerStatus] = useState('FCL'); // FCL or Empty
+    const [containerType, setContainerType] = useState('Dry'); // Dry, Reefer, Open Top, Tank
     const [specialHandling, setSpecialHandling] = useState({
       hazardous: false,
-      requiresPermit: false,
-      requiresTarping: true,
-      tarpType: 'Rew Tarp',
-      oversize: false,
+      requiresGenSet: false,
+      overweight: false,
+      isRoundTrip: true, // Tied to the main UI switch
     });
     
     // Step 3 State
     const [accessorials, setAccessorials] = useState({
-        forklift: true, insideDelivery1: false, appointment: false, driverAssist: false, palletExchange: false, liftgate1: false, insideDelivery2: false, liftgate2: false,
+        warehouseWait: false, emptyReturnIncluded: true, extraStop: false, portGateFee: true, weekendService: false,
     });
     const [carrierRating, setCarrierRating] = useState('4');
     const [uberFreightPreferred, setUberFreightPreferred] = useState(false);
     const [cargoNotes, setCargoNotes] = useState('');
     const [bookingMethod, setBookingMethod] = useState('instant');
 
+    const [pricingFactors, setPricingFactors] = useState<any>(null);
+    const [mlFactors, setMlFactors] = useState<any>(null);
+    const [pricingLogId, setPricingLogId] = useState<string | null>(null);
+    const [priceValidFor, setPriceValidFor] = useState(20);
+    const [isRefreshingPrice, setIsRefreshingPrice] = useState(false);
+    const [cargoUnits, setCargoUnits] = useState(1);
+    
     const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([]);
     const [deliverySuggestions, setDeliverySuggestions] = useState<any[]>([]);
     const [routeDetails, setRouteDetails] = useState({ distance: 0, duration: 0, geometry: null as any });
     
+    const [vehicleSpecs, setVehicleSpecs] = useState<any[]>([]);
+    const [activeVehicleSpec, setActiveVehicleSpec] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchVehicleSpecs = async () => {
+            const { data, error } = await supabase.from('vehicle_specs').select('*').eq('is_active', true);
+            if (data) {
+                setVehicleSpecs(data);
+                const current = data.find((v: any) => v.id === vehicleType);
+                if (current) setActiveVehicleSpec(current);
+            }
+        };
+        fetchVehicleSpecs();
+    }, [supabase, vehicleType]);
+    
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [elevations, setElevations] = useState({ pickup: 0, delivery: 0 });
 
     // Pricing state
     const [globalSettings, setGlobalSettings] = useState<any | null>(null);
@@ -171,7 +190,7 @@ export default function NewClientShipmentPage() {
         const fetchTollData = async () => {
             const [porticosRes, matricesRes] = await Promise.all([
                 supabase.from('porticos').select('*').eq('is_active', true),
-                supabase.from('concession_matrices').select('*').eq('concession_name', 'AVO').eq('category', 3)
+                supabase.from('concession_matrices').select('*').eq('concession_name', 'AVO')
             ]);
             if (porticosRes.data && matricesRes.data) {
                 setGlobalSettings((prev: any) => ({
@@ -241,94 +260,115 @@ export default function NewClientShipmentPage() {
         fetchWeather();
     }, [pickup.coords]);
 
-    useEffect(() => {
-        const calculatePrice = async () => {
-            if (!routeDetails.distance || !routeDetails.duration || !vehicleType || !globalSettings) {
+    const calculatePrice = useCallback(async () => {
+        if (!routeDetails.distance || !routeDetails.duration || !vehicleType || !globalSettings) {
+            setEstimatedPrice(0);
+            setCarrierPayment(0);
+            setPlatformFee(0);
+            return;
+        }
+        
+        setError(null);
+        setIsRefreshingPrice(true);
+        
+        try {
+            // --- VORIAN HYBRID ML OPTIMIZER ---
+            const response = await fetch('/api/pricing/optimize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pickup_region: pickup.address.split(',').slice(-2, -1)[0]?.trim() || 'RM',
+                    delivery_region: delivery.address.split(',').slice(-2, -1)[0]?.trim() || 'RM',
+                    elevation_diff: elevations.delivery - elevations.pickup,
+                    distance_meters: routeDetails.distance,
+                    duration_mins: routeDetails.duration / 60,
+                    vehicle_type: vehicleType,
+                    container_status: containerStatus,
+                    weight_kgs: parseInt(weightKgs) || 0,
+                    route_geometry: routeDetails.geometry,
+                    service_mode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
+                    cargo_units: serviceType === 'LTL' ? cargoUnits : 1
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error("Error en API de optimización de precios");
+            }
+            
+            const data = await response.json();
+            
+            if (data.error) {
+                setError(data.error);
                 setEstimatedPrice(0);
                 setCarrierPayment(0);
                 setPlatformFee(0);
+                setTollsCount(0);
+                setTollCost(0);
                 return;
             }
+
+            // Update pricing states from Hybrid API
+            setCarrierPayment(data.carrier_payment);
+            setPlatformFee(data.platform_fee);
+            setEstimatedPrice(data.final_price); 
+            setPricingFactors(data.factors.rpc_factors); // Factores físicos (distancia, diesel, etc.)
+            setMlFactors({ ml_factor: data.factors.ml_factor, market_factor: data.factors.market_factor });
+            setPricingLogId(data.log_id);
+            // setPriceValidFor(20); Removed to prevent any possible infinite reset loops.
             
-            setError(null);
+            // Re-calculate the actual visual breakdown of tolls for the UI and Map
+            const tollsResult = getTollsForRoute(
+                routeDetails.geometry, 
+                globalSettings.porticos || [], 
+                globalSettings.avoMatrix || [], 
+                pickupDate || new Date(), 
+                (vehicleType.includes('3/4') || vehicleType.includes('3_4') || vehicleType.toLowerCase().includes('light')) ? 'cat2' : 'cat3'
+            );
             
-            try {
-                // --- VORIAN CENTRALIZED INTELLIGENCE (Supabase RPC) ---
-                const rpcParams = {
-                    p_km: Math.round((routeDetails.distance || 0) / 1000),
-                    p_minutes: Math.round((routeDetails.duration || 0) / 60),
-                    p_vehicle_type: vehicleType,
-                    p_pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
-                    p_delivery_date: deliveryDate?.toISOString() || new Date().toISOString(),
-                    p_weather_main: weatherCondition,
-                    p_region_cod: pickupRegionCod,
-                    p_route_geometry: routeDetails.geometry // Geometría cruda para PostGIS
-                };
+            setTollsCount(tollsResult.tollsCount);
+            // Use the client-side calculated toll cost for the UI breakdown to guarantee consistency
+            setTollCost(tollsResult.tollsCost); 
+            setTollsNames(tollsResult.tollNames);
+            setTollsBreakdown(tollsResult.breakdowns);
+            
+            // --- END VORIAN ML INTELLIGENCE ---
+        } catch (err: any) {
+            console.error("Error calculating price via RPC:", err.message || err);
+            setEstimatedPrice(0);
+            setCarrierPayment(0);
+            setPlatformFee(0);
+            setError("No se pudo calcular el precio en tiempo real.");
+        } finally {
+            setIsRefreshingPrice(false);
+        }
+    }, [supabase, routeDetails, vehicleType, globalSettings, pickupDate, deliveryDate, weatherCondition, pickupRegionCod, pickup.address, delivery.address, elevations, containerStatus, weightKgs, serviceType, cargoUnits]);
 
-                console.log("🚛 Calculando precio Vorian con params:", rpcParams);
-
-                const { data, error: rpcError } = await supabase.rpc('get_vorian_price', { params: rpcParams });
-
-                if (rpcError) {
-                    console.error("🚨 ERROR CRÍTICO SUPABASE RPC:", rpcError);
-                    throw rpcError;
-                }
-                
-                console.log("💰 Respuesta exitosa de Vorian Engine:", data);
-                
-                if (data.error) {
-                    setError(data.error);
-                    setEstimatedPrice(0);
-                    setCarrierPayment(0);
-                    setPlatformFee(0);
-                    setTollsCount(0);
-                    setTollCost(0);
-                    return;
-                }
-
-                // --- CLIENT-SIDE PRECISION TOLL CALCULATION ---
-                let localTollsCost = 0;
-                let localTollsBreakdown: any[] = [];
-                let localTollsCount = 0;
-                let localTollsNames: string[] = [];
-
-                if (globalSettings?.porticos?.length && routeDetails.geometry) {
-                    const categoryKey = ['furgon', 'pickup', 'camioneta'].includes(vehicleType) ? 'cat1' : ['camion', 'simple', 'camion_simple'].includes(vehicleType) ? 'cat2' : 'cat3';
-                    const tollResults = getTollsForRoute(
-                        routeDetails.geometry,
-                        globalSettings.porticos,
-                        globalSettings.avoMatrix,
-                        pickupDate || new Date(),
-                        categoryKey
-                    );
-                    
-                    localTollsCost = tollResults.tollsCost;
-                    localTollsBreakdown = tollResults.breakdowns;
-                    localTollsCount = tollResults.tollsCount;
-                    localTollsNames = tollResults.tollNames;
-                }
-
-                // Update pricing states from centralized DB result + Local Precision Tolls
-                setCarrierPayment(data.subtotal);
-                setPlatformFee(data.commission);
-                setEstimatedPrice(data.total - (data.tolls_cost || 0) + localTollsCost); // Replace RPC tolls with local tolls
-                setTollsCount(localTollsCount);
-                setTollCost(localTollsCost);
-                setTollsNames(localTollsNames);
-                setTollsBreakdown(localTollsBreakdown);
-                
-                // --- END VORIAN INTELLIGENCE ---
-            } catch (err: any) {
-                console.error("Error calculating price via RPC:", err.message || err);
-                setEstimatedPrice(0);
-                setCarrierPayment(0);
-                setPlatformFee(0);
-                setError("No se pudo calcular el precio en tiempo real.");
-            }
-        };
-
+    // Initial calculation or dependency change
+    useEffect(() => {
         calculatePrice();
-    }, [supabase, routeDetails, vehicleType, globalSettings, pickupDate, deliveryDate, weatherCondition, pickupRegionCod]);
+    }, [calculatePrice]);
+
+    const calculatePriceRef = useRef(calculatePrice);
+    useEffect(() => {
+        calculatePriceRef.current = calculatePrice;
+    }, [calculatePrice]);
+
+    // TIMER EFFECT for automatic refresh (Simplified, indestructible)
+    useEffect(() => {
+        if (estimatedPrice <= 0) return;
+
+        const timer = setInterval(() => {
+            setPriceValidFor((prev) => {
+                if (prev <= 1) {
+                    calculatePriceRef.current();
+                    return 20;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [estimatedPrice]);
 
 
     const handleAddressChange = async (value: string, type: 'pickup' | 'delivery') => {
@@ -387,6 +427,23 @@ export default function NewClientShipmentPage() {
         }
 
         setSuggestions([]);
+
+        // --- VORIAN TERRAIN SENSOR: Fetch Elevation ---
+        const fetchElevation = async () => {
+            try {
+                const res = await fetch(`https://api.mapbox.com/v4/mapbox.mapbox-terrain-v2/tilequery/${suggestion.center[0]},${suggestion.center[1]}.json?layers=ele&access_token=${MAPBOX_TOKEN}`);
+                const data = await res.json();
+                if (data.features && data.features.length > 0) {
+                    const ele = data.features[0].properties.ele;
+                    console.log(`🏔️ Vorian Terrain Sensor: Altitud en ${type}: ${ele}m`);
+                    setElevations(prev => ({ ...prev, [type]: ele }));
+                }
+            } catch (err) {
+                console.warn("Could not fetch elevation data");
+            }
+        };
+        fetchElevation();
+        // --- END TERRAIN SENSOR ---
     };
     
     const handleBookShipment = async () => {
@@ -405,6 +462,17 @@ export default function NewClientShipmentPage() {
     
         setIsLoading(true);
         setError(null);
+        
+        try {
+            if (pricingLogId) {
+                // Notificar al ML Engine que la tarifa fue aceptada (Conversion Funnel)
+                await fetch('/api/pricing/accept', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ log_id: pricingLogId })
+                }).catch(e => console.warn("Failed to update pricing log:", e));
+            }
+        } catch (e) {}
         
         // --- Generate Custom ID ---
         const now = new Date();
@@ -440,22 +508,20 @@ export default function NewClientShipmentPage() {
               deliveryDate: deliveryDate.toISOString(),
               deliveryWindow,
               commodity,
-              weightLbs: parseInt(weightLbs) || 0,
-              cargoDetails: {
-                pallets: parseInt(pallets) || 0,
-                dimensions: dimensions,
-                itemDescription,
-                quantity: parseInt(quantity) || 0,
-                dimensionsPerItem: dimensionsPerItem,
-                totalVolume: parseFloat(totalVolume) || 0
-              },
+              weightKgs: parseInt(weightKgs) || 0,
+              containerId,
+              containerStatus,
+              containerType,
               specialHandling,
               accessorials,
               carrierRating: parseInt(carrierRating),
               uberFreightPreferred,
               cargoNotes,
               bookingMethod: finalBookingMethod,
-              route: routeDetails.geometry // Guardar el trazado completo en el mapa
+              route: routeDetails.geometry, // Guardar el trazado completo en el mapa
+              serviceMode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
+              cargoUnits: serviceType === 'LTL' ? cargoUnits : null,
+              vehicleType: vehicleType
             }
           });
 
@@ -588,13 +654,7 @@ export default function NewClientShipmentPage() {
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Equipamiento</h2>
-                            <div className="flex items-center gap-0 mt-2 rounded-md overflow-hidden border">
-                                <EquipmentButton icon={<Truck className="w-5 h-5" />} label="Caja Seca (53')" selected={equipment === 'Dry van'} onClick={() => setEquipment('Dry van')} />
-                                <EquipmentButton icon={<Layers className="w-5 h-5" />} label="Plataforma" selected={equipment === 'Flatbed'} onClick={() => setEquipment('Flatbed')} />
-                            </div>
-                        </div>
+                        
                         <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Servicio</h2>
                             <RadioGroup defaultValue="FTL" value={serviceType} onValueChange={setServiceType} className="grid grid-cols-2 gap-4">
@@ -602,43 +662,132 @@ export default function NewClientShipmentPage() {
                                     <RadioGroupItem value="FTL" id="ftl" className="peer sr-only" />
                                     <Label htmlFor="ftl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
                                         <Truck className="mb-3 h-6 w-6" />
-                                        FTL (Carga Completa)
+                                        Exclusivo (Truckload)
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="LTL" id="ltl" className="peer sr-only" />
                                     <Label htmlFor="ltl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                                        <Package className="mb-3 h-6 w-6" />
-                                        LTL (Carga Parcial)
+                                        <Layers className="mb-3 h-6 w-6" />
+                                        Consolidado (LTL)
                                     </Label>
                                 </div>
                             </RadioGroup>
+                            {serviceType === 'LTL' && (
+                                <div className="mt-4 p-5 border rounded-xl bg-primary/5 animate-in fade-in slide-in-from-top-4 border-primary/20">
+                                    <div className="flex justify-between items-end mb-4">
+                                        <div className="space-y-1">
+                                            <Label className="text-sm font-bold text-primary">Capacidad Utilizada</Label>
+                                            <p className="text-[10px] text-muted-foreground">Ocupación del Camión 3/4 en pallets</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-2xl font-black text-primary">{cargoUnits}</span>
+                                            <span className="text-xs font-bold text-muted-foreground ml-1">/ 8 Pallets</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative h-4 bg-muted rounded-full overflow-hidden mb-6 border shadow-inner">
+                                        <div 
+                                            className="absolute top-0 left-0 h-full bg-primary transition-all duration-500 ease-out flex items-center justify-center"
+                                            style={{ width: `${(cargoUnits / (activeVehicleSpec?.max_pallets || 8)) * 100}%` }}
+                                        >
+                                            {cargoUnits > 1 && <div className="w-full h-full bg-white/20 animate-pulse" />}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <input 
+                                            type="range" 
+                                            min="1" 
+                                            max={activeVehicleSpec?.max_pallets || 8} 
+                                            value={cargoUnits} 
+                                            onChange={(e) => setCargoUnits(parseInt(e.target.value))}
+                                            className="flex-1 accent-primary h-2"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-primary/10">
+                                        <div className="text-center">
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Peso Est.</p>
+                                            <p className="text-xs font-black">~{(((activeVehicleSpec?.max_weight_kg || 3500) / (activeVehicleSpec?.max_pallets || 8)) * cargoUnits).toFixed(0)} kg</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[9px] uppercase font-bold text-muted-foreground">Volumen Est.</p>
+                                            <p className="text-xs font-black">~{(((activeVehicleSpec?.max_volume_m3 || 18) / (activeVehicleSpec?.max_pallets || 8)) * cargoUnits).toFixed(1)} m³</p>
+                                        </div>
+Broadway: 1
+                                        <div className="text-center border-l border-primary/10">
+                                            <p className="text-[9px] uppercase font-bold text-primary">Ahorro</p>
+                                            <p className="text-xs font-black text-green-600">-{((1 - (1.2 + (cargoUnits/8))) * -100).toFixed(0)}%</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                        <div className="p-4 border rounded-xl bg-muted/30 border-dashed">
+                             <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-background rounded-lg shadow-sm">
+                                    <Truck className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase tracking-tight">Ficha Técnica: {activeVehicleSpec?.name || 'Cargando...'}</h3>
+                                    <p className="text-[10px] text-muted-foreground">{activeVehicleSpec?.description}</p>
+                                </div>
+                             </div>
+                             <div className="grid grid-cols-3 gap-4 mt-4">
+                                 <div className="space-y-1">
+                                     <p className="text-[8px] font-bold text-muted-foreground uppercase">Cap. Peso</p>
+                                     <p className="text-xs font-bold">{(activeVehicleSpec?.max_weight_kg || 0).toLocaleString()} kg</p>
+                                 </div>
+                                 <div className="space-y-1">
+                                     <p className="text-[8px] font-bold text-muted-foreground uppercase">Cap. Vol.</p>
+                                     <p className="text-xs font-bold">{activeVehicleSpec?.max_volume_m3 || 0} m³</p>
+                                 </div>
+                                 <div className="space-y-1">
+                                     <p className="text-[8px] font-bold text-muted-foreground uppercase">Medidas</p>
+                                     <p className="text-xs font-bold leading-none">
+                                         {activeVehicleSpec?.length_m}m x {activeVehicleSpec?.width_m}m x {activeVehicleSpec?.height_m}m
+                                     </p>
+                                 </div>
+                             </div>
+                        </div>
+                        
                         <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Modalidad de Envío</h2>
-                            <div className="flex items-center space-x-3 rounded-md border p-4">
-                                <Switch id="internal-shipment" checked={isInternalShipment} onCheckedChange={setIsInternalShipment} />
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="internal-shipment">Envío para mi propia flota</Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        El envío será privado y no se publicará en el mercado de cargas.
-                                    </p>
+                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Modalidad de Operación</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-3 rounded-md border p-4 bg-muted/20">
+                                    <Switch id="round-trip" checked={isRoundTrip} onCheckedChange={setIsRoundTrip} />
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="round-trip" className="font-bold">Vuelta Completa</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-none">
+                                            Incluye retiro en puerto y retorno de vacío.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-3 rounded-md border p-4">
+                                    <Switch id="internal-shipment" checked={isInternalShipment} onCheckedChange={setIsInternalShipment} />
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="internal-shipment">Flota Propia</Label>
+                                        <p className="text-[10px] text-muted-foreground leading-none">
+                                            Envío privado (no publicado).
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mt-10 mb-4">Tipo de Vehículo (para Tarifa)</h2>
-                            <Label>Vehículo</Label>
+                        
+                        <div className="hidden">
+                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mt-10 mb-4">Tipo de Vehículo</h2>
                             <Select onValueChange={setVehicleType} defaultValue={vehicleType}>
                                 <SelectTrigger className="h-12 bg-muted/50 border-0 focus-visible:ring-primary mt-2">
                                     <SelectValue placeholder="Seleccionar un vehículo" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Camion Rampla">Camión Rampla (Puerto/Contenedores)</SelectItem>
+                                    <SelectItem value="camion_3_4">Camión 3/4 (Carga General)</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <p className="text-xs text-muted-foreground mt-2">La selección del vehículo se utiliza para estimar la tarifa y no se guarda con el envío.</p>
                         </div>
+                        
                          <div className="flex justify-end pt-4">
                             <Button type="submit" size="lg" className="bg-foreground hover:bg-foreground/90 text-background h-12 px-6">
                                 Continuar a Detalles de Carga <ArrowRight className="ml-2 h-4 w-4" />
@@ -649,126 +798,99 @@ export default function NewClientShipmentPage() {
 
                     {step === 2 && (
                        <div className="space-y-10">
-                          {/* CARGO DETAILS */}
-                          <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Detalles de Carga</h2>
-                            <div className="space-y-4">
-                               <div>
-                                    <label htmlFor="commodity" className="text-sm font-semibold text-foreground">Mercancía</label>
-                                    <Input id="commodity" value={commodity} onChange={e => setCommodity(e.target.value)} placeholder="ej. Carga General" className="mt-2 h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-sm font-semibold">Detalles de Carga</span>
-                                  <div className="flex items-center gap-2 rounded-md bg-muted/50 p-1">
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Pallets' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Pallets')} className="flex gap-2"><Package className="w-4 h-4" /> Pallets</Button>
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Weight' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Weight')} className="flex gap-2"><Weight className="w-4 h-4" /> Peso</Button>
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Dimensions' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Dimensions')} className="flex gap-2"><Ruler className="w-4 h-4" /> Dimensiones</Button>
+                           {/* CONTAINER DETAILS */}
+                           <div>
+                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Detalles de Carga</h2>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                 <div>
+                                      <label htmlFor="containerId" className="text-sm font-semibold text-foreground">
+                                          {vehicleType.includes('Rampla') ? 'Número de Contenedor' : 'Referencia de Carga'}
+                                      </label>
+                                      <Input 
+                                          id="containerId" 
+                                          value={containerId} 
+                                          onChange={e => setContainerId(e.target.value.toUpperCase())} 
+                                          placeholder={vehicleType.includes('Rampla') ? "ej. MSCU1234567" : "ej. 8 PALLETS / CARGA GENERAL"} 
+                                          className="mt-2 h-12 bg-muted/50 border-0 focus-visible:ring-primary font-mono uppercase" 
+                                      />
                                   </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <Input value={pallets} onChange={e => setPallets(e.target.value)} placeholder="Pallets" className="h-12 bg-muted/50 border-0"/>
-                                  <Input value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="Dimensiones" className="h-12 bg-muted/50 border-0"/>
-                                </div>
-                                 <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso (lbs)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
-                            </div>
-                          </div>
+                                  <div>
+                                       <label htmlFor="commodity" className="text-sm font-semibold text-foreground">Mercancía</label>
+                                       <Input id="commodity" value={commodity} onChange={e => setCommodity(e.target.value)} placeholder="ej. Fruta de Exportación" className="mt-2 h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                   </div>
+                             </div>
 
-                          {/* PALLET & ITEM INFORMATION */}
-                          <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Información de Pallet e Ítem</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                               <Input value={itemDescription} onChange={e => setItemDescription(e.target.value)} placeholder="Descripción del Ítem" className="h-12 bg-muted/50 border-0"/>
-                               <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad" className="h-12 bg-muted/50 border-0"/>
-                            </div>
-                            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 mt-4">
-                               <Input value={dimensionsPerItem} onChange={e => setDimensionsPerItem(e.target.value)} placeholder="Dimensiones por ítem" className="h-12 bg-muted/50 border-0"/>
-                               <span className="text-muted-foreground">x</span>
-                               <Input placeholder="40x" className="h-12 bg-muted/50 border-0"/>
-                                <span className="text-muted-foreground">=</span>
-                                <div className="relative">
-                                  <Input value={totalVolume} onChange={e => setTotalVolume(e.target.value)} placeholder="Entrada" className="h-12 bg-muted/50 border-0 pr-8"/>
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">ft³</span>
-                                </div>
-                            </div>
-                          </div>
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                                 <div className="space-y-2">
+                                     <label className="text-sm font-semibold">Peso Bruto Estimado (Kgs)</label>
+                                     <Input value={weightKgs} onChange={e => setWeightKgs(e.target.value)} type="number" className="h-12 bg-muted/50 border-0" />
+                                 </div>
+                                 <div className="col-span-2 space-y-2">
+                                      <label className="text-sm font-semibold">Instrucciones de Carga</label>
+                                      <Input value={cargoNotes} onChange={e => setCargoNotes(e.target.value)} placeholder="Ej. Frágil, requiere amarras, etc." className="h-12 bg-muted/50 border-0" />
+                                 </div>
+                             </div>
+                           </div>
 
-                          {/* SPECIAL HANDLING & PERMITS */}
-                          <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Manejo Especial y Permisos</h2>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-4">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox id="hazardous" checked={specialHandling.hazardous} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, hazardous: !!checked}))} />
-                                <Label htmlFor="hazardous">Materiales Peligrosos</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox id="requiresPermit" checked={specialHandling.requiresPermit} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, requiresPermit: !!checked}))} />
-                                <Label htmlFor="requiresPermit">Requiere Permiso</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Checkbox id="oversize" checked={specialHandling.oversize} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, oversize: !!checked}))} />
-                                <Label htmlFor="oversize">Sobredimensionado/Sobrepeso</Label>
-                              </div>
-                              <div className="col-span-full md:col-span-1"></div>
-                              <div className="flex items-start space-x-2 col-span-full md:col-span-2">
-                                <Checkbox id="requiresTarping" checked={specialHandling.requiresTarping} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, requiresTarping: !!checked}))} />
-                                <div className="grid gap-1.5 leading-none">
-                                  <Label htmlFor="requiresTarping">Requiere Lona</Label>
-                                   <RadioGroup value={specialHandling.tarpType} onValueChange={(value) => setSpecialHandling(s => ({...s, tarpType: value}))} className="mt-2" disabled={!specialHandling.requiresTarping}>
-                                      <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="Rew Tarp" id="tarp-rew" />
-                                        <Label htmlFor="tarp-rew">Lona Nueva</Label>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="Convening/Tarp" id="tarp-convening" />
-                                        <Label htmlFor="tarp-convening">Lona de Convenio</Label>
-                                      </div>
-                                    </RadioGroup>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* CARGO PHOTOGRAPHS */}
-                          <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Fotografías de la Carga (Opcional)</h2>
-                             <div className="flex items-center justify-center w-full">
-                                <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Haz clic para subir</span> o arrastra y suelta</p>
-                                        <p className="text-xs text-muted-foreground">SVG, PNG, JPG o GIF (MÁX. 800x400px)</p>
-                                    </div>
-                                    <input id="dropzone-file" type="file" className="hidden" />
-                                </label>
-                            </div> 
-                          </div>
+                           {/* SPECIAL HANDLING & PORT PERMITS */}
+                           <div>
+                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Manejo Especial y Requerimientos de Puerto</h2>
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 border rounded-xl bg-muted/20">
+                               <div className="flex items-center space-x-2">
+                                 <Checkbox id="hazardous" checked={specialHandling.hazardous} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, hazardous: !!checked}))} />
+                                 <Label htmlFor="hazardous" className="flex items-center gap-2">IMO (Peligrosa) <Bolt className="h-3 w-3 text-yellow-500"/></Label>
+                               </div>
+                               <div className="flex items-center space-x-2">
+                                 <Checkbox id="requiresGenSet" checked={specialHandling.requiresGenSet} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, requiresGenSet: !!checked}))} />
+                                 <Label htmlFor="requiresGenSet">Requiere GenSet</Label>
+                               </div>
+                               <div className="flex items-center space-x-2">
+                                 <Checkbox id="overweight" checked={specialHandling.overweight} onCheckedChange={(checked) => setSpecialHandling(s => ({...s, overweight: !!checked}))} />
+                                 <Label htmlFor="overweight">Sobrepeso (+28T)</Label>
+                               </div>
+                             </div>
+                           </div>
+                           
+                           {/* CONTAINER PHOTOGRAPHS */}
+                           <div>
+                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Fotos de Precintos y Puertas (Opcional)</h2>
+                              <div className="flex items-center justify-center w-full">
+                                 <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-all">
+                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                         <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                                         <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Sube fotos de la unidad</span></p>
+                                         <p className="text-[10px] text-muted-foreground">Estado de puertas, sellos y estructura</p>
+                                     </div>
+                                     <input id="dropzone-file" type="file" className="hidden" />
+                                 </label>
+                             </div> 
+                           </div>
 
-                           <div className="flex justify-between items-center pt-4">
-                            <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-12 px-6">
-                                <ArrowLeft className="mr-2 h-4 w-4" /> Atrás
-                            </Button>
-                            <Button type="submit" size="lg" className="bg-foreground hover:bg-foreground/90 text-background h-12 px-6">
-                                Continuar a Opciones y Reserva <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </div>
-                       </div>
-                    )}
-                    
-                    {step === 3 && (
-                        <div className="space-y-10">
+                            <div className="flex justify-between items-center pt-4">
+                             <Button type="button" variant="outline" onClick={() => setStep(1)} className="h-12 px-6">
+                                 <ArrowLeft className="mr-2 h-4 w-4" /> Atrás
+                             </Button>
+                             <Button type="submit" size="lg" className="bg-foreground hover:bg-foreground/90 text-background h-12 px-6">
+                                 Continuar a Opciones y Reserva <ArrowRight className="ml-2 h-4 w-4" />
+                             </Button>
+                         </div>
+                         </div>
+                     )}
+                     
+                     {step === 3 && (
+                         <div className="space-y-10">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                                 <div className="space-y-8">
                                     {/* ACCESSORIALS */}
                                     <div>
-                                        <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Servicios Adicionales</h3>
+                                        <h3 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Servicios y Recargos Locales</h3>
                                         <div className="grid grid-cols-2 gap-4">
                                             {[
-                                                {id: 'forklift', label: 'Servicio de Montacargas'},
-                                                {id: 'driverAssist', label: 'Asistencia del Conductor'},
-                                                {id: 'insideDelivery1', label: 'Entrega Interior'},
-                                                {id: 'palletExchange', label: 'Intercambio de Pallets'},
-                                                {id: 'appointment', label: 'Cita'},
-                                                {id: 'liftgate1', label: 'Servicio de Plataforma Elevadora'},
+                                                {id: 'emptyReturnIncluded', label: 'Retorno Vacío Incluido'},
+                                                {id: 'warehouseWait', label: 'Espera en Bodega'},
+                                                {id: 'extraStop', label: 'Parada Adicional'},
+                                                {id: 'portGateFee', label: 'Gasto Portuario / Gate'},
+                                                {id: 'weekendService', label: 'Servicio Fin de Semana'},
                                             ].map(item => (
                                                 <div key={item.id} className="flex items-center space-x-2">
                                                     <Checkbox id={item.id} checked={(accessorials as any)[item.id]} onCheckedChange={(checked) => setAccessorials(s => ({...s, [item.id]: !!checked}))} />
@@ -883,11 +1005,38 @@ export default function NewClientShipmentPage() {
                             vehicleType={vehicleType}
                         />
                     </div>
-                    <Card className="bg-card border shadow-lg">
+                    <Card className="bg-card border shadow-lg relative overflow-hidden">
+                        {isRefreshingPrice && (
+                            <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-50 flex items-center justify-center">
+                                <div className="flex flex-col items-center justify-center">
+                                    <div className="flex items-center gap-1.5 mb-3">
+                                      <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                      </div>
+                                      <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" style={{ animationDelay: '150ms' }}></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                      </div>
+                                      <div className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" style={{ animationDelay: '300ms' }}></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                      </div>
+                                    </div>
+                                    <span className="text-[9px] uppercase font-black tracking-[0.2em] text-primary animate-pulse">Vorian AI Engine...</span>
+                                </div>
+                            </div>
+                        )}
                         <CardHeader>
                             <CardTitle className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Resumen del Envío</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className={cn("transition-all duration-700 ease-in-out", isRefreshingPrice && "opacity-30 scale-[0.98] blur-[2px]")}>
+                            {estimatedPrice > 0 && !isRefreshingPrice && (
+                                <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                    <span className="text-[10px] font-bold text-primary tracking-wide uppercase">Vorian AI: Costo óptimo detectado (↓ 8%)</span>
+                                </div>
+                            )}
                             <p className="text-sm text-muted-foreground">Tarifa Garantizada</p>
                             <div className="flex items-baseline gap-2">
                                 <p className="text-4xl font-bold tracking-tight">${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
@@ -937,9 +1086,72 @@ export default function NewClientShipmentPage() {
                                             </div>
                                         )}
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Comisión Vorian (10%)</span>
-                                            <span className="font-medium text-foreground">${(platformFee || 0).toLocaleString()}</span>
-                                        </div>
+                                              <span className="text-muted-foreground text-xs uppercase tracking-tight font-bold">Vorian Margin & Adjustments</span>
+                                              <span className="font-bold text-foreground text-sm">${(platformFee || 0).toLocaleString()}</span>
+                                         </div>
+
+                                         {/* AUDITORÍA ML Y TÉCNICA VORIAN */}
+                                         {pricingFactors && (
+                                             <div className="mt-4 pt-4 border-t border-dashed space-y-3 bg-muted/30 -mx-4 px-4 pb-4 relative overflow-hidden">
+                                                 <h4 className="text-[9px] font-black uppercase text-primary tracking-[0.2em] flex items-center gap-1.5">
+                                                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                                     Vorian AI Pricing Engine
+                                                 </h4>
+                                                 
+                                                 <div className="grid grid-cols-1 gap-y-2 relative z-10">
+                                                     {mlFactors && (
+                                                         <div className="flex flex-col gap-2 pb-2 mb-2 border-b border-primary/10">
+                                                             <div className="flex justify-between items-center text-[10px]">
+                                                                <span className="text-muted-foreground font-bold">Ajuste de Mercado Inteligente</span>
+                                                                <div className="flex gap-2">
+                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-bold">ML: {mlFactors.ml_factor.toFixed(2)}x</span>
+                                                                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-bold">Mkt: {mlFactors.market_factor.toFixed(2)}x</span>
+                                                                </div>
+                                                             </div>
+                                                             
+                                                             {/* BARRA DE PROGRESO DE VALIDEZ */}
+                                                             <div className="w-full bg-muted/50 rounded-full h-1.5 mt-1 overflow-hidden relative">
+                                                                 <div 
+                                                                    className={cn("h-full transition-all duration-1000 ease-linear", priceValidFor > 10 ? "bg-primary" : priceValidFor > 5 ? "bg-yellow-500" : "bg-red-500")}
+                                                                    style={{ width: `${(priceValidFor / 20) * 100}%` }}
+                                                                 />
+                                                             </div>
+                                                             <div className="flex justify-between items-center text-[9px] text-muted-foreground font-medium uppercase tracking-tight">
+                                                                 <span>Validez de Tarifa</span>
+                                                                 <span className={cn("font-bold font-mono text-[10px]", priceValidFor <= 5 && "text-red-500 animate-pulse")}>00:{priceValidFor.toString().padStart(2, '0')}</span>
+                                                             </div>
+                                                         </div>
+                                                     )}
+                                                     <div className="flex justify-between items-center text-[10px]">
+                                                         <span className="text-muted-foreground font-medium">Costo Operativo (Base)</span>
+                                                         <span className="font-mono font-bold text-foreground line-through opacity-50">${(estimatedPrice / (mlFactors?.ml_factor || 1) / (mlFactors?.market_factor || 1)).toLocaleString()}</span>
+                                                     </div>
+                                                     <div className="flex justify-between items-center text-[10px]">
+                                                         <span className="text-muted-foreground font-medium">Diesel ({pricingFactors.diesel_price}/L)</span>
+                                                         <span className="font-mono font-bold text-foreground">${(pricingFactors.diesel_price / pricingFactors.efficiency_real).toFixed(0)}/km</span>
+                                                     </div>
+                                                     <div className="flex justify-between items-center text-[10px]">
+                                                         <span className="text-muted-foreground font-medium">Pendiente / Carga</span>
+                                                         <div className="flex gap-2">
+                                                            <span className={cn("px-1 rounded bg-primary/10 text-primary font-bold", pricingFactors.terrain_factor < 1 && "bg-orange-500/10 text-orange-600")}>
+                                                                P: {pricingFactors.terrain_factor}x
+                                                            </span>
+                                                            <span className={cn("px-1 rounded bg-primary/10 text-primary font-bold", pricingFactors.weight_factor < 1 && "bg-orange-500/10 text-orange-600")}>
+                                                                W: {pricingFactors.weight_factor}x
+                                                            </span>
+                                                         </div>
+                                                     </div>
+                                                     <div className="flex justify-between items-center text-[10px]">
+                                                         <span className="text-muted-foreground font-medium">Rendimiento Real</span>
+                                                         <span className="font-bold text-foreground">{pricingFactors.efficiency_real} km/L</span>
+                                                     </div>
+                                                     <div className="flex justify-between items-center text-[10px]">
+                                                         <span className="text-muted-foreground font-medium">Distancia I/V</span>
+                                                         <span className="font-bold text-foreground">{Number(pricingFactors.distance_total).toFixed(1)} km</span>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         )}
                                     </>
                                 )}
                             </div>

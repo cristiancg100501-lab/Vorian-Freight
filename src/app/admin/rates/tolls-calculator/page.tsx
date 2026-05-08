@@ -79,10 +79,13 @@ export default function TollsCalculatorPage() {
             style: theme === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11',
             center: [-70.6693, -33.4489], 
             zoom: 12,
-            pitch: 0, // Mapa plano
+            pitch: 0,
+            maxPitch: 0,
             bearing: 0,
-            pitchWithRotate: false, // Bloquear 3D
-            dragRotate: false // Bloquear rotación
+            pitchWithRotate: false,
+            dragRotate: false,
+            projection: { name: 'mercator' } as any,
+            trackResize: true
         });
 
         map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -120,13 +123,22 @@ export default function TollsCalculatorPage() {
             // Estética Profesional: Ocultar POIs y landmarks para que sea gris y limpio
             const style = map.current?.getStyle();
             if (style) {
+                // Disable all forms of rotation and pitch
+                map.current?.dragRotate.disable();
+                map.current?.touchZoomRotate.disableRotation();
+                map.current?.keyboard.disable();
+
+                // Remove atmosphere
+                (map.current as any)?.setAtmosphere?.(null);
+
                 style.layers.forEach((layer: any) => {
                     if (
                         layer.id.includes('poi') || 
                         layer.id.includes('landmark') ||
                         layer.id.includes('building') || 
                         layer.id.includes('park') ||
-                        layer.id.includes('landuse')
+                        layer.id.includes('landuse') ||
+                        layer.type === 'fill-extrusion'
                     ) {
                         map.current?.setLayoutProperty(layer.id, 'visibility', 'none');
                     }

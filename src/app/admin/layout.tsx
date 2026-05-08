@@ -2,7 +2,7 @@
 
 import { useUser } from "@/components/providers/supabase-provider";
 import { useSupabaseDoc } from "@/hooks/supabase-hooks";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, ReactNode, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
@@ -13,7 +13,10 @@ import { PageTransition } from "@/components/page-transition";
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
+
 
   const { data: userProfile, isLoading: isProfileLoading } =
     useSupabaseDoc("userProfiles", user?.id);
@@ -40,11 +43,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen w-full bg-background flex">
         {/* Navegación lateral simulada */}
-        <div className="w-[80px] md:w-[220px] lg:w-[280px] border-r hidden md:block p-4 space-y-4 pt-10">
-          <Skeleton className="h-8 w-8 rounded-md mb-8 mx-auto md:w-3/4 md:mx-0" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+        <div className="w-[80px] md:w-[220px] lg:w-[280px] border-r hidden md:block p-4 space-y-4 pt-10 bg-card">
+          <Skeleton className="h-8 w-8 rounded-md mb-8 mx-auto md:w-3/4 md:mx-0 bg-white/10" />
+          <Skeleton className="h-10 w-full bg-white/5" />
+          <Skeleton className="h-10 w-full bg-white/5" />
+          <Skeleton className="h-10 w-full bg-white/5" />
         </div>
         {/* Contenido principal simulado */}
         <div className="flex-1 flex flex-col">
@@ -60,6 +63,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       </div>
     );
   }
+
+
 
   return (
     <div className={cn("grid min-h-screen w-full transition-[grid-template-columns] duration-300 ease-in-out", isSidebarCollapsed ? "md:grid-cols-[80px_1fr]" : "md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]")}>

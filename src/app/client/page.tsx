@@ -18,6 +18,7 @@ import { useCallback } from "react";
 const statusStyles: { [key: string]: string } = {
   "In transit": "bg-muted text-muted-foreground",
   "Delivered": "bg-foreground text-background",
+  "Completed": "bg-foreground text-background",
   "Pending": "bg-secondary text-secondary-foreground",
   "Booked": "bg-accent text-accent-foreground",
   "Cancelled": "bg-destructive text-destructive-foreground",
@@ -61,7 +62,7 @@ export default function ClientShipmentsPage() {
                 <th scope="col" className="px-6 py-3">Ruta</th>
                 <th scope="col" className="px-6 py-3">Fecha Recogida</th>
                 <th scope="col" className="px-6 py-3">Tipo de Reserva</th>
-                <th scope="col" className="px-6 py-3">Precio Est.</th>
+                <th scope="col" className="px-6 py-3">Precio Final</th>
                 <th scope="col" className="px-6 py-3">Estado</th>
               </tr>
             </thead>
@@ -87,34 +88,35 @@ export default function ClientShipmentsPage() {
                       {shipment.id}
                     </td>
                     <td className="px-6 py-4">
-                      <div>
+                      <div className="max-w-[300px] truncate">
                         <MapPin className="h-3 w-3 inline-block mr-1 text-green-500" />{" "}
-                        {shipment.pickup_address}
+                        {shipment.originAddress || "N/A"}
                       </div>
-                      <div>
+                      <div className="max-w-[300px] truncate">
                         <MapPin className="h-3 w-3 inline-block mr-1 text-red-500" />{" "}
-                        {shipment.delivery_address}
+                        {shipment.destinationAddress || "N/A"}
                       </div>
                     </td>
                      <td className="px-6 py-4">
                        {(() => {
-                          const d = shipment.pickup_date ? new Date(shipment.pickup_date) : null;
+                          const dateStr = shipment.details?.pickupDate;
+                          const d = dateStr ? new Date(dateStr) : null;
                           return d && !isNaN(d.getTime()) ? format(d, "dd MMM, yyyy") : "N/A";
                        })()}
                     </td>
                      <td className="px-6 py-4 font-medium">
-                        {shipment.bookingMethod === 'quote' ? 'Cotización' : 'Instantáneo'}
+                        {shipment.details?.bookingMethod === 'quote' ? 'Cotización' : 'Instantáneo'}
                       </td>
                      <td className="px-6 py-4 font-semibold">
-                       {shipment.bookingMethod === 'quote' ? 'Por cotizar' : shipment.estimated_price != null ? `$${Number(shipment.estimated_price).toLocaleString('es-CL')}` : 'N/A'}
+                        {shipment.details?.bookingMethod === 'quote' ? 'Por cotizar' : shipment.estimatedPrice != null ? `CLP ${Number(shipment.estimatedPrice).toLocaleString('es-CL')}` : 'N/A'}
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
                           statusStyles[shipment.status] || "bg-muted text-muted-foreground"
                         }`}
                       >
-                         {shipment.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
+                         {shipment.details?.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
                       </span>
                     </td>
                   </tr>

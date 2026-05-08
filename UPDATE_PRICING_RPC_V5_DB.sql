@@ -1,0 +1,122 @@
+-- 🛡️ VORIAN PRICING ENGINE v5.1 (DB-DRIVEN)
+-- Lee parámetros de calibración directamente desde la tabla 'vehicleRates' y 'settings'
+-- No hay valores hardcodeados en el script.
+
+CREATE OR REPLACE FUNCTION public.get_vorian_price(params jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    -- 📥 Entradas
+    v_km NUMERIC := COALESCE((params->>'p_km')::NUMERIC, 0);
+    v_minutes NUMERIC := COALESCE((params->>'p_minutes')::NUMERIC, 0);
+    v_vehicle_type TEXT := COALESCE(params->>'p_vehicle_type', 'camion_3_4');
+    v_service_mode TEXT := COALESCE(params->>'p_service_mode', 'exclusive');
+    v_cargo_units NUMERIC := COALESCE((params->>'p_cargo_units')::NUMERIC, 1);
+    v_route_geometry TEXT := params->>'p_route_geometry';
+    
+    -- ⚙️ Variables de Calibración (Cargadas desde DB)
+    v_costo_fijo NUMERIC;
+    v_desgaste_km NUMERIC;
+    v_rendimiento NUMERIC;
+    v_costo_hora_chofer NUMERIC;
+    v_diesel_cost NUMERIC;
+    v_truck_capacity NUMERIC;
+    v_category_key TEXT;
+    v_category_num INTEGER;
+    
+    -- 📈 Componentes del Costo
+    v_costo_diesel NUMERIC;
+    v_costo_tiempo NUMERIC;
+    v_costo_desgaste NUMERIC;
+    v_costo_base_operativo NUMERIC;
+    
+    -- 🚧 Peajes y Ajustes
+    v_tolls_cost NUMERIC := 0;
+    v_faf_percent NUMERIC := 0.0;
+    v_ltl_factor NUMERIC;
+    v_market_factor NUMERIC := 1.0;
+    
+    v_route_line GEOMETRY;
+    v_subtotal NUMERIC;
+    v_commission NUMERIC;
+    v_total NUMERIC;
+    v_vorian_commission_pct NUMERIC;
+BEGIN
+    -- 1. CARGAR CONFIGURACIÓN GLOBAL (Settings)
+    SELECT 
+        COALESCE("dieselCostPerLiter", 1050.0),
+        COALESCE(vorian_commission, 15) / 100.0,
+        COALESCE(costo_chofer_hr, 7000)
+    INTO v_diesel_cost, v_vorian_commission_pct, v_costo_hora_chofer
+    FROM public.settings WHERE id = 'global';
+
+    -- 2. CARGAR PARÁMETROS DEL VEHÍCULO (vehicleRates + vehicle_specs)
+    -- Buscamos los costos en vehicleRates y la capacidad en vehicle_specs
+    SELECT 
+        COALESCE(vr.baseFare, 65000),
+        COALESCE(vr.costPerKm, 200),
+        COALESCE(vr.fuelEfficiency, 9.0),
+        COALESCE(vs.max_pallets, 8),
+        COALESCE(vs.category, 'cat2')
+    INTO v_costo_fijo, v_desgaste_km, v_rendimiento, v_truck_capacity, v_category_key
+    FROM public.vehicle_specs vs
+    LEFT JOIN public.vehicleRates vr ON vr.id = vs.id
+    WHERE vs.id = v_vehicle_type;
+
+    -- Fallback si no existe el vehículo
+    IF v_costo_fijo IS NULL THEN
+        v_costo_fijo := 120000; v_desgaste_km := 850; v_rendimiento := 2.2; v_truck_capacity := 28; v_category_key := 'cat3';
+    END IF;
+
+    v_category_num := CASE WHEN v_category_key = 'cat2' THEN 2 WHEN v_category_key = 'cat1' THEN 1 ELSE 3 END;
+
+    -- 3. CÁLCULO DE PEAJES (Dinamizado por categoría de DB)
+    IF v_route_geometry IS NOT NULL AND v_route_geometry != '' THEN
+        v_route_line := ST_SetSRID(ST_GeomFromGeoJSON(v_route_geometry), 4326);
+        
+        -- Peajes Estándar
+        SELECT COALESCE(SUM((tariffs_json->v_category_key->>'price_tbfp')::NUMERIC), 0)
+        INTO v_standard_tolls_cost
+        FROM public.porticos
+        WHERE ST_DWithin(location::geometry, v_route_line, 0.0005)
+          AND (concession_name IS NULL OR concession_name != 'AVO');
+    END IF;
+
+    -- 4. ECUACIÓN v5.1
+    v_costo_diesel := (v_km / v_rendimiento) * v_diesel_cost;
+    v_costo_tiempo := (v_minutes / 60.0) * v_costo_hora_chofer;
+    v_costo_desgaste := v_km * v_desgaste_km;
+    
+    v_costo_base_operativo := v_costo_fijo + v_costo_diesel + v_costo_tiempo + v_costo_desgaste + v_standard_tolls_cost;
+
+    -- 5. FAF (Basado en DB)
+    v_faf_percent := (v_diesel_cost / 1000.0) - 1;
+    IF v_faf_percent < 0 THEN v_faf_percent := 0; END IF;
+    
+    v_subtotal := v_costo_base_operativo * (1 + v_faf_percent);
+
+    -- 6. LTL DINÁMICA
+    IF v_service_mode = 'consolidated' THEN
+        v_ltl_factor := 1.2 + (v_cargo_units / v_truck_capacity);
+        v_subtotal := v_subtotal * v_ltl_factor;
+    END IF;
+
+    -- 7. TOTAL Y COMISIÓN (Basado en DB)
+    v_commission := v_subtotal * v_vorian_commission_pct;
+    v_total := (v_subtotal + v_commission) * v_market_factor;
+
+    RETURN jsonb_build_object(
+        'total', ROUND(v_total),
+        'subtotal', ROUND(v_subtotal),
+        'commission', ROUND(v_commission),
+        'currency', 'CLP',
+        'metadata', jsonb_build_object(
+            'engine', 'v5.1-DB-DRIVEN',
+            'category', v_category_key,
+            'diesel_price', v_diesel_cost
+        )
+    );
+END;
+$$;

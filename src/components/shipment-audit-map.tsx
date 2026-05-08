@@ -88,6 +88,11 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
       style: resolvedTheme === "dark" ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c",
       center: [-70.64, -33.44], // Santiago aprox
       zoom: 13,
+      pitch: 0,
+      maxPitch: 0,
+      bearing: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
     });
     
     const mapInstance = map.current;
@@ -104,11 +109,23 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
                 layer.id.includes('poi') || 
                 layer.id.includes('building') || 
                 layer.id.includes('park') ||
-                layer.id.includes('landuse')
+                layer.id.includes('landuse') ||
+                layer.type === 'fill-extrusion'
             ) {
                 mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
             }
         }
+        
+        // Disable rotation and keyboard pitch
+        mapInstance.dragRotate.disable();
+        mapInstance.touchZoomRotate.disableRotation();
+        mapInstance.keyboard.disable();
+        
+        // Remove atmosphere if present
+        if (mapInstance.getStyle().layers) {
+            (mapInstance as any).setAtmosphere?.(null);
+        }
+
       // 1. Add Origin and Destination Markers
       if (originCoords) {
         const el = document.createElement('div');
@@ -329,11 +346,15 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
   }, [plannedRoute, mapReady, resolvedTheme]);
 
   // Memoize chart data to avoid recalculations on every frame
-  const chartData = useMemo(() => displayHistory.map(pt => ({
-    time: pt.timestamp,
-    speed: pt.speed,
-    timeStr: format(new Date(pt.timestamp), 'HH:mm')
-  })), [historyStr, fakeRouteHistory]);
+  const chartData = useMemo(() => displayHistory.map(pt => {
+    const d = new Date(pt.timestamp);
+    const isValid = !isNaN(d.getTime());
+    return {
+      time: pt.timestamp,
+      speed: pt.speed,
+      timeStr: isValid ? format(d, 'HH:mm') : '--:--'
+    };
+  }), [historyStr, fakeRouteHistory]);
 
   const maxSpeed = useMemo(() => Math.max(...displayHistory.map(p => p.speed || 0), 1), [displayHistory]);
   const avgSpeed = useMemo(() => (displayHistory.reduce((acc, p) => acc + (p.speed || 0), 0) / displayHistory.length) || 0, [displayHistory]);
@@ -484,12 +505,16 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
                  <button onClick={() => setPlaybackSpeed((s) => (s === 1 ? 3 : s === 3 ? 10 : 1))} className="text-[10px] px-2 py-1 rounded-full border bg-muted/50 hover:bg-muted text-foreground transition-colors font-bold tracking-widest uppercase flex items-center gap-1">
                    <FastForward size={12} /> {playbackSpeed}x SPD
                  </button>
-                 <span className="text-xs font-mono mt-1 text-muted-foreground">{format(new Date(currentTime), "HH:mm:ss")}</span>
+                 <span className="text-xs font-mono mt-1 text-muted-foreground">
+                   {!isNaN(new Date(currentTime).getTime()) ? format(new Date(currentTime), "HH:mm:ss") : "00:00:00"}
+                 </span>
               </div>
             </div>
             <div className="text-right">
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Timeline Envío</p>
-                <p className="font-mono text-sm font-semibold text-foreground">{format(new Date(minTime), "dd MMM yyyy")}</p>
+                <p className="font-mono text-sm font-semibold text-foreground">
+                  {!isNaN(new Date(minTime).getTime()) ? format(new Date(minTime), "dd MMM yyyy") : "---"}
+                </p>
             </div>
           </div>
 
@@ -511,8 +536,8 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
              </div>
           </div>
           <div className="flex justify-between text-[10px] font-mono text-muted-foreground font-medium mt-1">
-             <span>{format(new Date(minTime), "HH:mm")}</span>
-             <span>{format(new Date(maxTime), "HH:mm")}</span>
+             <span>{!isNaN(new Date(minTime).getTime()) ? format(new Date(minTime), "HH:mm") : "00:00"}</span>
+             <span>{!isNaN(new Date(maxTime).getTime()) ? format(new Date(maxTime), "HH:mm") : "00:00"}</span>
           </div>
         </div>
       </div>

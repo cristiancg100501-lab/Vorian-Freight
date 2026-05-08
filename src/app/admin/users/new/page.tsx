@@ -200,7 +200,8 @@ export default function NewUserAdminPage() {
                         <SelectValue placeholder="Seleccionar un rol" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="client">Cliente</SelectItem>
+                        <SelectItem value="client">Cliente (Broker)</SelectItem>
+                        <SelectItem value="customer">Empresa Mandante (Customer)</SelectItem>
                         <SelectItem value="driver">Conductor (Independiente)</SelectItem>
                         <SelectItem value="company">Empresa de Transporte</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>

@@ -9,6 +9,7 @@ import {
   CardTitle, 
   CardDescription 
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Activity, 
   Truck, 
@@ -114,70 +115,82 @@ export default function MissionControlPage() {
   }, [drivers, activeShipments]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] overflow-hidden -m-6">
-      {/* Header / Stats Bar */}
-      <div className="bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between gap-4 z-10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary animate-pulse" />
-            <h1 className="text-xl font-bold tracking-tight">Mission Control</h1>
-          </div>
-          <div className="hidden md:flex items-center gap-6 ml-8">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Vehículos Activos</span>
-              <span className="text-lg font-mono font-bold">{stats.totalActive}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">En Tránsito</span>
-              <span className="text-lg font-mono font-bold">{stats.inTransit}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Disponibles</span>
-              <span className="text-lg font-mono font-bold">{stats.available}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="relative w-64 hidden lg:block">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar conductor o placa..."
-              className="pl-9 bg-muted/50 border-none h-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 gap-1 px-2 py-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            LIVE
-          </Badge>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] overflow-hidden -m-6 relative">
+      {/* Main Map View - Now FULL WIDTH */}
+      <div className="absolute inset-0 z-0">
+        <VorianMap 
+          drivers={activeDrivers} 
+          selectedDriver={selectedDriver}
+          onDriverSelect={(id) => setSelectedDriverId(id)}
+          route={null} 
+          origin={null} 
+          destination={null} 
+        />
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar List */}
-        <div className="w-80 border-r bg-card flex flex-col overflow-hidden shrink-0">
-          <div className="p-4 border-b bg-muted/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Flota en Tiempo Real ({filteredDrivers.length})
+      {/* Floating Header / Stats Overlay */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-card/80 backdrop-blur-xl border shadow-2xl p-2 px-6 rounded-full">
+        <div className="flex items-center gap-2 pr-4 border-r">
+          <Activity className="h-4 w-4 text-primary animate-pulse" />
+          <h1 className="text-sm font-black uppercase tracking-widest">Mission Control</h1>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Activos</span>
+            <span className="text-sm font-mono font-black text-primary">{stats.totalActive}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">En Ruta</span>
+            <span className="text-sm font-mono font-black text-orange-500">{stats.inTransit}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">Libres</span>
+            <span className="text-sm font-mono font-black text-green-500">{stats.available}</span>
+          </div>
+        </div>
+        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 gap-1 px-2 py-0.5 ml-2 text-[10px] font-bold">
+          <div className="h-1 w-1 rounded-full bg-green-500 animate-pulse" />
+          LIVE
+        </Badge>
+      </div>
+
+      {/* Floating Driver List Widget */}
+      <motion.div 
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        className="absolute top-6 left-6 bottom-6 w-80 z-20 flex flex-col pointer-events-none"
+      >
+        <div className="bg-card/80 backdrop-blur-xl border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-full pointer-events-auto">
+          <div className="p-4 border-b bg-muted/20">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Flota en Tiempo Real
               </span>
-              <Filter className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+              <Filter className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground" />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nombre o placa..."
+                className="pl-9 bg-background/50 border-none h-9 text-xs"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
+          
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {(isLoadingDrivers || isLoadingUsers) ? (
-              <div className="p-4 space-y-4">
+              <div className="p-2 space-y-3">
                 {[1,2,3,4,5].map(i => (
-                  <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+                  <div key={i} className="h-14 bg-muted/50 animate-pulse rounded-xl" />
                 ))}
               </div>
             ) : filteredDrivers.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-sm text-muted-foreground italic">
-                  {searchTerm ? "No se encontraron conductores para su búsqueda." : "No hay conductores registrados en el sistema."}
+                <p className="text-[10px] text-muted-foreground italic font-medium">
+                  Sin resultados para "{searchTerm}"
                 </p>
               </div>
             ) : (
@@ -186,41 +199,38 @@ export default function MissionControlPage() {
                   layout
                   key={driver.id}
                   onClick={() => setSelectedDriverId(driver.id)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all border ${
+                  className={`p-3 rounded-xl cursor-pointer transition-all border group ${
                     selectedDriverId === driver.id 
-                      ? "bg-foreground text-background border-foreground" 
-                      : "hover:bg-muted border-transparent"
+                      ? "bg-foreground text-background border-foreground shadow-lg" 
+                      : "hover:bg-muted/50 border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                      selectedDriverId === driver.id ? "bg-background/20" : "bg-muted"
+                    <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
+                      selectedDriverId === driver.id ? "bg-background/20" : "bg-background"
                     }`}>
-                      <User className="h-5 w-5" />
+                      <User className={`h-4 w-4 ${selectedDriverId === driver.id ? "text-background" : "text-foreground"}`} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-bold text-sm truncate">{driver.fullName}</p>
-                        <div className="flex items-center gap-1">
-                          <div className={`h-2 w-2 rounded-full ${
-                            !driver.isAvailable 
-                              ? "bg-muted-foreground/30" 
-                              : driver.currentOrderId 
-                                ? "bg-orange-500" 
-                                : "bg-green-500"
-                          }`} />
-                          <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${
-                            selectedDriverId === driver.id ? "border-background/30 text-background" : ""
-                          }`}>
-                            {driver.vehiclePlate}
-                          </Badge>
-                        </div>
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="font-bold text-xs truncate uppercase tracking-tight">{driver.fullName}</p>
+                        <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                          !driver.isAvailable 
+                            ? "bg-muted-foreground/30" 
+                            : driver.currentOrderId 
+                              ? "bg-orange-500" 
+                              : "bg-green-500"
+                        }`} />
                       </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Navigation className={`h-3 w-3 ${selectedDriverId === driver.id ? "text-background/60" : "text-muted-foreground"}`} />
-                        <p className={`text-[10px] truncate ${selectedDriverId === driver.id ? "text-background/60" : "text-muted-foreground"}`}>
-                          {driver.currentLocationName || "Ubicación desconocida"}
+                      <div className="flex items-center justify-between mt-0.5">
+                        <p className={`text-[9px] font-mono font-bold ${selectedDriverId === driver.id ? "text-background/60" : "text-muted-foreground"}`}>
+                          {driver.vehiclePlate}
                         </p>
+                        {driver.speed > 0 && (
+                          <span className={`text-[9px] font-black ${selectedDriverId === driver.id ? "text-background/80" : "text-primary"}`}>
+                            {driver.speed.toFixed(0)} KM/H
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -229,134 +239,125 @@ export default function MissionControlPage() {
             )}
           </div>
         </div>
+      </motion.div>
 
-        {/* Main Map View */}
-        <div className="flex-1 relative bg-muted">
-          <VorianMap 
-            drivers={activeDrivers} 
-            selectedDriver={selectedDriver}
-            onDriverSelect={(id) => setSelectedDriverId(id)}
-            route={null} 
-            origin={null} 
-            destination={null} 
-          />
-          
-          {/* Floating Info Panel */}
-          <AnimatePresence>
-            {selectedDriver && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                className="absolute bottom-6 left-6 right-6 lg:left-auto lg:w-[400px] z-20"
-              >
-                <Card className="shadow-2xl border-2 border-foreground/10 backdrop-blur-xl bg-background/95">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <Truck className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{selectedDriver.fullName}</CardTitle>
-                          <CardDescription className="font-mono text-xs">{selectedDriver.vehiclePlate} • {selectedDriver.vehicleType}</CardDescription>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setSelectedDriverId(null)}
-                        className="p-1 hover:bg-muted rounded-full transition-colors"
-                      >
-                        <Maximize2 className="h-4 w-4 text-muted-foreground" />
-                      </button>
+      {/* Floating Detail Panel (Bottom Right) */}
+      <AnimatePresence>
+        {selectedDriver && (
+          <motion.div
+            initial={{ opacity: 0, x: 20, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 20, scale: 0.95 }}
+            className="absolute bottom-6 right-6 w-96 z-20"
+          >
+            <Card className="shadow-2xl border backdrop-blur-xl bg-card/80 rounded-2xl overflow-hidden">
+              <CardHeader className="pb-3 bg-muted/20 border-b">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+                      <Truck className="h-5 w-5" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="p-3 bg-muted/50 rounded-lg border border-border/50">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Activity className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Estado</span>
-                        </div>
-                        <Badge className={cn(
-                          "border-none",
-                          !selectedDriver.isAvailable 
-                            ? "bg-muted text-muted-foreground" 
-                            : selectedDriver.currentOrderId 
-                              ? "bg-orange-500/20 text-orange-600" 
-                              : "bg-green-500/20 text-green-600"
-                        )}>
-                          {!selectedDriver.isAvailable 
-                            ? "Desconectado" 
-                            : selectedDriver.currentOrderId 
-                              ? "En Ruta" 
-                              : "Disponible"}
-                        </Badge>
-                      </div>
-                      <div className="p-3 bg-muted/50 rounded-lg border border-border/50">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Última Act.</span>
-                        </div>
-                        <p className="text-sm font-mono font-bold">
-                          {selectedDriver.lastLocationUpdate 
-                            ? new Date(selectedDriver.lastLocationUpdate).toLocaleTimeString()
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <div className="p-3 bg-muted/50 rounded-lg border border-border/50">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Activity className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground">Velocidad</span>
-                        </div>
-                        <p className="text-sm font-mono font-bold">
-                          {selectedDriver.speed 
-                            ? `${selectedDriver.speed.toFixed(0)} km/h`
-                            : "0 km/h"}
-                        </p>
+                    <div>
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">{selectedDriver.fullName}</CardTitle>
+                      <CardDescription className="font-mono text-[10px] font-bold opacity-70">
+                        {selectedDriver.vehiclePlate} • {selectedDriver.vehicleType || 'GENERAL'}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedDriverId(null)}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+                  >
+                    <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Estado', value: selectedDriver.currentOrderId ? 'En Ruta' : 'Libre', color: selectedDriver.currentOrderId ? 'text-orange-500' : 'text-green-500' },
+                    { label: 'Velocidad', value: `${selectedDriver.speed?.toFixed(0) || 0} km/h` },
+                    { label: 'Señal', value: 'Excelente', color: 'text-green-500' },
+                  ].map((item, i) => (
+                    <div key={i} className="p-2 bg-muted/20 rounded-xl border">
+                      <p className="text-[8px] uppercase font-black text-muted-foreground mb-1">{item.label}</p>
+                      <p className={cn("text-[11px] font-bold", item.color)}>{String(item.value)}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 bg-muted/20 p-3 rounded-xl border">
+                    <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[8px] uppercase font-black text-muted-foreground mb-0.5">Ubicación Actual</p>
+                      <p className="text-[10px] font-bold leading-tight">
+                        {selectedDriver.currentLocationName || `${selectedDriver.currentLatitude?.toFixed(6)}, ${selectedDriver.currentLongitude?.toFixed(6)}`}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {selectedDriver.currentOrderId && (
+                    <div className="flex items-start gap-2 bg-orange-500/10 p-3 rounded-xl border border-orange-500/20">
+                      <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[8px] uppercase font-black text-orange-600 mb-0.5">Orden en Curso</p>
+                        <p className="text-[10px] font-bold text-orange-700">#{selectedDriver.currentOrderId.substring(0, 12).toUpperCase()}</p>
                       </div>
                     </div>
+                  )}
+                </div>
+                
+                <Button className="w-full h-9 text-xs font-bold uppercase tracking-widest bg-primary hover:bg-primary/90 text-primary-foreground">
+                  Ver Detalles Completos
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                    <div className="space-y-2">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Ubicación Actual</p>
-                          <p className="text-xs font-medium leading-tight">{selectedDriver.currentLocationName || "No disponible"}</p>
-                        </div>
-                      </div>
-                      {selectedDriver.currentOrderId && (
-                        <div className="flex items-start gap-2 pt-2 border-t border-border/50">
-                          <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Orden Activa</p>
-                            <p className="text-xs font-medium">#{selectedDriver.currentOrderId.substring(0, 12)}...</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Map Legend / Controls */}
-          <div className="absolute top-6 right-6 flex flex-col gap-2">
-            <div className="bg-background/90 backdrop-blur-sm p-3 rounded-lg border shadow-lg space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-primary" />
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">Conductor</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-green-500" />
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">En Ruta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-muted" />
-                <span className="text-[10px] font-bold uppercase text-muted-foreground">Desconectado</span>
-              </div>
-            </div>
+      {/* Floating System Events (Top Right) */}
+      <motion.div 
+        initial={{ x: 20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        className="absolute top-6 right-6 w-72 z-20"
+      >
+        <div className="bg-card/80 backdrop-blur-xl border rounded-2xl shadow-2xl overflow-hidden">
+          <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Eventos del Sistema</span>
+            <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
           </div>
+          <div className="p-3 space-y-3">
+            {[
+              { time: '12:45', msg: 'Conductor 8A263 entró en zona de carga', type: 'info' },
+              { time: '12:42', msg: 'Alerta: Vehículo 4B92 retrasado en Ruta 78', type: 'warn' },
+            ].map((ev, i) => (
+              <div key={i} className="flex gap-2">
+                <span className="text-[9px] font-mono opacity-40 mt-0.5">{ev.time}</span>
+                <p className={cn(
+                  "text-[10px] font-medium leading-snug",
+                  ev.type === 'warn' ? 'text-orange-500' : 'text-foreground/70'
+                )}>{ev.msg}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating Legend (Bottom Center) */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-4 bg-card/80 backdrop-blur-xl border p-2 px-4 rounded-full shadow-lg">
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-primary" />
+          <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter">En Servicio</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter">Disponible</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-orange-500" />
+          <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter">En Ruta</span>
         </div>
       </div>
     </div>
