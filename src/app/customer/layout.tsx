@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export default function CustomerLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   const { data: userProfile, isLoading: isProfileLoading } =
     useSupabaseDoc("userProfiles", user?.id);

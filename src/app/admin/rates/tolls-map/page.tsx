@@ -26,6 +26,7 @@ interface Portico {
     is_active: boolean;
     tariffs_json: any;
     concession_name?: string;
+    toll_type?: 'TAG' | 'MANUAL';
 }
 
 export default function TollsMapPage() {
@@ -156,13 +157,26 @@ export default function TollsMapPage() {
             const isSelected = selectedPorticoId === portico.id;
             const isAVO = portico.concession_name === 'AVO';
             const isRuta78 = portico.concession_name === 'Ruta 78';
-            const hasTariffs = portico.tariffs_json && typeof portico.tariffs_json === 'object' && Object.keys(portico.tariffs_json).length > 0;
+            const isManual = portico.toll_type === 'MANUAL';
+
+            const hasTariffs = portico.tariffs_json && typeof portico.tariffs_json === 'object' && 
+                ['cat1', 'cat2', 'cat3'].some(cat => {
+                    const data = portico.tariffs_json[cat];
+                    return data && typeof data === 'object' && (
+                        (data.price_tbfp && Number(data.price_tbfp) > 0) || 
+                        (data.price_tbp && Number(data.price_tbp) > 0) || 
+                        (data.price_ts && Number(data.price_ts) > 0)
+                    );
+                });
             
             const markerColorClass = isSelected 
                 ? "bg-purple-500 scale-150 z-50 ring-4 ring-purple-500/30" 
+                : isManual ? "bg-orange-500 hover:scale-110 shadow-[0_0_15px_rgba(249,115,22,0.5)] rounded-lg"
                 : isAVO ? "bg-yellow-500 hover:scale-110 shadow-[0_0_15px_rgba(250,204,21,0.5)]"
                 : isRuta78 ? "bg-blue-500 hover:scale-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                 : hasTariffs ? "bg-green-500 hover:scale-110" : "bg-red-500 hover:scale-110";
+
+            const borderRadiusClass = isManual ? "rounded-md" : "rounded-full";
 
             let marker = markersRef.current.get(portico.id);
 
@@ -171,7 +185,7 @@ export default function TollsMapPage() {
                 const el = marker.getElement();
                 const body = el.querySelector('.portico-marker-body') as HTMLElement;
                 if (body) {
-                    body.className = `portico-marker-body relative w-6 h-6 rounded-full border-2 border-background shadow-lg flex items-center justify-center transition-all duration-300 ${markerColorClass}`;
+                    body.className = `portico-marker-body relative w-6 h-6 ${borderRadiusClass} border-2 border-background shadow-lg flex items-center justify-center transition-all duration-300 ${markerColorClass}`;
                 }
             } else {
                 // Create new
@@ -179,11 +193,15 @@ export default function TollsMapPage() {
                 el.className = 'w-8 h-8 flex items-center justify-center cursor-pointer';
                 
                 const body = document.createElement('div');
-                body.className = `portico-marker-body relative w-6 h-6 rounded-full border-2 border-background shadow-lg flex items-center justify-center transition-all duration-300 ${markerColorClass}`;
+                body.className = `portico-marker-body relative w-6 h-6 ${borderRadiusClass} border-2 border-background shadow-lg flex items-center justify-center transition-all duration-300 ${markerColorClass}`;
                 
                 // Add a small icon inside
                 const icon = document.createElement('div');
-                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>';
+                if (isManual) {
+                    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"/></svg>';
+                } else {
+                    icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>';
+                }
                 body.appendChild(icon);
                 
                 el.appendChild(body);
@@ -531,6 +549,11 @@ export default function TollsMapPage() {
                                             {selectedPortico.concession_name === 'Ruta 78' && (
                                                 <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200 text-[9px] font-bold uppercase">Ruta 78</Badge>
                                             )}
+                                            {selectedPortico.toll_type === 'MANUAL' ? (
+                                                <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-[9px] font-bold uppercase">Manual</Badge>
+                                            ) : (
+                                                <Badge className="bg-green-100 text-green-700 border-green-200 text-[9px] font-bold uppercase">TAG</Badge>
+                                            )}
                                             {selectedPortico.is_active ? 
                                                 <span className="text-green-500 font-bold uppercase text-[9px]">Activo</span> : 
                                                 <span className="text-red-500 font-bold uppercase text-[9px]">Inactivo</span>
@@ -549,23 +572,62 @@ export default function TollsMapPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-4 px-5">
-                                <div className={`flex items-center gap-2 mb-4 p-2 rounded-lg border transition-all ${isDraggingPortico ? 'bg-yellow-500/10 border-yellow-500/50 animate-pulse' : 'bg-primary/5 border-primary/10'}`}>
-                                    <Navigation className={`h-4 w-4 shrink-0 ${isDraggingPortico ? 'text-yellow-600' : 'text-primary'}`} />
-                                    <div className="text-[10px] font-mono opacity-80 grid gap-0.5 flex-1">
-                                        <div className="flex justify-between">
-                                            <span>Lat:</span>
-                                            <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
-                                                {isDraggingPortico ? draggedCoords?.lat.toFixed(6) : selectedPortico.latitude}
-                                            </span>
+                                <div className="space-y-4 mb-4">
+                                    <div className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${isDraggingPortico ? 'bg-yellow-500/10 border-yellow-500/50 animate-pulse' : 'bg-primary/5 border-primary/10'}`}>
+                                        <Navigation className={`h-4 w-4 shrink-0 ${isDraggingPortico ? 'text-yellow-600' : 'text-primary'}`} />
+                                        <div className="text-[10px] font-mono opacity-80 grid gap-0.5 flex-1">
+                                            <div className="flex justify-between">
+                                                <span>Lat:</span>
+                                                <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
+                                                    {isDraggingPortico ? draggedCoords?.lat.toFixed(6) : selectedPortico.latitude}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Lng:</span>
+                                                <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
+                                                    {isDraggingPortico ? draggedCoords?.lng.toFixed(6) : selectedPortico.longitude}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span>Lng:</span>
-                                            <span className={isDraggingPortico ? 'font-bold text-yellow-700' : ''}>
-                                                {isDraggingPortico ? draggedCoords?.lng.toFixed(6) : selectedPortico.longitude}
-                                            </span>
+                                        {isDraggingPortico && <Badge className="bg-yellow-500 text-[8px] h-4">MOVIENDO</Badge>}
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-2 rounded-lg border bg-muted/30">
+                                        <div className="flex items-center gap-2">
+                                            <Zap className="h-4 w-4 text-orange-500" />
+                                            <span className="text-[10px] font-black uppercase">Tipo de Peaje</span>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <Button 
+                                                variant={selectedPortico.toll_type === 'TAG' || !selectedPortico.toll_type ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="h-7 px-3 text-[9px] font-black uppercase rounded-md"
+                                                onClick={async () => {
+                                                    const { error } = await supabase
+                                                        .from('porticos')
+                                                        .update({ toll_type: 'TAG' })
+                                                        .eq('id', selectedPortico.id);
+                                                    if (!error) fetchPorticos();
+                                                }}
+                                            >
+                                                TAG
+                                            </Button>
+                                            <Button 
+                                                variant={selectedPortico.toll_type === 'MANUAL' ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="h-7 px-3 text-[9px] font-black uppercase rounded-md"
+                                                onClick={async () => {
+                                                    const { error } = await supabase
+                                                        .from('porticos')
+                                                        .update({ toll_type: 'MANUAL' })
+                                                        .eq('id', selectedPortico.id);
+                                                    if (!error) fetchPorticos();
+                                                }}
+                                            >
+                                                Manual
+                                            </Button>
                                         </div>
                                     </div>
-                                    {isDraggingPortico && <Badge className="bg-yellow-500 text-[8px] h-4">MOVIENDO</Badge>}
                                 </div>
 
                                 {selectedPortico.concession_name === 'AVO' && (
@@ -634,6 +696,10 @@ export default function TollsMapPage() {
             {/* Map Legend */}
             <div className="absolute bottom-6 left-6 z-20">
                 <div className="bg-background/90 backdrop-blur-sm p-3 rounded-xl border shadow-lg space-y-2">
+                    <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-md bg-orange-500 border border-background shadow-sm" />
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Peaje Manual</span>
+                    </div>
                     <div className="flex items-center gap-2">
                         <div className="h-3 w-3 rounded-full bg-green-500 border border-background shadow-sm" />
                         <span className="text-[10px] font-bold uppercase text-muted-foreground">Tarifa Configurada</span>

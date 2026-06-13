@@ -111,56 +111,31 @@ export default function NewUserAdminPage() {
     }
 
     try {
-      // IMPORTANT: To create a user WITHOUT logging out the current admin, 
-      // we must use a Supabase Edge Function with the Service Role Key.
-      // This is a placeholder for that call.
-      
-      /*
-      const { data: authData, error: authError } = await supabase.functions.invoke('create-user-admin', {
-        body: { email, password, role, firstName, lastName, rut, address, ...otherFields }
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          role,
+          firstName,
+          lastName,
+          rut,
+          address,
+          companyName,
+          vehicleType,
+          vehicleTypes,
+          licensePlate
+        })
       });
-      if (authError) throw authError;
-      const newUserId = authData.user.id;
-      */
 
-      // FOR DEMO/MIGRATION PURPOSES, I will simulate it by creating the profile with a random UUID
-      // In production, the Edge Function should handle both Auth + Profile creation atomically.
-      const newUserId = crypto.randomUUID();
+      const result = await response.json();
 
-      const { error: profileError } = await supabase.from("userProfiles").insert({
-        id: newUserId,
-        email: email,
-        firstName: firstName,
-        lastName: lastName,
-        rut: role !== 'company' ? rut : "",
-        address: role !== 'company' ? address : "",
-        role: role,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      if (profileError) throw profileError;
-
-      if (role === "driver") {
-        const { error: driverError } = await supabase.from("driverProfiles").insert({
-          id: newUserId,
-          userId: newUserId,
-          vehicleType: vehicleType,
-          licensePlate: licensePlate || "N/A",
-          isAvailable: false,
-        });
-        if (driverError) throw driverError;
-      }
-
-      if (role === "company") {
-        const { error: companyError } = await supabase.from("companyProfiles").insert({
-          id: newUserId,
-          userId: newUserId,
-          companyName: companyName,
-          rut: rut,
-          address: address,
-          vehicleTypes: vehicleTypes,
-        });
-        if (companyError) throw companyError;
+      if (!response.ok) {
+        const errorMsg = result.details 
+            ? `${result.error}: ${result.details} (${result.code})` 
+            : result.error || 'Error al crear el usuario';
+        throw new Error(errorMsg);
       }
 
       router.push("/admin/users");

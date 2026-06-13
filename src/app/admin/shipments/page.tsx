@@ -127,19 +127,20 @@ export default function AdminShipmentsPage() {
                   <th scope="col" className="px-6 py-3">Tipo de Reserva</th>
                   <th scope="col" className="px-6 py-3">Precio Est.</th>
                   <th scope="col" className="px-6 py-3">Estado</th>
+                  <th scope="col" className="px-6 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingShipments && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">
                       Cargando envíos...
                     </td>
                   </tr>
                 )}
                 {!isLoadingShipments && (!allShipments || allShipments.length === 0) ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">
                       No hay envíos en el sistema.
                     </td>
                   </tr>
@@ -151,35 +152,40 @@ export default function AdminShipmentsPage() {
                         {shipment.id}
                       </td>
                       <td className="px-6 py-4 font-mono text-xs">
-                        {shipment.clientId.substring(0, 12)}...
+                        {shipment.clientId?.substring(0, 12)}...
                       </td>
                       <td className="px-6 py-4">
                         <div>
                           <MapPin className="h-3 w-3 inline-block mr-1 text-green-500" />{" "}
-                          {shipment.pickup_address}
+                          {shipment.originAddress || shipment.pickup_address}
                         </div>
                         <div>
                           <MapPin className="h-3 w-3 inline-block mr-1 text-red-500" />{" "}
-                          {shipment.delivery_address}
+                          {shipment.destinationAddress || shipment.delivery_address}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        {format(new Date(shipment.pickup_date), "dd MMM, yyyy")}
+                      <td className="px-6 py-4 text-xs">
+                        {shipment.pickup_date ? format(new Date(shipment.pickup_date), "dd MMM, yyyy") : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 font-medium">
+                      <td className="px-6 py-4 font-medium text-xs">
                         {shipment.bookingMethod === 'quote' ? 'Cotización' : 'Instantáneo'}
                       </td>
-                      <td className="px-6 py-4 font-semibold">
-                        {shipment.bookingMethod === 'quote' ? 'Por cotizar' : `$${shipment.estimated_price.toLocaleString('es-CL')}`}
+                      <td className="px-6 py-4 font-semibold text-xs">
+                        {shipment.bookingMethod === 'quote' ? 'Por cotizar' : `$${(shipment.client_price || shipment.estimatedPrice || shipment.estimated_price || 0).toLocaleString('es-CL')}`}
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
+                          className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold ${
                             statusStyles[shipment.status] || "bg-muted text-muted-foreground"
                           }`}
                         >
                           {shipment.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link href={`/admin/shipments/${shipment.id}`}>
+                          <Button variant="outline" size="sm">Ver Detalles</Button>
+                        </Link>
                       </td>
                     </tr>
                   ))

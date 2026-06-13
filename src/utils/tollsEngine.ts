@@ -51,6 +51,16 @@ export const calculateTollCost = (portico: any, dateObj: Date, category: string)
     const data = portico.tariffs_json?.[category];
     if (!data) return { price: 0, tag: 'SIN TARIFA', color: 'gray-400' };
 
+    // If it's a manual toll, it usually has a flat rate or fixed price regardless of hour
+    if (portico.toll_type === 'MANUAL') {
+        const flatPrice = data.price_tbfp || data.price_tbp || data.price_ts || 0;
+        return { 
+            price: Number(flatPrice), 
+            tag: 'PEAJE MANUAL', 
+            color: 'orange-500' 
+        };
+    }
+
     const hh = dateObj.getHours().toString().padStart(2, '0');
     const mm = dateObj.getMinutes().toString().padStart(2, '0');
     const timeStr = `${hh}:${mm}`;
