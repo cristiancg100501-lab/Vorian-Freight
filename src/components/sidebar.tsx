@@ -82,6 +82,7 @@ const companyNavItems: NavItem[] = [
 
 const customerNavItems: NavItem[] = [
     { group: "GENERAL", href: "/customer", icon: Package, label: "Mis Envíos" },
+    { group: "GENERAL", href: "/customer/new", icon: PlusCircle, label: "Crear Envío" },
     { group: "GENERAL", href: "/customer/tracking", icon: Map, label: "Seguimiento Real" },
     { group: "OTROS", href: "#", icon: Users, label: "Mi Perfil" },
 ];
