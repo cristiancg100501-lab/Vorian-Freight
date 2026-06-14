@@ -344,6 +344,7 @@ export default function NewShipmentPage() {
         const setAddress = type === 'pickup' ? setPickup : setDelivery;
         const setSuggestions = type === 'pickup' ? setPickupSuggestions : setDeliverySuggestions;
         setAddress({ address: suggestion.place_name, coords: suggestion.center });
+        setRouteDetails({ distance: 0, duration: 0, geometry: null });
         setSuggestions([]);
     };
     
