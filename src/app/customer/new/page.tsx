@@ -108,7 +108,7 @@ export default function NewShipmentPage() {
 
     // Step 3 State
     const [accessorials, setAccessorials] = useState({
-        forklift: true, insideDelivery1: false, appointment: false, driverAssist: false, palletExchange: false, liftgate1: false, insideDelivery2: false, liftgate2: false,
+        forklift: false, insideDelivery1: false, appointment: false, driverAssist: false, palletExchange: false, liftgate1: false, insideDelivery2: false, liftgate2: false,
     });
     const [carrierRating, setCarrierRating] = useState('4');
     const [uberFreightPreferred, setUberFreightPreferred] = useState(false);
