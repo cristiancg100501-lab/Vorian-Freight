@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import * as turf from '@turf/turf';
 import { useTheme } from "next-themes";
 import { useSupabase } from "@/components/providers/supabase-provider";
 
@@ -173,6 +174,12 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
             });
         }
+        if (!mapInstance.getSource('route-snake')) {
+            mapInstance.addSource('route-snake', {
+                'type': 'geojson',
+                'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
+            });
+        }
 
         if (!mapInstance.getSource('breadcrumbs-source')) {
             mapInstance.addSource('breadcrumbs-source', {
@@ -197,6 +204,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         
         // --- Layers ---
         if (!mapInstance.getLayer('route-base')) {
+            // Fondo de la ruta completo (tenue)
             mapInstance.addLayer({
                 'id': 'route-base',
                 'type': 'line',
@@ -204,77 +212,47 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'layout': { 'line-join': 'round', 'line-cap': 'round' },
                 'paint': { 
                     'line-color': currentTheme === 'dark' ? '#333333' : '#d1d5db',
-                    'line-width': 5, 
-                    'line-opacity': 1
+                    'line-width': 4, 
+                    'line-opacity': 0.5
+                }
+            });
+        }
+
+        if (!mapInstance.getLayer('route-snake-glow')) {
+            // Capa de resplandor (Glow) de la serpiente
+            mapInstance.addLayer({
+                'id': 'route-snake-glow',
+                'type': 'line',
+                'source': 'route-snake',
+                'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                'paint': { 
+                    'line-color': 'hsl(350, 93%, 73%)',
+                    'line-width': 12,
+                    'line-blur': 10,
+                    'line-opacity': 0.5
                 }
             });
         }
         
-        if (!mapInstance.getLayer('route-animation')) {
+        if (!mapInstance.getLayer('route-snake-base')) {
+            // Capa principal láser de la serpiente
             mapInstance.addLayer({
-                'id': 'route-animation',
+                'id': 'route-snake-base',
                 'type': 'line',
-                'source': 'route',
+                'source': 'route-snake',
                 'layout': { 'line-join': 'round', 'line-cap': 'round' },
                 'paint': { 
-                    'line-width': 5,
-                    'line-gradient': [
-                        'step',
-                        ['line-progress'],
-                        'transparent',
-                        1, 'transparent'
-                    ]
+                    'line-color': 'hsl(350, 93%, 73%)',
+                    'line-width': 4, 
+                    'line-opacity': 1
                 }
             });
         }
 
         setStyleLoadedCount(c => c + 1);
     });
-
-    // Start snake animation loop
-    let progress = 0;
-    let animationId: number;
-    const animateRoute = () => {
-        if (!map.current) return;
-        
-        // El snake avanza
-        progress += 0.005;
-        if (progress > 1.2) progress = 0;
-
-        try {
-            if (map.current.isStyleLoaded() && map.current.getLayer('route-animation')) {
-                const start = progress - 0.15; // El snake ocupa 15% de la ruta
-                const end = progress;
-                
-                const currentTheme = themeRef.current;
-                const snakeColor = currentTheme === 'dark' ? '#FFFFFF' : '#000000';
-                const transparent = 'rgba(0,0,0,0)';
-                
-                const gradient: any[] = [
-                    'step',
-                    ['line-progress'],
-                    transparent
-                ];
-                
-                if (start > 0) {
-                    gradient.push(start, snakeColor);
-                } else {
-                    gradient[2] = snakeColor;
-                }
-                
-                if (end < 1) {
-                    gradient.push(end, transparent);
-                }
-
-                (map.current as any).setPaintProperty('route-animation', 'line-gradient', gradient);
-            }
-        } catch(e) {}
-        animationId = requestAnimationFrame(animateRoute);
-    };
-    animateRoute();
     
     return () => {
-        cancelAnimationFrame(animationId);
         resizeObserver.disconnect();
         map.current?.remove();
         map.current = null;
@@ -339,8 +317,9 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   useEffect(() => {
     if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
     const mapInstance = map.current;
-
-    const activeDriverIds = new Set(drivers.map(d => d.id));
+    
+    const safeDrivers = drivers || [];
+    const activeDriverIds = new Set(safeDrivers.map(d => d.id));
 
     // Remove stale drivers
     if (activeDriverIds.size > 0) {
@@ -390,7 +369,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     mapInstance.on('zoom', updateMarkerSizes);
 
     // Render drivers
-    drivers.forEach(driver => {
+    safeDrivers.forEach(driver => {
         if (driver.currentLatitude === null || driver.currentLongitude === null) return;
         
         const lat = Number(driver.currentLatitude);
@@ -494,44 +473,97 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
 
   // 3. Handle Route Update & Bounds & Endpoints
   useEffect(() => {
-    if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
-    const mapInstance = map.current;
-    
-    // Manage origin and destination markers
-    if (odMarkersRef.current.origin) odMarkersRef.current.origin.remove();
-    if (odMarkersRef.current.destination) odMarkersRef.current.destination.remove();
+    let snakeAnimationId: number | null = null;
+    try {
+        if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
+        const mapInstance = map.current;
+        
+        // Manage origin and destination markers
+        if (odMarkersRef.current.origin) odMarkersRef.current.origin.remove();
+        if (odMarkersRef.current.destination) odMarkersRef.current.destination.remove();
 
-    if (origin && isValidLngLat(origin)) {
-        const el = document.createElement('div');
-        el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
-        odMarkersRef.current.origin = new mapboxgl.Marker({ element: el })
-            .setLngLat(origin)
-            .addTo(mapInstance);
-    }
-    
-    if (destination && isValidLngLat(destination)) {
-        const el = document.createElement('div');
-        el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
-        odMarkersRef.current.destination = new mapboxgl.Marker({ element: el })
-            .setLngLat(destination)
-            .addTo(mapInstance);
+        if (origin && isValidLngLat(origin)) {
+            const el = document.createElement('div');
+            el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
+            odMarkersRef.current.origin = new mapboxgl.Marker({ element: el })
+                .setLngLat(origin)
+                .addTo(mapInstance);
+        }
+        
+        if (destination && isValidLngLat(destination)) {
+            const el = document.createElement('div');
+            el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
+            odMarkersRef.current.destination = new mapboxgl.Marker({ element: el })
+                .setLngLat(destination)
+                .addTo(mapInstance);
+        }
+
+        if (!route) return;
+        
+        // Comprobar la fuente de manera segura
+        if (!mapInstance.getSource('route')) return;
+        const source = mapInstance.getSource('route') as mapboxgl.GeoJSONSource;
+        const snakeSource = mapInstance.getSource('route-snake') as mapboxgl.GeoJSONSource;
+        
+        if (source && Array.isArray(route.coordinates) && route.coordinates.length > 0) {
+            source.setData({ type: 'Feature', properties: {}, geometry: route });
+            
+            const bounds = new mapboxgl.LngLatBounds();
+            route.coordinates.forEach((c: any) => { if (isValidLngLat(c)) bounds.extend(c); });
+            if (origin && isValidLngLat(origin)) bounds.extend(origin);
+            if (destination && isValidLngLat(destination)) bounds.extend(destination);
+
+            if (!bounds.isEmpty()) {
+                mapInstance.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 2500 });
+            }
+
+            // --- ANIMACION TURF SNAKE ---
+            if (snakeSource) {
+                const routeLine = turf.lineString(route.coordinates);
+                const totalLength = turf.length(routeLine, { units: 'kilometers' });
+                
+                let startTimestamp: number | null = null;
+                const DURATION = 2000; // 2 segundos en recorrer (más rapido)
+                const TAIL_LENGTH = Math.max(2, totalLength * 0.25); // Cola 25% o 2km min
+                
+                const animateSnake = (timestamp: number) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = (timestamp - startTimestamp) / DURATION;
+                    
+                    if (progress <= 1.2) { // Dejamos que desaparezca la cola completamente
+                        const currentDistance = progress * totalLength;
+                        const startDistance = Math.max(0, currentDistance - TAIL_LENGTH);
+                        
+                        try {
+                            if (currentDistance > startDistance) {
+                                const sliceEnd = Math.min(currentDistance, totalLength);
+                                const sliceStart = Math.min(startDistance, totalLength);
+                                
+                                if (sliceEnd > sliceStart) {
+                                    const segment = turf.lineSliceAlong(routeLine, sliceStart, sliceEnd, { units: 'kilometers' });
+                                    snakeSource.setData(segment);
+                                } else {
+                                    snakeSource.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+                                }
+                            }
+                        } catch (e) {}
+                        snakeAnimationId = requestAnimationFrame(animateSnake);
+                    } else {
+                        // Restart animation
+                        startTimestamp = timestamp;
+                        snakeAnimationId = requestAnimationFrame(animateSnake);
+                    }
+                };
+                snakeAnimationId = requestAnimationFrame(animateSnake);
+            }
+        }
+    } catch (e) {
+        console.error("Vorian Map Route Engine Error:", e);
     }
 
-    if (!route) return;
-    const source = mapInstance.getSource('route') as mapboxgl.GeoJSONSource;
-    
-    if (source && Array.isArray(route.coordinates) && route.coordinates.length > 0) {
-      source.setData({ type: 'Feature', properties: {}, geometry: route });
-      
-      const bounds = new mapboxgl.LngLatBounds();
-      route.coordinates.forEach((c: any) => { if (isValidLngLat(c)) bounds.extend(c); });
-      if (origin && isValidLngLat(origin)) bounds.extend(origin);
-      if (destination && isValidLngLat(destination)) bounds.extend(destination);
-
-      if (!bounds.isEmpty()) {
-          mapInstance.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 1500 });
-      }
-    }
+    return () => {
+        if (snakeAnimationId) cancelAnimationFrame(snakeAnimationId);
+    };
   }, [styleLoadedCount, route, origin, destination]);
 
   // 4. Style Change Sync

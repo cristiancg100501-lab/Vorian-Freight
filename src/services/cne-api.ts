@@ -62,22 +62,24 @@ export async function getDieselPrice(): Promise<number> {
         throw new Error("La respuesta de la API de precios de CNE no fue exitosa o no contiene datos.");
     }
 
-    const dieselPrices = pricesData.data
+    const validPrices = pricesData.data
       .filter((d: any) => 
-        d.tipo_combustible === "petroleo_diesel" && d.region_cod === 13
+        d.tipo_combustible === "petroleo_diesel" && 
+        d.region_cod === 13 &&
+        !isNaN(parseFloat(d.precio_por_litro.replace(',', '.')))
       )
-      .map((d: any) => parseFloat(d.precio_por_litro.replace(',', '.')));
+      .sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
-    console.log("Precios de diésel filtrados (Región 13):", dieselPrices);
-
-    if (dieselPrices.length === 0) {
-      throw new Error("No se encontraron precios para 'petroleo_diesel' en la Región Metropolitana.");
+    if (validPrices.length === 0) {
+      throw new Error("No se encontraron precios válidos para 'petroleo_diesel' en la RM.");
     }
 
-    const averagePrice = dieselPrices.reduce((a: number, b: number) => a + b, 0) / dieselPrices.length;
-    console.log("Precio promedio calculado:", averagePrice);
+    const mostRecent = validPrices[0];
+    const currentPrice = parseFloat(mostRecent.precio_por_litro.replace(',', '.'));
+    
+    console.log("Precio más reciente encontrado:", currentPrice, "de la fecha:", mostRecent.fecha);
 
-    return Math.round(averagePrice);
+    return Math.round(currentPrice);
     
   } catch (error: any) {
     console.error("Error en el proceso getDieselPrice:", error.message);

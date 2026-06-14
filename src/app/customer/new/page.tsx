@@ -85,6 +85,7 @@ export default function NewShipmentPage() {
     const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
     const [deliveryWindow, setDeliveryWindow] = useState('1:00 PM - 5:00 PM');
     const [vehicleType, setVehicleType] = useState('Camion Pesado');
+    const [weatherCondition, setWeatherCondition] = useState('Clear');
     const [serviceType, setServiceType] = useState('FTL');
     
     // Step 2 State
@@ -127,6 +128,9 @@ export default function NewShipmentPage() {
     // Pricing state
     const [globalSettings, setGlobalSettings] = useState<any | null>(null);
     const [estimatedPrice, setEstimatedPrice] = useState(0);
+    const [priceValidSeconds, setPriceValidSeconds] = useState<number>(0);
+    const [priceBreakdown, setPriceBreakdown] = useState<any>(null);
+    const [showBreakdown, setShowBreakdown] = useState(false);
     const [carrierPayment, setCarrierPayment] = useState(0);
     const [platformFee, setPlatformFee] = useState(0);
     
@@ -154,7 +158,7 @@ export default function NewShipmentPage() {
           if (pickup.coords && delivery.coords) {
             try {
               const response = await fetch(
-                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickup.coords.join(',')};${delivery.coords.join(',')}?geometries=geojson&access_token=${MAPBOX_TOKEN}`
+                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickup.coords.join(',')};${delivery.coords.join(',')}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`
               ).then(res => res.json());
     
               if (response.routes && response.routes[0]) {
@@ -170,6 +174,54 @@ export default function NewShipmentPage() {
     
         calculateRoute();
     }, [pickup.coords, delivery.coords]);
+
+    // --- VORIAN CLIMATIC SENSOR (Con Forecast 5 Días) ---
+    useEffect(() => {
+        const fetchWeather = async () => {
+            if (pickup.coords && pickup.coords[0] && pickup.coords[1]) {
+                try {
+                    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+                    if (!apiKey || apiKey === 'TU_API_KEY_AQUI') return;
+
+                    // Usar endpoint de forecast para predicción a 5 días
+                    const res = await fetch(
+                        `https://api.openweathermap.org/data/2.5/forecast?lat=${pickup.coords[1]}&lon=${pickup.coords[0]}&appid=${apiKey}`
+                    );
+                    
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        console.warn("🌦️ Vorian Sensor (Aviso): Esperando activación de API clima o clave inválida.", errorData.message);
+                        setWeatherCondition('Clear');
+                        return;
+                    }
+
+                    const data = await res.json();
+                    if (data.list && data.list.length > 0) {
+                        let selectedWeather = data.list[0].weather[0].main;
+                        
+                        if (pickupDate) {
+                            // Buscar un forecast que coincida con el día elegido (UTC/Local timezone format match)
+                            // Para facilitar: tomamos la fecha elegida en YYYY-MM-DD
+                            const localDateStr = new Date(pickupDate.getTime() - pickupDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                            const targetForecast = data.list.find((item: any) => item.dt_txt && item.dt_txt.startsWith(localDateStr));
+                            
+                            if (targetForecast && targetForecast.weather && targetForecast.weather[0]) {
+                                selectedWeather = targetForecast.weather[0].main;
+                                console.log(`🌦️ Vorian Sensor: Pronóstico para ${localDateStr} en pickup es: ${selectedWeather}`);
+                            } else {
+                                console.log(`🌦️ Vorian Sensor: No hay forecast exacto para ${localDateStr}. Usando clima actual/más cercano: ${selectedWeather}`);
+                            }
+                        }
+                        setWeatherCondition(selectedWeather);
+                    }
+                } catch (error) {
+                    console.error("Error fetching weather:", error);
+                    setWeatherCondition('Clear'); // Default safely
+                }
+            }
+        };
+        fetchWeather();
+    }, [pickup.coords, pickupDate]);
 
     const calculatePrice = useCallback(async () => {
         if (!routeDetails.distance || !routeDetails.duration || !vehicleType || !globalSettings) {
@@ -197,8 +249,11 @@ export default function NewShipmentPage() {
                     container_status: 'FCL',
                     weight_kgs: 0,
                     route_geometry: routeDetails.geometry,
-                    service_mode: 'exclusive',
-                    cargo_units: 1
+                    service_mode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
+                    cargo_units: 1,
+                    weather_condition: weatherCondition,
+                    special_handling: specialHandling,
+                    accessorials: accessorials
                 })
             });
 
@@ -219,9 +274,11 @@ export default function NewShipmentPage() {
             setCarrierPayment(data.carrier_payment);
             setPlatformFee(data.platform_fee);
             setEstimatedPrice(data.final_price); 
+            setPriceValidSeconds(20 * 60); // 20 minutos
             setPricingFactors(data.factors.rpc_factors);
             setMlFactors({ ml_factor: data.factors.ml_factor, market_factor: data.factors.market_factor });
             setPricingLogId(data.log_id);
+            setPriceBreakdown(data.breakdown);
             
         } catch (err: any) {
             console.error("Error calculating price via RPC:", err.message || err);
@@ -232,7 +289,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, weatherCondition, serviceType, specialHandling, accessorials]);
 
     useEffect(() => {
         calculatePrice();
@@ -243,20 +300,18 @@ export default function NewShipmentPage() {
         calculatePriceRef.current = calculatePrice;
     }, [calculatePrice]);
 
-    // TIMER EFFECT for automatic refresh
+
+
+    // Timer para expiración de cotización
     useEffect(() => {
-        if (estimatedPrice <= 0) return;
-        const timer = setInterval(() => {
-            setPriceValidFor((prev) => {
-                if (prev <= 1) {
-                    calculatePriceRef.current();
-                    return 20;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [estimatedPrice]);
+        let interval: NodeJS.Timeout;
+        if (priceValidSeconds > 0) {
+            interval = setInterval(() => {
+                setPriceValidSeconds((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [priceValidSeconds]);
 
 
     const handleAddressChange = async (value: string, type: 'pickup' | 'delivery') => {
@@ -699,9 +754,18 @@ export default function NewShipmentPage() {
                                             </CardHeader>
                                             <CardContent>
                                                 <p className="text-sm text-muted-foreground">Reservar con una Tarifa Garantizada</p>
-                                                <div className="flex items-baseline gap-2">
-                                                    <p className="text-2xl font-bold mt-2">${estimatedPrice.toLocaleString()}</p>
-                                                    {estimatedPrice > 0 && <span className="text-base font-medium text-muted-foreground">+ IVA</span>}
+                                                <div className="flex items-baseline gap-2 min-h-[40px]">
+                                                    {isRefreshingPrice ? (
+                                                        <div className="flex items-center gap-2 text-primary mt-2">
+                                                            <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                            <span className="text-sm font-bold animate-pulse">Calculando...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-2xl font-bold mt-2">${estimatedPrice.toLocaleString()}</p>
+                                                            {estimatedPrice > 0 && <span className="text-base font-medium text-muted-foreground">+ IVA</span>}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -722,7 +786,7 @@ export default function NewShipmentPage() {
                                 <Button type="button" variant="outline" onClick={() => setStep(2)} className="h-12 px-6">
                                     <ArrowLeft className="mr-2 h-4 w-4" /> Atrás
                                 </Button>
-                                <Button type="button" onClick={handleBookShipment} size="lg" className="bg-foreground hover:bg-foreground/90 text-background h-12 px-6" disabled={isLoading}>
+                                <Button type="button" onClick={handleBookShipment} size="lg" className="bg-foreground hover:bg-foreground/90 text-background h-12 px-6" disabled={isLoading || (bookingMethod === 'instant' && priceValidSeconds === 0)}>
                                     {isLoading ? 'Reservando...' : 'Revisar y Confirmar Envío'}
                                 </Button>
                             </div>
@@ -739,10 +803,126 @@ export default function NewShipmentPage() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground">Tarifa Garantizada</p>
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-4xl font-bold tracking-tight">${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
-                                {estimatedPrice > 0 && <span className="text-lg font-medium text-muted-foreground">+ IVA</span>}
+                            <div className="flex items-baseline gap-2 min-h-[48px]">
+                                {isRefreshingPrice ? (
+                                    <div className="flex items-center gap-3 text-primary py-1">
+                                        <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-base font-bold animate-pulse">Calculando tarifa dinámica...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-4xl font-bold tracking-tight">${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
+                                        {estimatedPrice > 0 && <span className="text-lg font-medium text-muted-foreground">+ IVA</span>}
+                                    </>
+                                )}
                             </div>
+                            
+                            {estimatedPrice > 0 && priceValidSeconds > 0 && (
+                                <div className="mt-4 mb-2">
+                                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                        <span>Tarifa garantizada por:</span>
+                                        <span className="font-mono">
+                                            {Math.floor(priceValidSeconds / 60)}:{(priceValidSeconds % 60).toString().padStart(2, '0')}
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                        <div 
+                                            className={cn("h-full transition-all duration-1000 ease-linear", priceValidSeconds < 120 ? "bg-red-500" : "bg-primary")}
+                                            style={{ width: `${(priceValidSeconds / 1200) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            {estimatedPrice > 0 && priceValidSeconds === 0 && (
+                                <div className="mt-4 mb-2 p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-500 text-sm font-medium flex items-center justify-between">
+                                    <span>La cotización expiró.</span>
+                                    <Button variant="outline" size="sm" onClick={calculatePrice} className="h-7 text-xs border-red-200 hover:bg-red-50 dark:hover:bg-red-950">
+                                        Recalcular
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* NUEVO: DESGLOSE DE TARIFA TRANSPARENTE */}
+                            {estimatedPrice > 0 && priceBreakdown && (
+                                <div className="mt-4 border border-border/50 rounded-lg overflow-hidden bg-card/50">
+                                    <div 
+                                        className="flex items-center justify-between p-3 bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors"
+                                        onClick={() => setShowBreakdown(!showBreakdown)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Desglose de Tarifa</span>
+                                        </div>
+                                        <span className={cn("text-xs transition-transform duration-200", showBreakdown ? "rotate-180" : "")}>▼</span>
+                                    </div>
+                                    
+                                    {showBreakdown && (
+                                        <div className="p-4 space-y-3 text-sm animate-in fade-in slide-in-from-top-2">
+                                            <div className="flex justify-between items-center text-muted-foreground">
+                                                <span>Flete Base Operativo</span>
+                                                <span className="font-mono">${priceBreakdown.base_freight.toLocaleString()}</span>
+                                            </div>
+                                            
+                                            {priceBreakdown.market_adjustment !== 0 && (
+                                                <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
+                                                    <span>Factor Mercado (Demanda/Clima)</span>
+                                                    <span className="font-mono">{priceBreakdown.market_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
+                                                </div>
+                                            )}
+
+                                            {priceBreakdown.accessorials_total > 0 && (
+                                                <div className="flex justify-between items-center text-primary/80">
+                                                    <span>Servicios Adicionales</span>
+                                                    <span className="font-mono">+ ${priceBreakdown.accessorials_total.toLocaleString()}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-between items-center text-muted-foreground pt-2 border-t border-dashed">
+                                                <span>Peajes (TAG)</span>
+                                                <span className="font-mono">+ ${priceBreakdown.tolls_cost.toLocaleString()}</span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center font-bold text-foreground pt-2 border-t">
+                                                <span>Total a Pagar</span>
+                                                <span className="font-mono">${estimatedPrice.toLocaleString()}</span>
+                                            </div>
+
+                                            {/* Detalles Técnicos Transparentes */}
+                                            {pricingFactors && (
+                                                <div className="mt-6 pt-4 border-t-2 border-primary/20 space-y-2 bg-muted/10 -mx-4 px-4 pb-2">
+                                                    <div className="text-[10px] font-black uppercase text-primary tracking-[0.1em] mb-3 flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                                        Matemática del Flete Base Operativo
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                                                        <span>Costo Diésel Calculado (CNE)</span>
+                                                        <span className="font-mono">${Math.round(pricingFactors.base_cost_diesel || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                                                        <span>Costo Conductor</span>
+                                                        <span className="font-mono">${Math.round(pricingFactors.base_cost_driver || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                                                        <span>Mantenimiento & Neumáticos</span>
+                                                        <span className="font-mono">${Math.round(pricingFactors.base_cost_maintenance || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                                                        <span>Margen Base Transportista</span>
+                                                        <span className="font-mono">${Math.round(pricingFactors.base_margin || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    
+                                                    <div className="mt-3 pt-3 border-t border-dashed border-border/50">
+                                                        <div className="flex justify-between items-center text-[11px] text-muted-foreground mb-1">
+                                                            <span>Multiplicador Peso/Terreno</span>
+                                                            <span className="font-mono">x {( (pricingFactors.weight_factor || 1.0) * (pricingFactors.terrain_factor || 1.0) ).toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             
                             <div className="mt-6 space-y-2 text-sm border-t pt-4">
                                 <div className="flex justify-between">
@@ -751,7 +931,17 @@ export default function NewShipmentPage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Equipamiento</span>
-                                    <span className="font-medium text-foreground">{equipment}</span>
+                                    <span className="font-medium text-foreground">{vehicleType === 'camion_3_4' ? 'Camión 3/4' : vehicleType}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Clima Detectado</span>
+                                    <span className="font-medium text-foreground">
+                                        {weatherCondition === 'Clear' ? '☀️ Despejado' : 
+                                         weatherCondition === 'Clouds' ? '☁️ Nublado' : 
+                                         weatherCondition === 'Rain' ? '🌧️ Lluvia (+15%)' : 
+                                         weatherCondition === 'Snow' ? '❄️ Nieve (+25%)' : 
+                                         weatherCondition}
+                                    </span>
                                 </div>
                                 {!isInternalShipment && estimatedPrice > 0 && (
                                     <>
@@ -767,7 +957,7 @@ export default function NewShipmentPage() {
                                 )}
                             </div>
 
-                            <Button className="w-full h-12 mt-6 font-bold text-lg bg-foreground hover:bg-foreground/90 text-background" onClick={handleBookShipment} disabled={isLoading || (bookingMethod === 'instant' && estimatedPrice <= 0) || step !== 3}>
+                            <Button className="w-full h-12 mt-6 font-bold text-lg bg-foreground hover:bg-foreground/90 text-background" onClick={handleBookShipment} disabled={isLoading || (bookingMethod === 'instant' && (estimatedPrice <= 0 || priceValidSeconds === 0)) || step !== 3}>
                                 {isLoading ? "Reservando..." : "Reservar Envío"}
                             </Button>
                             {error && <p className="text-destructive text-sm mt-4 text-center">{error}</p>}

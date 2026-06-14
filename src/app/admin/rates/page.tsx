@@ -343,21 +343,19 @@ export default function AdminRatesPage() {
         setIsUpdatingFromCne(true);
         setError(null);
         try {
-            // Invocamos la Edge Function de Supabase
-            const { data, error: funcError } = await supabase.functions.invoke('sync-diesel-price');
+            // Usamos el Server Action de Next.js en vez de la Edge Function
+            const price = await getDieselPrice();
             
-            if (funcError) throw funcError;
-            
-            if (data.price) {
-                setDieselCost(data.price.toString());
-                setSuccess("Precio del combustible sincronizado exitosamente vía Edge Function.");
+            if (price) {
+                setDieselCost(price.toString());
+                setSuccess("Precio del combustible sincronizado exitosamente con la API CNE.");
             } else {
-                setSuccess("Sincronización completada exitosamente.");
+                setSuccess("Sincronización completada, pero no se encontró el precio.");
             }
             setTimeout(() => setSuccess(null), 3000);
         } catch (err: any) {
             console.error("Error en sincronización remota:", err);
-            setError(err.message || "Fallo al ejecutar la sincronización automática en Supabase.");
+            setError(err.message || "Fallo al consultar la API de la CNE.");
         } finally {
             setIsUpdatingFromCne(false);
         }

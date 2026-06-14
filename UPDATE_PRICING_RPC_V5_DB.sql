@@ -16,7 +16,7 @@ DECLARE
     v_cargo_units NUMERIC := COALESCE((params->>'p_cargo_units')::NUMERIC, 1);
     v_route_geometry TEXT := params->>'p_route_geometry';
     
-    -- ⚙️ Variables de Calibración (Cargadas desde DB)
+    -- ⚙️ Variables de Calibración
     v_costo_fijo NUMERIC;
     v_desgaste_km NUMERIC;
     v_rendimiento NUMERIC;
@@ -33,8 +33,7 @@ DECLARE
     v_costo_base_operativo NUMERIC;
     
     -- 🚧 Peajes y Ajustes
-    v_tolls_cost NUMERIC := 0;
-    v_faf_percent NUMERIC := 0.0;
+    v_standard_tolls_cost NUMERIC := 0;
     v_ltl_factor NUMERIC;
     v_market_factor NUMERIC := 1.0;
     
@@ -44,7 +43,7 @@ DECLARE
     v_total NUMERIC;
     v_vorian_commission_pct NUMERIC;
 BEGIN
-    -- 1. CARGAR CONFIGURACIÓN GLOBAL (Settings)
+    -- 1. CARGAR CONFIGURACIÓN GLOBAL
     SELECT 
         COALESCE("dieselCostPerLiter", 1050.0),
         COALESCE(vorian_commission, 15) / 100.0,
@@ -52,20 +51,18 @@ BEGIN
     INTO v_diesel_cost, v_vorian_commission_pct, v_costo_hora_chofer
     FROM public.settings WHERE id = 'global';
 
-    -- 2. CARGAR PARÁMETROS DEL VEHÍCULO (vehicleRates + vehicle_specs)
-    -- Buscamos los costos en vehicleRates y la capacidad en vehicle_specs
+    -- 2. CARGAR PARÁMETROS DEL VEHÍCULO
     SELECT 
-        COALESCE(vr.baseFare, 65000),
-        COALESCE(vr.costPerKm, 200),
-        COALESCE(vr.fuelEfficiency, 9.0),
+        COALESCE(vr."baseFare", 65000),
+        COALESCE(vr."costPerKm", 200),
+        COALESCE(vr."fuelEfficiency", 9.0),
         COALESCE(vs.max_pallets, 8),
         COALESCE(vs.category, 'cat2')
     INTO v_costo_fijo, v_desgaste_km, v_rendimiento, v_truck_capacity, v_category_key
     FROM public.vehicle_specs vs
-    LEFT JOIN public.vehicleRates vr ON vr.id = vs.id
+    LEFT JOIN public."vehicleRates" vr ON vr.id = vs.id
     WHERE vs.id = v_vehicle_type;
 
-    -- Fallback si no existe el vehículo
     IF v_costo_fijo IS NULL THEN
         v_costo_fijo := 120000; v_desgaste_km := 850; v_rendimiento := 2.2; v_truck_capacity := 28; v_category_key := 'cat3';
     END IF;
@@ -76,7 +73,6 @@ BEGIN
     IF v_route_geometry IS NOT NULL AND v_route_geometry != '' THEN
         v_route_line := ST_SetSRID(ST_GeomFromGeoJSON(v_route_geometry), 4326);
         
-        -- Peajes Estándar
         SELECT COALESCE(SUM((tariffs_json->v_category_key->>'price_tbfp')::NUMERIC), 0)
         INTO v_standard_tolls_cost
         FROM public.porticos
@@ -91,11 +87,8 @@ BEGIN
     
     v_costo_base_operativo := v_costo_fijo + v_costo_diesel + v_costo_tiempo + v_costo_desgaste + v_standard_tolls_cost;
 
-    -- 5. FAF (Basado en DB)
-    v_faf_percent := (v_diesel_cost / 1000.0) - 1;
-    IF v_faf_percent < 0 THEN v_faf_percent := 0; END IF;
-    
-    v_subtotal := v_costo_base_operativo * (1 + v_faf_percent);
+    -- 5. FAF REMOVIDO PARA NO COBRAR DIESEL DOBLE
+    v_subtotal := v_costo_base_operativo;
 
     -- 6. LTL DINÁMICA
     IF v_service_mode = 'consolidated' THEN
@@ -103,7 +96,7 @@ BEGIN
         v_subtotal := v_subtotal * v_ltl_factor;
     END IF;
 
-    -- 7. TOTAL Y COMISIÓN (Basado en DB)
+    -- 7. TOTAL Y COMISIÓN
     v_commission := v_subtotal * v_vorian_commission_pct;
     v_total := (v_subtotal + v_commission) * v_market_factor;
 
@@ -111,11 +104,21 @@ BEGIN
         'total', ROUND(v_total),
         'subtotal', ROUND(v_subtotal),
         'commission', ROUND(v_commission),
+        'tolls_cost', ROUND(v_standard_tolls_cost),
         'currency', 'CLP',
         'metadata', jsonb_build_object(
             'engine', 'v5.1-DB-DRIVEN',
             'category', v_category_key,
             'diesel_price', v_diesel_cost
+        ),
+        'factors', jsonb_build_object(
+            'base_cost_diesel', ROUND(v_costo_diesel),
+            'base_cost_driver', ROUND(v_costo_tiempo),
+            'base_cost_maintenance', ROUND(v_costo_desgaste),
+            'base_margin', ROUND(v_costo_fijo + v_commission),
+            'terrain_factor', 1.0,
+            'weight_factor', 1.0,
+            'distance_total', ROUND(v_km)
         )
     );
 END;
