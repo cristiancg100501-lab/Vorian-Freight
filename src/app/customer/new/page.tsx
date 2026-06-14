@@ -253,7 +253,9 @@ export default function NewShipmentPage() {
                     cargo_units: 1,
                     weather_condition: weatherCondition,
                     special_handling: specialHandling,
-                    accessorials: accessorials
+                    accessorials: accessorials,
+                    pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
+                    pickup_window: pickupWindow
                 })
             });
 
@@ -289,7 +291,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, weatherCondition, serviceType, specialHandling, accessorials]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow]);
 
     useEffect(() => {
         calculatePrice();

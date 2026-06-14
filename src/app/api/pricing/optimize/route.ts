@@ -12,7 +12,8 @@ export async function POST(request: Request) {
         distance_meters, duration_mins, vehicle_type, 
         container_status, weight_kgs, route_geometry,
         service_mode, cargo_units, weather_condition,
-        special_handling, accessorials
+        special_handling, accessorials,
+        pickup_date, pickup_window
     } = body;
 
     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
@@ -61,8 +62,31 @@ export async function POST(request: Request) {
 
     // 2. Determinar Factor de Mercado Heurístico (Tráfico, Clima y Demanda)
     let factorMarket = 1.0;
-    const currentHour = new Date().getHours();
-    const currentDay = new Date().getDay(); // 0: Sun, 1: Mon, ...
+    
+    let currentHour = new Date().getHours();
+    let currentDay = new Date().getDay(); // 0: Sun, 1: Mon, ...
+
+    if (pickup_date) {
+        currentDay = new Date(pickup_date).getDay();
+    }
+    
+    if (pickup_window && pickup_window.includes(':')) {
+        // Parse window like "5:00 PM - 9:00 PM"
+        try {
+            const timePart = pickup_window.split('-')[0].trim();
+            const parts = timePart.split(' ');
+            if (parts.length >= 1) {
+                const [time, ampm] = parts;
+                const [hourStr] = time.split(':');
+                let parsedHour = parseInt(hourStr, 10);
+                if (ampm && ampm.toUpperCase() === 'PM' && parsedHour < 12) parsedHour += 12;
+                if (ampm && ampm.toUpperCase() === 'AM' && parsedHour === 12) parsedHour = 0;
+                if (!isNaN(parsedHour)) {
+                    currentHour = parsedHour;
+                }
+            }
+        } catch (e) {}
+    }
 
     // a) Hora Peak (17:00 a 19:00) -> +10%
     if (currentHour >= 17 && currentHour <= 19) {
