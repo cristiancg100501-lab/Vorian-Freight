@@ -83,6 +83,9 @@ export default function NewShipmentPage() {
     const [pickupDate, setPickupDate] = useState<Date | undefined>(new Date());
     const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
     const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
+    const [operationType, setOperationType] = useState('Nacional'); // 'Nacional', 'Exportación', 'Importación'
+    const [depot, setDepot] = useState({ address: '', coords: null as any });
+    const [depotSuggestions, setDepotSuggestions] = useState<any[]>([]);
     const [deliveryWindow, setDeliveryWindow] = useState('1:00 PM - 5:00 PM');
     const [vehicleType, setVehicleType] = useState('Camion Pesado');
     const [weatherCondition, setWeatherCondition] = useState('Clear');
@@ -156,14 +159,33 @@ export default function NewShipmentPage() {
     useEffect(() => {
         const calculateRoute = async () => {
           if (pickup.coords && delivery.coords) {
+            
+            // Require depot for Import/Export
+            if (operationType !== 'Nacional' && !depot.coords) {
+                setRouteDetails({ distance: 0, duration: 0, geometry: null });
+                return;
+            }
+
+            let waypoints = `${pickup.coords.join(',')};${delivery.coords.join(',')}`;
+            
+            if (operationType === 'Exportación' && depot.coords) {
+                // Depot -> Pickup -> Delivery
+                waypoints = `${depot.coords.join(',')};${pickup.coords.join(',')};${delivery.coords.join(',')}`;
+            } else if (operationType === 'Importación' && depot.coords) {
+                // Pickup -> Delivery -> Depot
+                waypoints = `${pickup.coords.join(',')};${delivery.coords.join(',')};${depot.coords.join(',')}`;
+            }
+
             try {
               const response = await fetch(
-                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickup.coords.join(',')};${delivery.coords.join(',')}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`
+                `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${waypoints}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`
               ).then(res => res.json());
     
               if (response.routes && response.routes[0]) {
                 const { distance, duration, geometry } = response.routes[0];
                 setRouteDetails({ distance, duration, geometry });
+              } else {
+                setRouteDetails({ distance: 0, duration: 0, geometry: null });
               }
             } catch (error) {
               console.error("Error calculating route:", error);
@@ -173,7 +195,7 @@ export default function NewShipmentPage() {
         };
     
         calculateRoute();
-    }, [pickup.coords, delivery.coords]);
+    }, [pickup.coords, delivery.coords, depot.coords, operationType]);
 
     // --- VORIAN CLIMATIC SENSOR (Con Forecast 5 Días) ---
     useEffect(() => {
@@ -201,15 +223,41 @@ export default function NewShipmentPage() {
                         
                         if (pickupDate) {
                             // Buscar un forecast que coincida con el día elegido (UTC/Local timezone format match)
-                            // Para facilitar: tomamos la fecha elegida en YYYY-MM-DD
-                            const localDateStr = new Date(pickupDate.getTime() - pickupDate.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-                            const targetForecast = data.list.find((item: any) => item.dt_txt && item.dt_txt.startsWith(localDateStr));
+                            // Para facilitar: tomamos la fecha elegida
+                            
+                            let targetHour = 12; // Default to noon
+                            if (pickupWindow && pickupWindow.includes(':')) {
+                                try {
+                                    const timePart = pickupWindow.split('-')[0].trim();
+                                    const parts = timePart.split(' ');
+                                    if (parts.length >= 1) {
+                                        const [time, ampm] = parts;
+                                        const [hourStr] = time.split(':');
+                                        let parsedHour = parseInt(hourStr, 10);
+                                        if (ampm && ampm.toUpperCase() === 'PM' && parsedHour < 12) parsedHour += 12;
+                                        if (ampm && ampm.toUpperCase() === 'AM' && parsedHour === 12) parsedHour = 0;
+                                        if (!isNaN(parsedHour)) targetHour = parsedHour;
+                                    }
+                                } catch(e) {}
+                            }
+
+                            // Calculate target unix timestamp in seconds based on local pickupDate and targetHour
+                            const targetDate = new Date(pickupDate.getFullYear(), pickupDate.getMonth(), pickupDate.getDate(), targetHour, 0, 0);
+                            const targetTimestamp = Math.floor(targetDate.getTime() / 1000);
+
+                            // Find the closest forecast in the entire 5-day list by absolute time difference
+                            let targetForecast = null;
+                            if (data.list && data.list.length > 0) {
+                                targetForecast = data.list.reduce((prev: any, curr: any) => {
+                                    return (Math.abs(curr.dt - targetTimestamp) < Math.abs(prev.dt - targetTimestamp) ? curr : prev);
+                                });
+                            }
                             
                             if (targetForecast && targetForecast.weather && targetForecast.weather[0]) {
                                 selectedWeather = targetForecast.weather[0].main;
-                                console.log(`🌦️ Vorian Sensor: Pronóstico para ${localDateStr} en pickup es: ${selectedWeather}`);
+                                console.log(`🌦️ Vorian Sensor: Pronóstico exacto para ${targetDate.toLocaleString()} es: ${selectedWeather}`);
                             } else {
-                                console.log(`🌦️ Vorian Sensor: No hay forecast exacto para ${localDateStr}. Usando clima actual/más cercano: ${selectedWeather}`);
+                                console.log(`🌦️ Vorian Sensor: No se pudo encontrar forecast. Usando clima por defecto: ${selectedWeather}`);
                             }
                         }
                         setWeatherCondition(selectedWeather);
@@ -221,7 +269,7 @@ export default function NewShipmentPage() {
             }
         };
         fetchWeather();
-    }, [pickup.coords, pickupDate]);
+    }, [pickup.coords, pickupDate, pickupWindow]);
 
     const calculatePrice = useCallback(async () => {
         if (!routeDetails.distance || !routeDetails.duration || !vehicleType || !globalSettings) {
@@ -242,6 +290,8 @@ export default function NewShipmentPage() {
                 body: JSON.stringify({
                     pickup_region: pickup.address.split(',').slice(-2, -1)[0]?.trim() || 'RM',
                     delivery_region: delivery.address.split(',').slice(-2, -1)[0]?.trim() || 'RM',
+                    pickup_address: pickup.address,
+                    delivery_address: delivery.address,
                     elevation_diff: 0,
                     distance_meters: routeDetails.distance,
                     duration_mins: routeDetails.duration / 60,
@@ -255,7 +305,8 @@ export default function NewShipmentPage() {
                     special_handling: specialHandling,
                     accessorials: accessorials,
                     pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
-                    pickup_window: pickupWindow
+                    pickup_window: pickupWindow,
+                    operation_type: operationType
                 })
             });
 
@@ -291,7 +342,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType]);
 
     useEffect(() => {
         calculatePrice();
@@ -338,6 +389,34 @@ export default function NewShipmentPage() {
         } catch (err) {
         setSuggestions([]);
         }
+    };
+
+    const handleDepotChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setDepot({ address: value, coords: null as any });
+        setRouteDetails({ distance: 0, duration: 0, geometry: null as any });
+        
+        if (value.length < 3) {
+            setDepotSuggestions([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+                value
+                )}.json?access_token=${MAPBOX_TOKEN}&country=CL&autocomplete=true&limit=5`
+            ).then((res) => res.json());
+            setDepotSuggestions(response.features || []);
+        } catch (err) {
+            setDepotSuggestions([]);
+        }
+    };
+
+    const handleSelectDepotSuggestion = (suggestion: any) => {
+        setDepot({ address: suggestion.place_name, coords: suggestion.center });
+        setRouteDetails({ distance: 0, duration: 0, geometry: null as any });
+        setDepotSuggestions([]);
     };
 
     const handleSelectSuggestion = (suggestion: any, type: 'pickup' | 'delivery') => {
@@ -453,6 +532,44 @@ export default function NewShipmentPage() {
                       <div className="space-y-10">
                         {/* Route & Schedule Section */}
                         <div>
+                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Operación</h2>
+                            <RadioGroup defaultValue="Nacional" value={operationType} onValueChange={setOperationType} className="grid grid-cols-3 gap-4 mb-6">
+                                <div>
+                                    <RadioGroupItem value="Nacional" id="nacional" className="peer sr-only" />
+                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                        Nacional
+                                    </Label>
+                                </div>
+                                <div>
+                                    <RadioGroupItem value="Exportación" id="exportacion" className="peer sr-only" />
+                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                        Exportación
+                                    </Label>
+                                </div>
+                                <div>
+                                    <RadioGroupItem value="Importación" id="importacion" className="peer sr-only" />
+                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                        Importación
+                                    </Label>
+                                </div>
+                            </RadioGroup>
+
+                            {operationType !== 'Nacional' && (
+                                <div className="mb-6 space-y-2 p-4 border rounded-xl bg-muted/30">
+                                    <label className="text-sm font-semibold text-foreground">Depósito de Vacíos</label>
+                                    <p className="text-xs text-muted-foreground mb-2">Ingresa la ubicación del depósito para el retiro o devolución del contenedor vacío.</p>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                        <Input value={depot.address} onChange={handleDepotChange} placeholder="Buscar depósito (ej. D&C San Antonio)" className="pl-10 h-12 bg-background border focus-visible:ring-primary" autoComplete="off" />
+                                        {depotSuggestions.length > 0 && (
+                                            <div className="absolute z-20 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                                                {depotSuggestions.map(s => <div key={s.id} onMouseDown={() => handleSelectDepotSuggestion(s)} className="p-3 cursor-pointer hover:bg-accent">{s.place_name}</div>)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Ruta y Horario</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -508,13 +625,7 @@ export default function NewShipmentPage() {
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Equipamiento</h2>
-                            <div className="flex items-center gap-0 mt-2 rounded-md overflow-hidden border">
-                                <EquipmentButton icon={<Truck className="w-5 h-5" />} label="Caja Seca (53')" selected={equipment === 'Dry van'} onClick={() => setEquipment('Dry van')} />
-                                <EquipmentButton icon={<Layers className="w-5 h-5" />} label="Plataforma" selected={equipment === 'Flatbed'} onClick={() => setEquipment('Flatbed')} />
-                            </div>
-                        </div>
+
                         <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Servicio</h2>
                             <RadioGroup defaultValue="FTL" value={serviceType} onValueChange={setServiceType} className="grid grid-cols-2 gap-4">
@@ -534,31 +645,64 @@ export default function NewShipmentPage() {
                                 </div>
                             </RadioGroup>
                         </div>
-                        <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Modalidad de Envío</h2>
-                            <div className="flex items-center space-x-3 rounded-md border p-4">
-                                <Switch id="internal-shipment" checked={isInternalShipment} onCheckedChange={setIsInternalShipment} />
-                                <div className="space-y-0.5">
-                                    <Label htmlFor="internal-shipment">Envío para flota propia del cliente</Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        El envío será privado y asignado al mismo cliente como transportista.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+
                         <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mt-10 mb-4">Tipo de Vehículo (para Tarifa)</h2>
-                            <Label>Vehículo</Label>
-                            <Select onValueChange={setVehicleType} defaultValue={vehicleType}>
-                                <SelectTrigger className="h-12 bg-muted/50 border-0 focus-visible:ring-primary mt-2">
-                                    <SelectValue placeholder="Seleccionar un vehículo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="camion_3_4">Camión 3/4 (3.5T - 5T)</SelectItem>
-                                    <SelectItem value="Camion Ligero">Camión Rígido (CAT 2)</SelectItem>
-                                    <SelectItem value="Camion Pesado">Tracto-Camión (CAT 3)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                                {/* Camion 3/4 */}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setVehicleType('camion_3_4')}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
+                                        vehicleType === 'camion_3_4' 
+                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center h-12 mb-2">
+                                        <Truck className={cn("w-7 h-7 transition-colors", vehicleType === 'camion_3_4' ? "text-primary" : "text-muted-foreground")} />
+                                    </div>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(3.5T - 5T)</span></span>
+                                </Button>
+
+                                {/* Camion Ligero */}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setVehicleType('Camion Ligero')}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
+                                        vehicleType === 'Camion Ligero' 
+                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center h-12 mb-2">
+                                        <Truck className={cn("w-9 h-9 transition-colors", vehicleType === 'Camion Ligero' ? "text-primary" : "text-muted-foreground")} />
+                                    </div>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Ligero' ? "text-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
+                                </Button>
+
+                                {/* Camion Pesado */}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setVehicleType('Camion Pesado')}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
+                                        vehicleType === 'Camion Pesado' 
+                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center h-12 mb-2">
+                                        <Truck className={cn("w-12 h-12 transition-colors", vehicleType === 'Camion Pesado' ? "text-primary" : "text-muted-foreground")} />
+                                    </div>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Pesado' ? "text-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
+                                </Button>
+                            </div>
                             <p className="text-xs text-muted-foreground mt-2">La selección del vehículo se utiliza para estimar la tarifa y no se guarda con el envío.</p>
                         </div>
                          <div className="flex justify-end pt-4">
@@ -866,9 +1010,16 @@ export default function NewShipmentPage() {
                                             </div>
                                             
                                             {priceBreakdown.market_adjustment !== 0 && (
-                                                <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
-                                                    <span>Factor Mercado (Demanda/Clima)</span>
+                                                <div className="flex justify-between items-center text-orange-600/80 dark:text-orange-400/80">
+                                                    <span>Factor Demanda / Zona</span>
                                                     <span className="font-mono">{priceBreakdown.market_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
+                                                </div>
+                                            )}
+
+                                            {priceBreakdown.weather_adjustment !== 0 && (
+                                                <div className="flex justify-between items-center text-blue-600/80 dark:text-blue-400/80">
+                                                    <span>Factor Clima ({weatherCondition})</span>
+                                                    <span className="font-mono">{priceBreakdown.weather_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.weather_adjustment).toLocaleString()}</span>
                                                 </div>
                                             )}
 
@@ -941,8 +1092,9 @@ export default function NewShipmentPage() {
                                     <span className="font-medium text-foreground">
                                         {weatherCondition === 'Clear' ? '☀️ Despejado' : 
                                          weatherCondition === 'Clouds' ? '☁️ Nublado' : 
-                                         weatherCondition === 'Rain' ? '🌧️ Lluvia (+15%)' : 
-                                         weatherCondition === 'Snow' ? '❄️ Nieve (+25%)' : 
+                                         weatherCondition === 'Rain' ? '🌧️ Lluvia' : 
+                                         weatherCondition === 'Snow' ? '❄️ Nieve' : 
+                                         weatherCondition === 'Fog' || weatherCondition === 'Mist' ? '🌫️ Neblina' :
                                          weatherCondition}
                                     </span>
                                 </div>

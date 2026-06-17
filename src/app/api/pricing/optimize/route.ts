@@ -8,8 +8,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { 
-        pickup_region, delivery_region, elevation_diff, 
-        distance_meters, duration_mins, vehicle_type, 
+        pickup_region, delivery_region, pickup_address, delivery_address,
+        elevation_diff, distance_meters, duration_mins, vehicle_type, 
         container_status, weight_kgs, route_geometry,
         service_mode, cargo_units, weather_condition,
         special_handling, accessorials,
@@ -94,21 +94,75 @@ export async function POST(request: Request) {
     }
     
     // b) Zona de alta demanda (San Antonio) -> +15%
-    if ((pickup_region || '').toLowerCase().includes('san antonio') || (delivery_region || '').toLowerCase().includes('san antonio')) {
+    if ((pickup_address || pickup_region || '').toLowerCase().includes('san antonio') || (delivery_address || delivery_region || '').toLowerCase().includes('san antonio')) {
         factorMarket += 0.15;
     }
 
+    // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time)
+    let factorSupplyDemand = 0.0;
+    try {
+        const now = new Date();
+        const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString(); // últimos 30 min
+
+        // Consultas en paralelo: oferta (conductores disponibles) y demanda (cotizaciones recientes)
+        const [supplyResult, demandResult, settingsResult] = await Promise.all([
+            // Oferta: conductores disponibles del tipo requerido (o todos si no hay filtro)
+            supabaseAdmin
+                .from('driverProfiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('isAvailable', true)
+                .not('vehicleType', 'is', null),
+
+            // Demanda: cotizaciones en los últimos 30 minutos
+            supabaseAdmin
+                .from('pricing_ml_logs')
+                .select('id', { count: 'exact', head: true })
+                .gte('created_at', windowStart)
+                .eq('status', 'quoted'),
+
+            // Sensibilidad configurada en settings
+            supabaseAdmin
+                .from('settings')
+                .select('demandSensitivity')
+                .eq('id', 'global')
+                .single()
+        ]);
+
+        const availableDrivers = supplyResult.count ?? 0;
+        const recentQuotes = demandResult.count ?? 0;
+        const demandSensitivity = settingsResult.data?.demandSensitivity ?? 0.05;
+
+        // Fórmula: factor proporcional a la presión de demanda sobre la oferta
+        // Si hay 0 conductores disponibles, tratamos como 1 para evitar división por cero
+        // Máximo surge: +40% (cap de seguridad)
+        if (recentQuotes > 0) {
+            const demandPressure = recentQuotes / Math.max(availableDrivers, 1);
+            factorSupplyDemand = Math.min(demandSensitivity * demandPressure, 0.40);
+        }
+
+        console.log(`📊 Oferta/Demanda → Conductores disponibles: ${availableDrivers} | Cotizaciones 30min: ${recentQuotes} | Factor S&D: +${(factorSupplyDemand * 100).toFixed(1)}%`);
+    } catch (e) {
+        console.warn('No se pudo calcular el factor oferta-demanda. Usando 0.', e);
+    }
+
+    factorMarket += factorSupplyDemand;
+
     // d) Factor Climático (Vorian Weather Surge)
+    let factorWeather = 0.0;
     if (weather_condition) {
         const weather = weather_condition.toLowerCase();
-        if (['rain', 'drizzle', 'thunderstorm'].includes(weather)) {
-            factorMarket += 0.15; // +15%
-        } else if (weather === 'snow') {
-            factorMarket += 0.25; // +25%
-        } else if (['clouds', 'fog', 'mist'].includes(weather)) {
-            factorMarket += 0.10; // +10% (Agregado Clouds porque vi Nublado +10% en otra vista aunque aquí no sumaba)
+        if (weather === 'snow') {
+            factorWeather = 0.40; // +40% Riesgo extremo
+        } else if (weather === 'thunderstorm') {
+            factorWeather = 0.30; // +30% Tormenta
+        } else if (['rain', 'drizzle'].includes(weather)) {
+            factorWeather = 0.25; // +25% Lluvia (Frenado difícil)
+        } else if (['fog', 'mist'].includes(weather)) {
+            factorWeather = 0.15; // +15% Poca visibilidad
+        } else if (weather === 'clouds') {
+            factorWeather = 0.02; // +2% (Nublado normal, casi no afecta)
         }
-        console.log(`🌧️ Clima detectado: ${weather_condition}. Factor Market ajustado a: ${factorMarket}`);
+        console.log(`🌧️ Clima detectado: ${weather_condition}. Factor Weather ajustado a: ${factorWeather}`);
     }
 
     // e) Riesgo Adicional (Materiales Peligrosos / Sobrepeso explícito)
@@ -142,8 +196,9 @@ export async function POST(request: Request) {
         console.warn("No se pudo conectar al ML Engine. Usando factorML = 1.0", e);
     }
 
-    // 4. Calcular Precio Final (Base * IA * Mkt) + Accesorios + Peajes
-    const finalPrice = (basePrice * factorML * factorMarket) + accessorialsTotal + tollsCost;
+    // 4. Calcular Precio Final (Base * IA * (Mkt + Weather)) + Accesorios + Peajes
+    const totalMarketMultiplier = factorMarket + factorWeather;
+    const finalPrice = (basePrice * factorML * totalMarketMultiplier) + accessorialsTotal + tollsCost;
 
     // 5. Registrar Cotización (Embudo)
     const { data: logData, error: logError } = await supabaseAdmin.from('pricing_ml_logs').insert({
@@ -155,7 +210,8 @@ export async function POST(request: Request) {
         day_of_week: currentDay,
         base_price: basePrice,
         factor_ml: factorML,
-        factor_market: factorMarket,
+        factor_market: totalMarketMultiplier,
+        factor_supply_demand: factorSupplyDemand,
         offered_price: finalPrice,
         status: 'quoted'
     }).select('id').single();
@@ -168,6 +224,9 @@ export async function POST(request: Request) {
     const priceWithoutTolls = finalPrice - tollsCost;
     const platformFee = priceWithoutTolls * 0.10; // 10% de comisión Vorian
     const carrierPayment = priceWithoutTolls - platformFee;
+    
+    const marketAdjustmentCost = (basePrice * factorML * factorMarket) - basePrice;
+    const weatherAdjustmentCost = (basePrice * factorML * factorWeather);
 
     return NextResponse.json({
         success: true,
@@ -179,12 +238,16 @@ export async function POST(request: Request) {
         breakdown: {
             base_freight: Math.round(rpcSubtotal),
             accessorials_total: Math.round(accessorialsTotal),
-            market_adjustment: Math.round(finalPrice - rpcSubtotal - accessorialsTotal - tollsCost),
-            tolls_cost: Math.round(tollsCost)
+            market_adjustment: Math.round(marketAdjustmentCost),
+            weather_adjustment: Math.round(weatherAdjustmentCost),
+            tolls_cost: Math.round(tollsCost),
+            supply_demand_adjustment: Math.round(basePrice * factorML * factorSupplyDemand)
         },
         factors: {
             ml_factor: factorML,
             market_factor: factorMarket,
+            weather_factor: factorWeather,
+            supply_demand_factor: factorSupplyDemand,
             rpc_factors: {
                 ...rpcData.factors,
                 terrain_factor: terrainFactor,
