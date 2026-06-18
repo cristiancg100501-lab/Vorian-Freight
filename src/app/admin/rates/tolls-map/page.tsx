@@ -74,7 +74,7 @@ export default function TollsMapPage() {
 
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
-            style: theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3',
+            style: theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr',
             center: [-70.6693, -33.4489], 
             zoom: 11,
             pitch: 0,
@@ -126,7 +126,7 @@ export default function TollsMapPage() {
     // Handle Theme changes
     useEffect(() => {
         if (!map.current) return;
-        const mapStyle = theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3';
+        const mapStyle = theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr';
         map.current.setStyle(mapStyle, { diff: false } as any);
     }, [theme]);
 

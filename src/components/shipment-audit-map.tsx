@@ -85,7 +85,7 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3",
+      style: resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr",
       center: [-70.64, -33.44], // Santiago aprox
       zoom: 13,
       pitch: 0,
@@ -238,7 +238,7 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
   // Theme Update
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    const style = resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3";
+    const style = resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr";
     
     const handleStyleLoad = () => {
       const m = map.current;

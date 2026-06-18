@@ -76,7 +76,7 @@ export default function TollsCalculatorPage() {
         
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
-            style: theme === 'light' ? 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3' : 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv',
+            style: theme === 'light' ? 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr' : 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv',
             center: [-70.6693, -33.4489], 
             zoom: 12,
             pitch: 0,

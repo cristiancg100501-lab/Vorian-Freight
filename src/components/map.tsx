@@ -114,7 +114,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3',
+      style: theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr',
       center: [-70.6693, -33.4489], 
       zoom: 11,
       pitch: 0,
@@ -569,7 +569,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   // 4. Style Change Sync
   useEffect(() => {
     if (!map.current) return;
-    const style = theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3';
+    const style = theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr';
     map.current.setStyle(style, { diff: false } as any);
   }, [theme]);
 
