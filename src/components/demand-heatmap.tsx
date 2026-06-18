@@ -21,7 +21,7 @@ export default function DemandHeatmap({ shipments }: DemandHeatmapProps) {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c',
+      style: theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3',
       center: [-70.6693, -33.4489], 
       zoom: 10,
       pitch: 0,

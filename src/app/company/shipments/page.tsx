@@ -188,7 +188,7 @@ export default function CompanyShipmentsPage() {
         try {
             map.current = new mapboxgl.Map({
                 container: mapContainer.current,
-                style: resolvedTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c',
+                style: resolvedTheme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3',
                 center: [-70.6483, -33.4489], // Santiago, Chile
                 zoom: 11,
                 pitch: 0,
@@ -251,7 +251,7 @@ export default function CompanyShipmentsPage() {
     // Update map style when theme changes
     useEffect(() => {
         if (map.current) {
-            map.current.setStyle(resolvedTheme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/vorianglobal/cmlldlha700ft01qx1i85by1c');
+            map.current.setStyle(resolvedTheme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3');
         }
     }, [resolvedTheme]);
 

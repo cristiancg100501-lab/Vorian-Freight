@@ -24,7 +24,7 @@ export function LoginMap({ theme }: { theme?: string }) {
     // Initialize map
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: theme === 'light' ? 'mapbox://styles/mapbox/light-v11' : 'mapbox://styles/mapbox/dark-v11',
+      style: theme === 'light' ? 'mapbox://styles/vorianglobal/cmqix2vy6003p01rybiub2dp3' : 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv',
       zoom: 12,
       center: [-70.6693, -33.4489],
       interactive: true,
