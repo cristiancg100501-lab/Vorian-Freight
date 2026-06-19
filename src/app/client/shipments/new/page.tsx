@@ -480,6 +480,23 @@ export default function NewClientShipmentPage() {
         setIsLoading(true);
         setError(null);
         
+        // Refrescar la sesión antes de insertar para evitar JWT expirado
+        let activeUserId = user?.id;
+        try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            if (sessionData?.session?.user?.id) {
+                activeUserId = sessionData.session.user.id;
+            }
+        } catch (e) {
+            console.warn('Could not refresh session', e);
+        }
+        
+        if (!activeUserId) {
+            setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+            setIsLoading(false);
+            return;
+        }
+        
         try {
             if (pricingLogId) {
                 // Notificar al ML Engine que la tarifa fue aceptada (Conversion Funnel)
@@ -505,8 +522,8 @@ export default function NewClientShipmentPage() {
           // Usamos la tabla consolidada 'shipments' con soporte PostGIS
           const { error: shipmentError } = await supabase.from('shipments').insert({
             id: customShipmentId,
-            clientId: user.id,
-            carrierId: isInternalShipment ? user.id : null,
+            clientId: activeUserId,
+            carrierId: isInternalShipment ? activeUserId : null,
             // Soporte PostGIS (Geography)
             origin: `POINT(${pickup.coords[0]} ${pickup.coords[1]})`,
             destination: `POINT(${delivery.coords[0]} ${delivery.coords[1]})`,
@@ -542,12 +559,15 @@ export default function NewClientShipmentPage() {
             }
           });
 
-          if (shipmentError) throw shipmentError;
+          if (shipmentError) {
+            console.error('Supabase insert error:', JSON.stringify(shipmentError, null, 2));
+            throw new Error(`[${shipmentError.code}] ${shipmentError.message}${shipmentError.details ? ' | ' + shipmentError.details : ''}`);
+          }
           
           router.push('/client');
         } catch (err: any) {
           console.error(err);
-          setError("No se pudo crear el envío.");
+          setError("No se pudo crear el envío: " + (err.message || JSON.stringify(err)));
         } finally {
           setIsLoading(false);
         }
