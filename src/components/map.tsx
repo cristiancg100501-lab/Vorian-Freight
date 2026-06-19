@@ -83,15 +83,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         marker.setLngLat(state.current);
       });
 
-      // --- Update Breadcrumb Visuals ---
-      if (map.current && map.current.isStyleLoaded() && map.current.getSource('breadcrumbs-source')) {
-         const source = map.current.getSource('breadcrumbs-source') as mapboxgl.GeoJSONSource;
-         source.setData({
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: breadcrumbsRef.current },
-            properties: {}
-         });
-      }
+
 
       frameId = requestAnimationFrame(animate);
     };
@@ -415,28 +407,25 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 const prevTarget = driverAnimStatesRef.current[driver.id].target;
                 if (prevTarget[0] !== coords[0] || prevTarget[1] !== coords[1]) {
                     driverAnimStatesRef.current[driver.id].target = coords;
-                    if (isSelected) {
-                        breadcrumbsRef.current.push(coords);
-                        if (breadcrumbsRef.current.length > 20) breadcrumbsRef.current.shift();
-                    }
+
                 }
             }
             
             if (dot && container) {
                 const isSelected = selectedDriver && String(selectedDriver.id) === String(driver.id);
                 
-                const colorClass = driver.currentOrderId ? 'bg-primary' : 'bg-green-500';
+                const colorClass = driver.currentOrderId ? 'bg-blue-500' : 'bg-green-500';
                 dot.className = `rounded-full transition-all duration-300 w-full h-full border-[2px] border-white dark:border-[#121212] ${colorClass}`;
                 
                 if (isSelected) {
                     dot.style.boxShadow = driver.currentOrderId 
-                        ? '0 0 0 4px hsl(var(--primary) / 0.3), 0 0 15px hsl(var(--primary))'
+                        ? '0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 15px #3b82f6'
                         : '0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 15px #22c55e';
                     container.style.transform = 'scale(1.4)';
                     el.style.zIndex = '100';
                 } else {
                     dot.style.boxShadow = driver.currentOrderId 
-                        ? '0 0 8px hsl(var(--primary) / 0.6)'
+                        ? '0 0 8px rgba(59, 130, 246, 0.6)'
                         : '0 0 8px rgba(34, 197, 94, 0.6)';
                     container.style.transform = 'scale(1)';
                     el.style.zIndex = '50';
