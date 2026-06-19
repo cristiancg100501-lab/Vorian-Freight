@@ -460,52 +460,58 @@ export default function NewShipmentPage() {
             id: customShipmentId,
             clientId: user.id,
             carrierId: isInternalShipment ? user.id : null,
-            // Step 1 Data
-            equipment: equipment,
-            serviceType: serviceType,
-            pickup_address: pickup.address,
-            pickup_latitude: pickup.coords[1],
-            pickup_longitude: pickup.coords[0],
-            delivery_address: delivery.address,
-            delivery_latitude: delivery.coords[1],
-            delivery_longitude: delivery.coords[0],
-            pickup_date: pickupDate.toISOString(),
-            pickup_window: pickupWindow,
-            delivery_date: deliveryDate.toISOString(),
-            delivery_window: deliveryWindow,
-             // Step 2 Data
-            commodity,
-            weight_lbs: parseInt(weightLbs) || 0,
-            pallets: parseInt(pallets) || 0,
-            dimensions: dimensions,
-            itemDescription,
-            quantity: parseInt(quantity) || 0,
-            dimensionsPerItem: dimensionsPerItem,
-            totalVolume: parseFloat(totalVolume) || 0,
-            ...specialHandling,
-            // Step 3 Data
-            accessorials,
-            carrierRating: parseInt(carrierRating),
-            uberFreightPreferred,
-            cargoNotes,
-            bookingMethod: finalBookingMethod,
-            // Metadata
-            estimated_price: finalBookingMethod === 'instant' ? estimatedPrice : 0,
+            // Coordenadas PostGIS
+            origin: `POINT(${pickup.coords[0]} ${pickup.coords[1]})`,
+            destination: `POINT(${delivery.coords[0]} ${delivery.coords[1]})`,
+            originAddress: pickup.address,
+            destinationAddress: delivery.address,
+            // Precio y Estado
+            estimatedPrice: finalBookingMethod === 'instant' ? estimatedPrice : 0,
             status: isInternalShipment ? 'Booked' : 'Pending',
             createdAt: new Date().toISOString(),
-            // Managed Freight Fields
+            updatedAt: new Date().toISOString(),
+            // Todos los detalles técnicos en JSONB
+            details: {
+              equipment,
+              serviceType,
+              pickupDate: pickupDate.toISOString(),
+              pickupWindow,
+              deliveryDate: deliveryDate.toISOString(),
+              deliveryWindow,
+              commodity,
+              weightLbs: parseInt(weightLbs) || 0,
+              pallets: parseInt(pallets) || 0,
+              dimensions,
+              itemDescription,
+              quantity: parseInt(quantity) || 0,
+              dimensionsPerItem,
+              totalVolume: parseFloat(totalVolume) || 0,
+              specialHandling,
+              accessorials,
+              carrierRating: parseInt(carrierRating),
+              uberFreightPreferred,
+              cargoNotes,
+              bookingMethod: finalBookingMethod,
+              route: routeDetails.geometry,
+              serviceMode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
+              vehicleType,
+            },
+            // Campos adicionales de tracking
             customer_id: user.id,
             driver_id: null,
             carrier_cost: carrierPayment,
             client_price: estimatedPrice,
           });
           
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error('Supabase insert error:', JSON.stringify(insertError, null, 2));
+            throw new Error(`[${insertError.code}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`);
+          }
 
           router.push('/customer');
         } catch (err: any) {
           console.error(err);
-          setError("No se pudo crear el envío.");
+          setError("No se pudo crear el envío: " + (err.message || JSON.stringify(err)));
         } finally {
           setIsLoading(false);
         }
