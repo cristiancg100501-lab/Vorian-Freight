@@ -96,29 +96,36 @@ export async function POST(request: Request) {
     // b) Zona de alta demanda (San Antonio) -> +15%
     if ((pickup_address || pickup_region || '').toLowerCase().includes('san antonio') || (delivery_address || delivery_region || '').toLowerCase().includes('san antonio')) {
         factorMarket += 0.15;
-    }
-
-    // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time)
+      // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time — Fleet Utilization Model)
     let factorSupplyDemand = 0.0;
+    let sdSnapshot: any = {};
     try {
         const now = new Date();
         const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString(); // últimos 30 min
 
-        // Consultas en paralelo: oferta (conductores disponibles) y demanda (cotizaciones recientes)
-        const [supplyResult, demandResult, settingsResult] = await Promise.all([
-            // Oferta: conductores disponibles del tipo requerido (o todos si no hay filtro)
+        // Consultas en paralelo: oferta libre, camiones ocupados y envíos aceptados recientes
+        const [freeResult, busyResult, acceptedResult, settingsResult] = await Promise.all([
+            // Oferta libre: conductores disponibles sin orden activa
             supabaseAdmin
                 .from('driverProfiles')
                 .select('id', { count: 'exact', head: true })
                 .eq('isAvailable', true)
-                .not('vehicleType', 'is', null),
+                .is('currentOrderId', null),
 
-            // Demanda: cotizaciones en los últimos 30 minutos
+            // Camiones ocupados: conductores con una orden activa
+            supabaseAdmin
+                .from('driverProfiles')
+                .select('id', { count: 'exact', head: true })
+                .eq('isAvailable', true)
+                .not('currentOrderId', 'is', null),
+
+            // Demanda real: envíos ACEPTADOS (reservados) en los últimos 30 minutos
+            // Más preciso que cotizaciones, ya que refleja conversión real del mercado
             supabaseAdmin
                 .from('pricing_ml_logs')
                 .select('id', { count: 'exact', head: true })
                 .gte('created_at', windowStart)
-                .eq('status', 'quoted'),
+                .eq('status', 'reserved'),
 
             // Sensibilidad configurada en settings
             supabaseAdmin
@@ -128,19 +135,29 @@ export async function POST(request: Request) {
                 .single()
         ]);
 
-        const availableDrivers = supplyResult.count ?? 0;
-        const recentQuotes = demandResult.count ?? 0;
+        const freeDrivers    = freeResult.count ?? 0;
+        const busyDrivers    = busyResult.count ?? 0;
+        const totalFleet     = freeDrivers + busyDrivers;
+        const recentAccepted = acceptedResult.count ?? 0;
         const demandSensitivity = settingsResult.data?.demandSensitivity ?? 0.05;
 
-        // Fórmula: factor proporcional a la presión de demanda sobre la oferta
-        // Si hay 0 conductores disponibles, tratamos como 1 para evitar división por cero
-        // Máximo surge: +40% (cap de seguridad)
-        if (recentQuotes > 0) {
-            const demandPressure = recentQuotes / Math.max(availableDrivers, 1);
-            factorSupplyDemand = Math.min(demandSensitivity * demandPressure, 0.40);
+        // Tasa de utilización: % de la flota que ya está ocupada (0→1)
+        const utilizationRate = busyDrivers / Math.max(totalFleet, 1);
+
+        // Presión de demanda: envíos aceptados recientes por conductor libre disponible
+        const demandPressure = recentAccepted / Math.max(freeDrivers, 1);
+
+        // Fórmula combinada: 60% utilización de flota + 40% presión de demanda aceptada
+        // Cap de seguridad: máximo +40%
+        if (totalFleet > 0 || recentAccepted > 0) {
+            factorSupplyDemand = Math.min(
+                demandSensitivity * (utilizationRate * 0.6 + demandPressure * 0.4),
+                0.40
+            );
         }
 
-        console.log(`📊 Oferta/Demanda → Conductores disponibles: ${availableDrivers} | Cotizaciones 30min: ${recentQuotes} | Factor S&D: +${(factorSupplyDemand * 100).toFixed(1)}%`);
+        sdSnapshot = { freeDrivers, busyDrivers, totalFleet, utilizationRate: (utilizationRate * 100).toFixed(1) + '%', recentAccepted, factor: (factorSupplyDemand * 100).toFixed(1) + '%' };
+        console.log(`📊 S&D → Libres: ${freeDrivers} | Ocupados: ${busyDrivers} | Utilización: ${(utilizationRate * 100).toFixed(0)}% | Aceptados 30min: ${recentAccepted} | Factor: +${(factorSupplyDemand * 100).toFixed(1)}%`);
     } catch (e) {
         console.warn('No se pudo calcular el factor oferta-demanda. Usando 0.', e);
     }
