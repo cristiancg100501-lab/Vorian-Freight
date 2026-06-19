@@ -41,6 +41,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   const driverMarkersRef = useRef<{ [id: string]: mapboxgl.Marker }>({});
   const driverAnimStatesRef = useRef<{ [id: string]: { current: [number, number], target: [number, number] } }>({});
   const breadcrumbsRef = useRef<[number, number][]>([]);
+  const resizeRafRef = useRef<number | null>(null); // RAF throttle for resize
   const { supabase } = useSupabase();
   const { theme } = useTheme();
   const themeRef = useRef(theme);
@@ -126,11 +127,15 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
       trackResize: true
     });
 
-    // Handle container resizing (e.g. sidebar collapse)
+    // Handle container resizing with RAF throttling for smooth sidebar transitions
     const resizeObserver = new ResizeObserver(() => {
-      if (map.current) {
-        map.current.resize();
-      }
+      // If a resize is already scheduled for this frame, skip — avoids
+      // dozens of map.resize() calls during the sidebar's CSS transition.
+      if (resizeRafRef.current !== null) return;
+      resizeRafRef.current = requestAnimationFrame(() => {
+        if (map.current) map.current.resize();
+        resizeRafRef.current = null;
+      });
     });
     
     if (mapContainer.current) {
@@ -254,6 +259,10 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     
     return () => {
         resizeObserver.disconnect();
+        if (resizeRafRef.current !== null) {
+          cancelAnimationFrame(resizeRafRef.current);
+          resizeRafRef.current = null;
+        }
         map.current?.remove();
         map.current = null;
     }
