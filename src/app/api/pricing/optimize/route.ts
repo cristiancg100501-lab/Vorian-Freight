@@ -96,7 +96,9 @@ export async function POST(request: Request) {
     // b) Zona de alta demanda (San Antonio) -> +15%
     if ((pickup_address || pickup_region || '').toLowerCase().includes('san antonio') || (delivery_address || delivery_region || '').toLowerCase().includes('san antonio')) {
         factorMarket += 0.15;
-      // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time — Fleet Utilization Model)
+    }
+
+    // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time — Fleet Utilization Model)
     let factorSupplyDemand = 0.0;
     let sdSnapshot: any = {};
     try {
