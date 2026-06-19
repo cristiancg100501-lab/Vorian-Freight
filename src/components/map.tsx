@@ -479,11 +479,11 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     };
   }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect, theme]);
 
-  // 3a. Markers: Place origin/destination markers as soon as coords are available
-  // Intentionally separated from the route effect so markers appear immediately
-  // even before the route is calculated.
+  // 3a. Markers: Place origin/destination markers as soon as coords are available.
+  // NOTE: Mapbox markers are DOM-based — they do NOT need isStyleLoaded().
+  // Only guard against styleLoadedCount===0 to ensure the map instance exists.
   useEffect(() => {
-    if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
+    if (styleLoadedCount === 0 || !map.current) return;
     const mapInstance = map.current;
 
     if (odMarkersRef.current.origin) odMarkersRef.current.origin.remove();
@@ -504,6 +504,24 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             .addTo(mapInstance);
     }
   }, [styleLoadedCount, origin, destination]);
+
+  // 3d. Interaction lock: disable pan/zoom when a route is active (view-only mode).
+  useEffect(() => {
+    if (!map.current) return;
+    if (route) {
+      map.current.dragPan.disable();
+      map.current.scrollZoom.disable();
+      map.current.doubleClickZoom.disable();
+      map.current.touchZoomRotate.disable();
+      map.current.keyboard.disable();
+    } else {
+      map.current.dragPan.enable();
+      map.current.scrollZoom.enable();
+      map.current.doubleClickZoom.enable();
+      map.current.touchZoomRotate.enable();
+      map.current.keyboard.enable();
+    }
+  }, [route]);
 
   // 3b. Camera: FlyTo origin when only point 1 is set.
   //     FitBounds is handled in the route effect (3c) when point 2 + route arrive.
