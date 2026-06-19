@@ -209,29 +209,25 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 type: 'geojson',
                 data: { type: 'FeatureCollection', features: [] }
             });
-            // Capa de relleno (fill) con color rojo difuminado basado en la demanda
             mapInstance.addLayer({
-                id: 'demand-zones-fill',
-                type: 'fill',
+                id: 'demand-zones-heatmap',
+                type: 'heatmap',
                 source: 'demand-zones-source',
+                maxzoom: 15,
                 paint: {
-                    'fill-color': '#ef4444',
-                    'fill-opacity': [
-                        'interpolate', ['linear'], ['get', 'demandCount'],
-                        0, 0.1,
-                        5, 0.6
-                    ]
-                }
-            });
-            // Capa de línea (stroke) para demarcar el perímetro
-            mapInstance.addLayer({
-                id: 'demand-zones-line',
-                type: 'line',
-                source: 'demand-zones-source',
-                paint: {
-                    'line-color': '#dc2626',
-                    'line-width': 2,
-                    'line-opacity': 0.8
+                    'heatmap-weight': 1,
+                    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+                    'heatmap-color': [
+                        'interpolate', ['linear'], ['heatmap-density'],
+                        0, 'rgba(239, 68, 68, 0)',
+                        0.2, 'rgba(239, 68, 68, 0.2)',
+                        0.4, 'rgba(239, 68, 68, 0.4)',
+                        0.6, 'rgba(239, 68, 68, 0.6)',
+                        0.8, 'rgba(239, 68, 68, 0.8)',
+                        1, 'rgba(220, 38, 38, 1)'
+                    ],
+                    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 40],
+                    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.8, 15, 0.5]
                 }
             });
         }
