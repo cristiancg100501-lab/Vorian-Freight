@@ -1013,7 +1013,7 @@ Broadway: 1
 
                 {/* Right Column: Map and Summary */}
                 <div className="space-y-6">
-                    <div className="h-64 w-full rounded-lg overflow-hidden border">
+                    <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4">
                         <Map 
                             route={routeDetails.geometry} 
                             origin={pickup.coords} 

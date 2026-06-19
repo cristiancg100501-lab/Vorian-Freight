@@ -42,6 +42,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   const driverAnimStatesRef = useRef<{ [id: string]: { current: [number, number], target: [number, number] } }>({});
   const breadcrumbsRef = useRef<[number, number][]>([]);
   const resizeRafRef = useRef<number | null>(null); // RAF throttle for resize
+  const odMarkersRef = useRef<{origin?: mapboxgl.Marker, destination?: mapboxgl.Marker}>({});
   const { supabase } = useSupabase();
   const { theme } = useTheme();
   const themeRef = useRef(theme);
@@ -478,34 +479,54 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     };
   }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect, theme]);
 
-  const odMarkersRef = useRef<{origin?: mapboxgl.Marker, destination?: mapboxgl.Marker}>({});
+  // 3a. Markers: Place origin/destination markers as soon as coords are available
+  // Intentionally separated from the route effect so markers appear immediately
+  // even before the route is calculated.
+  useEffect(() => {
+    if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
+    const mapInstance = map.current;
 
-  // 3. Handle Route Update & Bounds & Endpoints
+    if (odMarkersRef.current.origin) odMarkersRef.current.origin.remove();
+    if (odMarkersRef.current.destination) odMarkersRef.current.destination.remove();
+
+    if (origin && isValidLngLat(origin)) {
+        const el = document.createElement('div');
+        el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
+        odMarkersRef.current.origin = new mapboxgl.Marker({ element: el })
+            .setLngLat(origin)
+            .addTo(mapInstance);
+    }
+    if (destination && isValidLngLat(destination)) {
+        const el = document.createElement('div');
+        el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
+        odMarkersRef.current.destination = new mapboxgl.Marker({ element: el })
+            .setLngLat(destination)
+            .addTo(mapInstance);
+    }
+  }, [styleLoadedCount, origin, destination]);
+
+  // 3b. Camera: FlyTo origin when only point 1 is set.
+  //     FitBounds is handled in the route effect (3c) when point 2 + route arrive.
+  useEffect(() => {
+    if (styleLoadedCount === 0 || !map.current) return;
+    // Only fly to origin when there's no destination yet
+    if (origin && isValidLngLat(origin) && !destination) {
+      map.current.flyTo({
+        center: origin,
+        zoom: 13,
+        duration: 1600,
+        essential: true,
+        curve: 1.4,
+      });
+    }
+  }, [origin, destination, styleLoadedCount]);
+
+  // 3c. Route: Draw route line + fitBounds when both points and route are ready
   useEffect(() => {
     let snakeAnimationId: number | null = null;
     try {
         if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
         const mapInstance = map.current;
-        
-        // Manage origin and destination markers
-        if (odMarkersRef.current.origin) odMarkersRef.current.origin.remove();
-        if (odMarkersRef.current.destination) odMarkersRef.current.destination.remove();
-
-        if (origin && isValidLngLat(origin)) {
-            const el = document.createElement('div');
-            el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
-            odMarkersRef.current.origin = new mapboxgl.Marker({ element: el })
-                .setLngLat(origin)
-                .addTo(mapInstance);
-        }
-        
-        if (destination && isValidLngLat(destination)) {
-            const el = document.createElement('div');
-            el.className = 'w-4 h-4 bg-black dark:bg-white rounded-sm border-2 border-white dark:border-black shadow-lg z-30 relative';
-            odMarkersRef.current.destination = new mapboxgl.Marker({ element: el })
-                .setLngLat(destination)
-                .addTo(mapInstance);
-        }
 
         if (!route) return;
         
@@ -523,7 +544,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             if (destination && isValidLngLat(destination)) bounds.extend(destination);
 
             if (!bounds.isEmpty()) {
-                mapInstance.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 2500 });
+                mapInstance.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 2200 });
             }
 
             // --- ANIMACION TURF SNAKE ---
@@ -532,14 +553,14 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 const totalLength = turf.length(routeLine, { units: 'kilometers' });
                 
                 let startTimestamp: number | null = null;
-                const DURATION = 2000; // 2 segundos en recorrer (más rapido)
-                const TAIL_LENGTH = Math.max(2, totalLength * 0.25); // Cola 25% o 2km min
+                const DURATION = 2000;
+                const TAIL_LENGTH = Math.max(2, totalLength * 0.25);
                 
                 const animateSnake = (timestamp: number) => {
                     if (!startTimestamp) startTimestamp = timestamp;
                     const progress = (timestamp - startTimestamp) / DURATION;
                     
-                    if (progress <= 1.2) { // Dejamos que desaparezca la cola completamente
+                    if (progress <= 1.2) {
                         const currentDistance = progress * totalLength;
                         const startDistance = Math.max(0, currentDistance - TAIL_LENGTH);
                         
@@ -558,7 +579,6 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                         } catch (e) {}
                         snakeAnimationId = requestAnimationFrame(animateSnake);
                     } else {
-                        // Restart animation
                         startTimestamp = timestamp;
                         snakeAnimationId = requestAnimationFrame(animateSnake);
                     }
