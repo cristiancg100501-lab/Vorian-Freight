@@ -1,0 +1,283 @@
+001 | 0 | import { NextResponse } from 'next/server';
+002 | 0 | import { supabaseAdmin } from '@/lib/supabase-admin';
+003 | 0 | 
+004 | 0 | // URL del microservicio FastAPI (asumimos que corre en el puerto 8000 localmente)
+005 | 0 | const ML_ENGINE_URL = process.env.ML_ENGINE_URL || 'http://localhost:8000';
+006 | 0 | 
+007 | 1 | export async function POST(request: Request) {
+008 | 2 |   try {
+009 | 2 |     const body = await request.json();
+010 | 3 |     const { 
+011 | 3 |         pickup_region, delivery_region, pickup_address, delivery_address,
+012 | 3 |         elevation_diff, distance_meters, duration_mins, vehicle_type, 
+013 | 3 |         container_status, weight_kgs, route_geometry,
+014 | 3 |         service_mode, cargo_units, weather_condition,
+015 | 3 |         special_handling, accessorials,
+016 | 3 |         pickup_date, pickup_window
+017 | 2 |     } = body;
+018 | 2 | 
+019 | 2 |     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
+020 | 3 |     const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('get_vorian_price', {
+021 | 4 |         params: {
+022 | 4 |             p_km: (distance_meters || 0) / 1000,
+023 | 4 |             p_minutes: duration_mins || 0,
+024 | 4 |             p_vehicle_type: vehicle_type || 'camion_3_4',
+025 | 4 |             p_service_mode: service_mode || 'exclusive',
+026 | 4 |             p_cargo_units: cargo_units || 1,
+027 | 4 |             p_route_geometry: route_geometry
+028 | 3 |         }
+029 | 2 |     });
+030 | 2 | 
+031 | 2 |     if (rpcError) throw rpcError;
+032 | 2 |     if (rpcData.error) throw new Error(rpcData.error);
+033 | 2 | 
+034 | 2 |     // Fallbacks para soportar tanto la v4.0 como la v5.0 del RPC
+035 | 2 |     const rpcSubtotal = rpcData.subtotal ?? rpcData.subtotal_base ?? 0;
+036 | 2 |     const rpcCommission = rpcData.commission ?? (rpcData.total ? rpcData.total - rpcSubtotal : 0);
+037 | 2 |     const tollsCost = rpcData.tolls_cost ?? 0;
+038 | 2 | 
+039 | 2 |     let basePrice = rpcSubtotal + rpcCommission; // Precio base antes de peajes
+040 | 2 |     const distanceKm = rpcData.factors?.distance_total ?? ((distance_meters || 0) / 1000) * 2;
+041 | 2 |     const durationHrs = (duration_mins || 0) / 60;
+042 | 2 |     const terrainFactor = rpcData.factors?.terrain_factor ?? 1.0;
+043 | 2 |     const weightFactor = rpcData.factors?.weight_factor ?? 1.0;
+044 | 2 | 
+045 | 2 |     // --- LTL Discount & Accessorials Cost ---
+046 | 3 |     if (service_mode === 'LTL') {
+047 | 3 |         basePrice = basePrice * 0.70; // 30% descuento por consolidación
+048 | 2 |     }
+049 | 2 | 
+050 | 2 |     let accessorialsTotal = 0;
+051 | 2 |     // Customer UI accessorials
+052 | 2 |     if (special_handling?.requiresTarp) accessorialsTotal += 15000;
+053 | 2 |     if (accessorials?.forklift) accessorialsTotal += 50000;
+054 | 2 |     if (accessorials?.driverAssistance) accessorialsTotal += 30000;
+055 | 2 |     if (accessorials?.palletExchange) accessorialsTotal += 10000;
+056 | 2 |     if (accessorials?.liftGate) accessorialsTotal += 40000;
+057 | 2 | 
+058 | 2 |     // Cliente UI accessorials (ahora se sumarán AL FINAL de la matemática)
+059 | 2 |     if (accessorials?.portGateFee) accessorialsTotal += 15000;
+060 | 2 |     if (accessorials?.extraStop) accessorialsTotal += 25000;
+061 | 2 |     if (accessorials?.warehouseWait) accessorialsTotal += 20000;
+062 | 2 | 
+063 | 2 |     // 2. Determinar Factor de Mercado Heurístico (Tráfico, Clima y Demanda)
+064 | 2 |     let factorMarket = 1.0;
+065 | 2 |     
+066 | 2 |     let currentHour = new Date().getHours();
+067 | 2 |     let currentDay = new Date().getDay(); // 0: Sun, 1: Mon, ...
+068 | 2 | 
+069 | 3 |     if (pickup_date) {
+070 | 3 |         currentDay = new Date(pickup_date).getDay();
+071 | 2 |     }
+072 | 2 |     
+073 | 3 |     if (pickup_window && pickup_window.includes(':')) {
+074 | 3 |         // Parse window like "5:00 PM - 9:00 PM"
+075 | 4 |         try {
+076 | 4 |             const timePart = pickup_window.split('-')[0].trim();
+077 | 4 |             const parts = timePart.split(' ');
+078 | 5 |             if (parts.length >= 1) {
+079 | 5 |                 const [time, ampm] = parts;
+080 | 5 |                 const [hourStr] = time.split(':');
+081 | 5 |                 let parsedHour = parseInt(hourStr, 10);
+082 | 5 |                 if (ampm && ampm.toUpperCase() === 'PM' && parsedHour < 12) parsedHour += 12;
+083 | 5 |                 if (ampm && ampm.toUpperCase() === 'AM' && parsedHour === 12) parsedHour = 0;
+084 | 6 |                 if (!isNaN(parsedHour)) {
+085 | 6 |                     currentHour = parsedHour;
+086 | 5 |                 }
+087 | 4 |             }
+088 | 3 |         } catch (e) {}
+089 | 2 |     }
+090 | 2 | 
+091 | 2 |     // a) Hora Peak (17:00 a 19:00) -> +10%
+092 | 3 |     if (currentHour >= 17 && currentHour <= 19) {
+093 | 3 |         factorMarket += 0.10;
+094 | 2 |     }
+095 | 2 |     
+096 | 2 |     // b) Zona de alta demanda (San Antonio) -> +15%
+097 | 3 |     if ((pickup_address || pickup_region || '').toLowerCase().includes('san antonio') || (delivery_address || delivery_region || '').toLowerCase().includes('san antonio')) {
+098 | 3 |         factorMarket += 0.15;
+099 | 3 |       // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time — Fleet Utilization Model)
+100 | 3 |     let factorSupplyDemand = 0.0;
+101 | 3 |     let sdSnapshot: any = {};
+102 | 4 |     try {
+103 | 4 |         const now = new Date();
+104 | 4 |         const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString(); // últimos 30 min
+105 | 4 | 
+106 | 4 |         // Consultas en paralelo: oferta libre, camiones ocupados y envíos aceptados recientes
+107 | 4 |         const [freeResult, busyResult, acceptedResult, settingsResult] = await Promise.all([
+108 | 4 |             // Oferta libre: conductores disponibles sin orden activa
+109 | 4 |             supabaseAdmin
+110 | 4 |                 .from('driverProfiles')
+111 | 4 |                 .select('id', { count: 'exact', head: true })
+112 | 4 |                 .eq('isAvailable', true)
+113 | 4 |                 .is('currentOrderId', null),
+114 | 4 | 
+115 | 4 |             // Camiones ocupados: conductores con una orden activa
+116 | 4 |             supabaseAdmin
+117 | 4 |                 .from('driverProfiles')
+118 | 4 |                 .select('id', { count: 'exact', head: true })
+119 | 4 |                 .eq('isAvailable', true)
+120 | 4 |                 .not('currentOrderId', 'is', null),
+121 | 4 | 
+122 | 4 |             // Demanda real: envíos ACEPTADOS (reservados) en los últimos 30 minutos
+123 | 4 |             // Más preciso que cotizaciones, ya que refleja conversión real del mercado
+124 | 4 |             supabaseAdmin
+125 | 4 |                 .from('pricing_ml_logs')
+126 | 4 |                 .select('id', { count: 'exact', head: true })
+127 | 4 |                 .gte('created_at', windowStart)
+128 | 4 |                 .eq('status', 'reserved'),
+129 | 4 | 
+130 | 4 |             // Sensibilidad configurada en settings
+131 | 4 |             supabaseAdmin
+132 | 4 |                 .from('settings')
+133 | 4 |                 .select('demandSensitivity')
+134 | 4 |                 .eq('id', 'global')
+135 | 4 |                 .single()
+136 | 4 |         ]);
+137 | 4 | 
+138 | 4 |         const freeDrivers    = freeResult.count ?? 0;
+139 | 4 |         const busyDrivers    = busyResult.count ?? 0;
+140 | 4 |         const totalFleet     = freeDrivers + busyDrivers;
+141 | 4 |         const recentAccepted = acceptedResult.count ?? 0;
+142 | 4 |         const demandSensitivity = settingsResult.data?.demandSensitivity ?? 0.05;
+143 | 4 | 
+144 | 4 |         // Tasa de utilización: % de la flota que ya está ocupada (0→1)
+145 | 4 |         const utilizationRate = busyDrivers / Math.max(totalFleet, 1);
+146 | 4 | 
+147 | 4 |         // Presión de demanda: envíos aceptados recientes por conductor libre disponible
+148 | 4 |         const demandPressure = recentAccepted / Math.max(freeDrivers, 1);
+149 | 4 | 
+150 | 4 |         // Fórmula combinada: 60% utilización de flota + 40% presión de demanda aceptada
+151 | 4 |         // Cap de seguridad: máximo +40%
+152 | 5 |         if (totalFleet > 0 || recentAccepted > 0) {
+153 | 5 |             factorSupplyDemand = Math.min(
+154 | 5 |                 demandSensitivity * (utilizationRate * 0.6 + demandPressure * 0.4),
+155 | 5 |                 0.40
+156 | 5 |             );
+157 | 4 |         }
+158 | 4 | 
+159 | 4 |         sdSnapshot = { freeDrivers, busyDrivers, totalFleet, utilizationRate: (utilizationRate * 100).toFixed(1) + '%', recentAccepted, factor: (factorSupplyDemand * 100).toFixed(1) + '%' };
+160 | 4 |         console.log(`📊 S&D → Libres: ${freeDrivers} | Ocupados: ${busyDrivers} | Utilización: ${(utilizationRate * 100).toFixed(0)}% | Aceptados 30min: ${recentAccepted} | Factor: +${(factorSupplyDemand * 100).toFixed(1)}%`);
+161 | 4 |     } catch (e) {
+162 | 4 |         console.warn('No se pudo calcular el factor oferta-demanda. Usando 0.', e);
+163 | 3 |     }
+164 | 3 | 
+165 | 3 |     factorMarket += factorSupplyDemand;
+166 | 3 | 
+167 | 3 |     // d) Factor Climático (Vorian Weather Surge)
+168 | 3 |     let factorWeather = 0.0;
+169 | 4 |     if (weather_condition) {
+170 | 4 |         const weather = weather_condition.toLowerCase();
+171 | 5 |         if (weather === 'snow') {
+172 | 5 |             factorWeather = 0.40; // +40% Riesgo extremo
+173 | 5 |         } else if (weather === 'thunderstorm') {
+174 | 5 |             factorWeather = 0.30; // +30% Tormenta
+175 | 5 |         } else if (['rain', 'drizzle'].includes(weather)) {
+176 | 5 |             factorWeather = 0.25; // +25% Lluvia (Frenado difícil)
+177 | 5 |         } else if (['fog', 'mist'].includes(weather)) {
+178 | 5 |             factorWeather = 0.15; // +15% Poca visibilidad
+179 | 5 |         } else if (weather === 'clouds') {
+180 | 5 |             factorWeather = 0.02; // +2% (Nublado normal, casi no afecta)
+181 | 4 |         }
+182 | 4 |         console.log(`🌧️ Clima detectado: ${weather_condition}. Factor Weather ajustado a: ${factorWeather}`);
+183 | 3 |     }
+184 | 3 | 
+185 | 3 |     // e) Riesgo Adicional (Materiales Peligrosos / Sobrepeso explícito)
+186 | 3 |     if (special_handling?.hazardous) factorMarket += 0.20;
+187 | 3 |     if (special_handling?.overweight) factorMarket += 0.30;
+188 | 3 | 
+189 | 3 |     // 3. Consultar al Modelo ML (FastAPI)
+190 | 3 |     let factorML = 1.0;
+191 | 4 |     try {
+192 | 5 |         const mlResponse = await fetch(`${ML_ENGINE_URL}/predict`, {
+193 | 5 |             method: 'POST',
+194 | 5 |             headers: { 'Content-Type': 'application/json' },
+195 | 6 |             body: JSON.stringify({
+196 | 6 |                 distance_km: distanceKm,
+197 | 6 |                 duration_hrs: durationHrs,
+198 | 6 |                 terrain_factor: terrainFactor,
+199 | 6 |                 weight_factor: weightFactor,
+200 | 6 |                 hour_of_day: currentHour,
+201 | 6 |                 day_of_week: currentDay
+202 | 5 |             }),
+203 | 5 |             signal: AbortSignal.timeout(2000)
+204 | 4 |         });
+205 | 4 |         
+206 | 5 |         if (mlResponse.ok) {
+207 | 5 |             const mlData = await mlResponse.json();
+208 | 5 |             factorML = mlData.factor_ml;
+209 | 5 |         } else {
+210 | 5 |             console.warn("ML Engine respondió con error:", mlResponse.status);
+211 | 4 |         }
+212 | 4 |     } catch (e) {
+213 | 4 |         console.warn("No se pudo conectar al ML Engine. Usando factorML = 1.0", e);
+214 | 3 |     }
+215 | 3 | 
+216 | 3 |     // 4. Calcular Precio Final (Base * IA * (Mkt + Weather)) + Accesorios + Peajes
+217 | 3 |     const totalMarketMultiplier = factorMarket + factorWeather;
+218 | 3 |     const finalPrice = (basePrice * factorML * totalMarketMultiplier) + accessorialsTotal + tollsCost;
+219 | 3 | 
+220 | 3 |     // 5. Registrar Cotización (Embudo)
+221 | 4 |     const { data: logData, error: logError } = await supabaseAdmin.from('pricing_ml_logs').insert({
+222 | 4 |         distance_km: distanceKm,
+223 | 4 |         duration_hrs: durationHrs,
+224 | 4 |         terrain_factor: terrainFactor,
+225 | 4 |         weight_factor: weightFactor,
+226 | 4 |         hour_of_day: currentHour,
+227 | 4 |         day_of_week: currentDay,
+228 | 4 |         base_price: basePrice,
+229 | 4 |         factor_ml: factorML,
+230 | 4 |         factor_market: totalMarketMultiplier,
+231 | 4 |         factor_supply_demand: factorSupplyDemand,
+232 | 4 |         offered_price: finalPrice,
+233 | 4 |         status: 'quoted'
+234 | 3 |     }).select('id').single();
+235 | 3 | 
+236 | 4 |     if (logError) {
+237 | 4 |         console.error("Error guardando ML Log:", logError);
+238 | 3 |     }
+239 | 3 | 
+240 | 3 |     // 6. Retornar al Cliente
+241 | 3 |     const priceWithoutTolls = finalPrice - tollsCost;
+242 | 3 |     const platformFee = priceWithoutTolls * 0.10; // 10% de comisión Vorian
+243 | 3 |     const carrierPayment = priceWithoutTolls - platformFee;
+244 | 3 |     
+245 | 3 |     const marketAdjustmentCost = (basePrice * factorML * factorMarket) - basePrice;
+246 | 3 |     const weatherAdjustmentCost = (basePrice * factorML * factorWeather);
+247 | 3 | 
+248 | 4 |     return NextResponse.json({
+249 | 4 |         success: true,
+250 | 4 |         log_id: logData?.id || null,
+251 | 4 |         base_price: basePrice + tollsCost,
+252 | 4 |         final_price: finalPrice, 
+253 | 4 |         carrier_payment: carrierPayment,
+254 | 4 |         platform_fee: platformFee,
+255 | 5 |         breakdown: {
+256 | 5 |             base_freight: Math.round(rpcSubtotal),
+257 | 5 |             accessorials_total: Math.round(accessorialsTotal),
+258 | 5 |             market_adjustment: Math.round(marketAdjustmentCost),
+259 | 5 |             weather_adjustment: Math.round(weatherAdjustmentCost),
+260 | 5 |             tolls_cost: Math.round(tollsCost),
+261 | 5 |             supply_demand_adjustment: Math.round(basePrice * factorML * factorSupplyDemand)
+262 | 4 |         },
+263 | 5 |         factors: {
+264 | 5 |             ml_factor: factorML,
+265 | 5 |             market_factor: factorMarket,
+266 | 5 |             weather_factor: factorWeather,
+267 | 5 |             supply_demand_factor: factorSupplyDemand,
+268 | 6 |             rpc_factors: {
+269 | 6 |                 ...rpcData.factors,
+270 | 6 |                 terrain_factor: terrainFactor,
+271 | 6 |                 weight_factor: weightFactor,
+272 | 6 |                 distance_total: distanceKm
+273 | 5 |             }
+274 | 4 |         },
+275 | 4 |         tolls_cost: tollsCost
+276 | 3 |     });
+277 | 3 | 
+278 | 3 |   } catch (error: any) {
+279 | 3 |     console.error('Error en Pricing Optimizer:', error);
+280 | 3 |     return NextResponse.json({ error: error.message || 'Error interno calculando tarifa' }, { status: 500 });
+281 | 2 |   }
+282 | 1 | }
+283 | 1 | 

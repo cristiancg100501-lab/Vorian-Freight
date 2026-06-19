@@ -343,22 +343,9 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     }
 
     const getMarkerSize = (zoom: number) => {
-        // --- ADAPTIVE MULTI-STAGE SCALING ---
-        // Stage 1: Macro View (Zoom < 7) - Small markers for global context
-        if (zoom < 7) {
-            const progress = zoom / 7;
-            return 32 + (48 - 32) * progress;
-        }
-        
-        // Stage 2: Regional View (7 <= Zoom < 13) - Scaling up to standard size
-        if (zoom < 13) {
-            const progress = (zoom - 7) / (13 - 7);
-            return 48 + (120 - 48) * progress;
-        }
-
-        // Stage 3: Tactical View (Zoom >= 13) - Large markers for street detail
-        const progress = Math.min((zoom - 13) / (20 - 13), 1);
-        return 120 + (380 - 120) * progress;
+        if (zoom < 7) return 12;
+        if (zoom < 13) return 16;
+        return 20;
     };
 
     const updateMarkerSizes = () => {
@@ -385,11 +372,8 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         const lat = Number(driver.currentLatitude);
         const lng = Number(driver.currentLongitude);
         const coords: [number, number] = [lng, lat];
-        const heading = driver.heading || 0;
         const isSelected = selectedDriver?.id === driver.id;
 
-        const currentTheme = themeRef.current;
-        const truckImgSrc = truck3.src;
         const currentSize = Math.round(getMarkerSize(mapInstance.getZoom()));
 
         if (!driverMarkersRef.current[driver.id]) {
@@ -399,21 +383,12 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             el.style.height = `${currentSize}px`;
             
             const container = document.createElement('div');
-            // Cleaned class: removed group and transition-500 to keep it crisp
             container.className = 'w-full h-full flex items-center justify-center relative cursor-pointer';
             
-            const statusColor = driver.currentOrderId ? '#f97316' : '#22c55e';
-            const img = document.createElement('img');
-            img.src = truckImgSrc;
-            img.style.width = '100%';
-            img.style.height = 'auto';
-            // Rotation normalization: phone heading is 0=North. 
-            // Truck asset is facing East (90 deg) usually. Adjustment ensures correct orientation.
-            img.style.transform = `rotate(${heading}deg)`;
-            img.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-            img.style.filter = `drop-shadow(0 0 10px ${statusColor})`;
+            const dot = document.createElement('div');
+            dot.className = 'rounded-full transition-all duration-300 w-full h-full border-[2px] border-white dark:border-[#121212]';
             
-            container.appendChild(img);
+            container.appendChild(dot);
             el.appendChild(container);
             
             container.onclick = () => onDriverSelect?.(driver.id);
@@ -427,7 +402,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         } else {
             const el = driverMarkersRef.current[driver.id].getElement();
             const container = el.firstChild as HTMLDivElement;
-            const img = container.firstChild as HTMLImageElement;
+            const dot = container.firstChild as HTMLDivElement;
             
             // Stable sizing: only update DOM if values changed significantly
             const sizeInt = Math.round(currentSize);
@@ -447,29 +422,25 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 }
             }
             
-            if (img && container) {
-                // Neutralized Colors: Slate-Gray for Available, Orange for Route
-                // This eliminates the "everything is green" complaint.
-                const statusColor = driver.currentOrderId ? '#f97316' : '#a3a3a3';
+            if (dot && container) {
                 const isSelected = selectedDriver && String(selectedDriver.id) === String(driver.id);
                 
-                img.src = truckImgSrc;
-                img.style.transform = `rotate(${heading}deg)`;
+                const colorClass = driver.currentOrderId ? 'bg-primary' : 'bg-green-500';
+                dot.className = `rounded-full transition-all duration-300 w-full h-full border-[2px] border-white dark:border-[#121212] ${colorClass}`;
                 
-                // Selection highlight: Sharp High-Contrast Glow
-                // Idle highlight: Subtle Status Halo
-                const glowColor = currentTheme === 'dark' ? 'white' : 'black';
-                const currentFilter = isSelected 
-                    ? `drop-shadow(0 0 2px ${glowColor}) drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` 
-                    : `drop-shadow(0 0 4px ${statusColor})`;
-                
-                if (img.style.filter !== currentFilter) {
-                    img.style.filter = currentFilter;
+                if (isSelected) {
+                    dot.style.boxShadow = driver.currentOrderId 
+                        ? '0 0 0 4px hsl(var(--primary) / 0.3), 0 0 15px hsl(var(--primary))'
+                        : '0 0 0 4px rgba(34, 197, 94, 0.3), 0 0 15px #22c55e';
+                    container.style.transform = 'scale(1.4)';
+                    el.style.zIndex = '100';
+                } else {
+                    dot.style.boxShadow = driver.currentOrderId 
+                        ? '0 0 8px hsl(var(--primary) / 0.6)'
+                        : '0 0 8px rgba(34, 197, 94, 0.6)';
+                    container.style.transform = 'scale(1)';
+                    el.style.zIndex = '50';
                 }
-
-                // Snappy z-index and scale transitions
-                container.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
-                el.style.zIndex = isSelected ? '100' : '50';
             }
         }
     });
