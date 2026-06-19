@@ -63,11 +63,17 @@ export async function POST(request: Request) {
     // 2. Determinar Factor de Mercado Heurístico (Tráfico, Clima y Demanda)
     let factorMarket = 1.0;
     
-    let currentHour = new Date().getHours();
-    let currentDay = new Date().getDay(); // 0: Sun, 1: Mon, ...
+    const santiagoFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Santiago', hour: 'numeric', hour12: false });
+    let currentHour = parseInt(santiagoFormatter.format(new Date()), 10);
+    const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Santiago', weekday: 'short' });
+    const shortDay = dayFormatter.format(new Date());
+    const dayMap: Record<string, number> = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+    let currentDay = dayMap[shortDay] ?? new Date().getDay();
 
     if (pickup_date) {
-        currentDay = new Date(pickup_date).getDay();
+        const pd = new Date(pickup_date);
+        const pdFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Santiago', weekday: 'short' });
+        currentDay = dayMap[pdFormatter.format(pd)] ?? pd.getDay();
     }
     
     if (pickup_window && pickup_window.includes(':')) {
@@ -93,9 +99,57 @@ export async function POST(request: Request) {
         factorMarket += 0.10;
     }
     
-    // b) Zona de alta demanda (San Antonio) -> +15%
-    if ((pickup_address || pickup_region || '').toLowerCase().includes('san antonio') || (delivery_address || delivery_region || '').toLowerCase().includes('san antonio')) {
-        factorMarket += 0.15;
+    // b) Zonas de Alta Demanda Dinámicas (Últimas 3 horas)
+    let pickup_lat = null;
+    let pickup_lng = null;
+    if (route_geometry && route_geometry.coordinates && route_geometry.coordinates.length > 0) {
+        pickup_lng = route_geometry.coordinates[0][0];
+        pickup_lat = route_geometry.coordinates[0][1];
+    }
+    
+    let highDemandShipmentsCount = 0;
+    try {
+        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+        const { data: recentShipments } = await supabaseAdmin
+            .from('shipments')
+            .select('id, origin, pickup_latitude, pickup_longitude')
+            .gte('createdAt', threeHoursAgo);
+            
+        if (recentShipments && pickup_lat && pickup_lng) {
+            highDemandShipmentsCount = recentShipments.filter((s: any) => {
+                let lat = s.pickup_latitude;
+                let lng = s.pickup_longitude;
+                if (!lat && s.origin && s.origin.includes('POINT')) {
+                    const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+                    if (match) {
+                        lng = parseFloat(match[1]);
+                        lat = parseFloat(match[2]);
+                    }
+                }
+                if (lat && lng) {
+                    const R = 6371; // km
+                    const dLat = (lat - pickup_lat) * Math.PI / 180;
+                    const dLng = (lng - pickup_lng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                            Math.cos(pickup_lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+                            Math.sin(dLng/2) * Math.sin(dLng/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    const distance = R * c;
+                    return distance <= 15; // 15 km radius
+                }
+                return false;
+            }).length;
+        }
+        
+        if (highDemandShipmentsCount >= 5) {
+            factorMarket += 0.25; 
+            console.log(`🔥 ZONA MUY CALIENTE: ${highDemandShipmentsCount} fletes. Factor +25%`);
+        } else if (highDemandShipmentsCount >= 2) {
+            factorMarket += 0.15;
+            console.log(`🔥 ZONA CALIENTE: ${highDemandShipmentsCount} fletes. Factor +15%`);
+        }
+    } catch (e) {
+        console.warn('Error calculando zonas de alta demanda dinámicas', e);
     }
 
     // c) Factor Oferta-Demanda (Supply vs. Demand Real-Time — Fleet Utilization Model)
@@ -105,21 +159,12 @@ export async function POST(request: Request) {
         const now = new Date();
         const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString(); // últimos 30 min
 
-        // Consultas en paralelo: oferta libre, camiones ocupados y envíos aceptados recientes
-        const [freeResult, busyResult, acceptedResult, settingsResult] = await Promise.all([
-            // Oferta libre: conductores disponibles sin orden activa
+        // Consultas en paralelo: conductores disponibles, envíos aceptados recientes y configuraciones
+        const [driversResult, acceptedResult, settingsResult] = await Promise.all([
             supabaseAdmin
                 .from('driverProfiles')
-                .select('id', { count: 'exact', head: true })
-                .eq('isAvailable', true)
-                .is('currentOrderId', null),
-
-            // Camiones ocupados: conductores con una orden activa
-            supabaseAdmin
-                .from('driverProfiles')
-                .select('id', { count: 'exact', head: true })
-                .eq('isAvailable', true)
-                .not('currentOrderId', 'is', null),
+                .select('id, currentOrderId, currentLatitude, currentLongitude')
+                .eq('isAvailable', true),
 
             // Demanda real: envíos ACEPTADOS (reservados) en los últimos 30 minutos
             // Más preciso que cotizaciones, ya que refleja conversión real del mercado
@@ -137,8 +182,30 @@ export async function POST(request: Request) {
                 .single()
         ]);
 
-        const freeDrivers    = freeResult.count ?? 0;
-        const busyDrivers    = busyResult.count ?? 0;
+        // Filtrar conductores regionales (radio 50km)
+        let freeDrivers = 0;
+        let busyDrivers = 0;
+        
+        if (driversResult.data) {
+            driversResult.data.forEach((d: any) => {
+                let isNear = true;
+                if (pickup_lat && pickup_lng && d.currentLatitude && d.currentLongitude) {
+                    const R = 6371;
+                    const dLat = (d.currentLatitude - pickup_lat) * Math.PI / 180;
+                    const dLng = (d.currentLongitude - pickup_lng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                            Math.cos(pickup_lat * Math.PI / 180) * Math.cos(d.currentLatitude * Math.PI / 180) *
+                            Math.sin(dLng/2) * Math.sin(dLng/2);
+                    const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    if (distance > 50) isNear = false;
+                }
+                if (isNear) {
+                    if (d.currentOrderId) busyDrivers++;
+                    else freeDrivers++;
+                }
+            });
+        }
+        
         const totalFleet     = freeDrivers + busyDrivers;
         const recentAccepted = acceptedResult.count ?? 0;
         const demandSensitivity = settingsResult.data?.demandSensitivity ?? 0.05;

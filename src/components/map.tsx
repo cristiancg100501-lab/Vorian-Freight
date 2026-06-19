@@ -102,6 +102,31 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     return 'cat3';
   }, [vehicleType]);
 
+  // 1a. Fetch Demand Zones Heatmap
+  useEffect(() => {
+    if (styleLoadedCount === 0 || !map.current) return;
+    
+    const fetchDemandZones = async () => {
+        try {
+            const res = await fetch('/api/demand-zones');
+            if (res.ok) {
+                const geojson = await res.json();
+                const source = map.current?.getSource('demand-zones-source') as mapboxgl.GeoJSONSource;
+                if (source) {
+                    source.setData(geojson);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch demand zones', e);
+        }
+    };
+    
+    fetchDemandZones();
+    // Refetch every 5 minutes
+    const interval = setInterval(fetchDemandZones, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [styleLoadedCount]);
+
   // 1. Initialize Map
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
@@ -179,21 +204,30 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
             });
         }
 
-        if (!mapInstance.getSource('breadcrumbs-source')) {
-            mapInstance.addSource('breadcrumbs-source', {
-                'type': 'geojson',
-                'data': { 'type': 'Feature', 'properties': {}, 'geometry': { 'type': 'LineString', 'coordinates': [] } }
+        if (!mapInstance.getSource('demand-zones-source')) {
+            mapInstance.addSource('demand-zones-source', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] }
             });
             mapInstance.addLayer({
-                'id': 'breadcrumbs-layer',
-                'type': 'line',
-                'source': 'breadcrumbs-source',
-                'layout': { 'line-join': 'round', 'line-cap': 'round' },
-                'paint': {
-                    'line-color': '#22c55e', // Strong green
-                    'line-width': 2,
-                    'line-opacity': 0.6,
-                    'line-dasharray': [2, 1]
+                id: 'demand-zones-heatmap',
+                type: 'heatmap',
+                source: 'demand-zones-source',
+                maxzoom: 15,
+                paint: {
+                    'heatmap-weight': 1,
+                    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+                    'heatmap-color': [
+                        'interpolate', ['linear'], ['heatmap-density'],
+                        0, 'rgba(239, 68, 68, 0)',
+                        0.2, 'rgba(239, 68, 68, 0.2)',
+                        0.4, 'rgba(239, 68, 68, 0.4)',
+                        0.6, 'rgba(239, 68, 68, 0.6)',
+                        0.8, 'rgba(239, 68, 68, 0.8)',
+                        1, 'rgba(220, 38, 38, 1)'
+                    ],
+                    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 40],
+                    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.8, 15, 0.5]
                 }
             });
         }
