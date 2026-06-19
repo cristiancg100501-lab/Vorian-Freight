@@ -16,12 +16,22 @@ export async function GET() {
             let lat = s.pickup_latitude;
             let lng = s.pickup_longitude;
             
-            // Si usa el formato PostGIS POINT
-            if (!lat && s.origin && s.origin.includes('POINT')) {
-                const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
-                if (match) {
-                    lng = parseFloat(match[1]);
-                    lat = parseFloat(match[2]);
+            // Parse WKB Hex (PostGIS default return format)
+            if (!lat && s.origin && typeof s.origin === 'string') {
+                if (s.origin.includes('POINT')) {
+                    const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+                    if (match) {
+                        lng = parseFloat(match[1]);
+                        lat = parseFloat(match[2]);
+                    }
+                } else if (s.origin.length >= 50 && s.origin.startsWith('0101000020')) {
+                    try {
+                        const buf = Buffer.from(s.origin.substring(18), 'hex');
+                        lng = buf.readDoubleLE(0);
+                        lat = buf.readDoubleLE(8);
+                    } catch (e) {
+                        console.warn('WKB parse error', e);
+                    }
                 }
             }
             
