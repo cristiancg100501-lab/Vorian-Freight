@@ -1037,15 +1037,24 @@ Broadway: 1
 
                 {/* Right Column: Map and Summary */}
                 <div className="space-y-6">
-                    <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4">
-                        <Map 
-                            route={routeDetails.geometry} 
-                            origin={pickup.coords} 
-                            destination={delivery.coords} 
-                            activeTolls={tollsBreakdown} 
-                            vehicleType={vehicleType}
-                        />
-                    </div>
+                    {pickup.coords && delivery.coords ? (
+                        <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4">
+                            <Map 
+                                route={routeDetails.geometry} 
+                                origin={pickup.coords} 
+                                destination={delivery.coords} 
+                                activeTolls={tollsBreakdown} 
+                                vehicleType={vehicleType}
+                            />
+                        </div>
+                    ) : (
+                        <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4 bg-muted/30 flex items-center justify-center border-dashed">
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
+                                <MapPin className="w-8 h-8 opacity-50" />
+                                <span className="font-medium text-sm">Ingresa origen y destino para ver la ruta</span>
+                            </div>
+                        </div>
+                    )}
                     <Card className="bg-card border shadow-lg relative overflow-hidden">
                         {isRefreshingPrice && (
                             <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-50 flex items-center justify-center">

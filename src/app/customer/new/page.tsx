@@ -525,9 +525,18 @@ export default function NewShipmentPage() {
         <div className="max-w-screen-xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight mb-6">Crear Nuevo Envío - {step === 1 ? 'Ruta y Horario' : step === 2 ? 'Detalles de Carga' : 'Opciones y Reserva'}</h1>
             
-            <div className="h-80 w-full rounded-lg overflow-hidden border mb-8">
-                <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
-            </div>
+            {pickup.coords && delivery.coords ? (
+              <div className="h-80 w-full rounded-lg overflow-hidden border mb-8">
+                  <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
+              </div>
+            ) : (
+              <div className="h-80 w-full rounded-lg overflow-hidden border mb-8 bg-muted/30 flex items-center justify-center border-dashed">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
+                    <MapPin className="w-8 h-8 opacity-50" />
+                    <span className="font-medium text-sm">Ingresa origen y destino para ver la ruta</span>
+                  </div>
+              </div>
+            )}
 
             <div className="mb-8">
               <Stepper step={step} />
