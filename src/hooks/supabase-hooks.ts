@@ -33,6 +33,11 @@ export function useSupabaseCollection<T = any>(
   const [tick, setTick] = useState(0)
   const enableRealtime = options?.realtime !== false // default: true
 
+  // Generate a unique channel ID once per hook instance (using useRef so it
+  // doesn't change on re-renders). This prevents two component instances that
+  // watch the same table from colliding on the same Supabase channel.
+  const channelIdRef = useRef(`collection:${table}:${Math.random().toString(36).substring(7)}`)
+
   // Stable refetch trigger
   const refetch = useCallback(() => setTick((t) => t + 1), [])
 
@@ -63,10 +68,10 @@ export function useSupabaseCollection<T = any>(
       return () => { cancelled = true }
     }
 
-    // Use a deterministic channel name so React Strict Mode double-invocation
-    // doesn't create duplicate channels. Math.random() was the bug — it caused
-    // a new channel on every render, leaking WebSocket connections.
-    const channelId = `collection:${table}`
+    // channelIdRef is stable per hook instance (set once via useRef).
+    // This prevents channel name collisions between different component instances
+    // that happen to watch the same table.
+    const channelId = channelIdRef.current
     const channel = supabase
       .channel(channelId)
       .on(
@@ -113,6 +118,9 @@ export function useSupabaseDoc<T = any>(
   const [error, setError] = useState<Error | null>(null)
   const [tick, setTick] = useState(0)
 
+  // Per-instance channel ID — stable across re-renders, unique per component mount
+  const channelIdRef = useRef(`doc:${table}:${id ?? 'null'}:${Math.random().toString(36).substring(7)}`)
+
   const refetch = useCallback(() => setTick((t) => t + 1), [])
 
   useEffect(() => {
@@ -144,8 +152,9 @@ export function useSupabaseDoc<T = any>(
 
     fetchData()
 
-    // Deterministic channel name — avoids duplicate channels in Strict Mode
-    const channelId = `doc:${table}:${id}`
+    // Per-instance channel ID (from useRef) — avoids collisions when multiple
+    // components watch the same doc simultaneously
+    const channelId = channelIdRef.current
     const channel = supabase
       .channel(channelId)
       .on(
