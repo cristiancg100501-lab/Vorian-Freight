@@ -603,14 +603,15 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                       return lo;
                   };
 
-                  // 2. ANIMATE at 60fps — only binary search + array slice per frame
+                  // 2. ANIMATE at 60fps — loops continuously
                   const DURATION_MS = 1800;
                   let startTimestamp: number | null = null;
 
                   const animateSnake = (timestamp: number) => {
                       if (!startTimestamp) startTimestamp = timestamp;
-                      const elapsed = timestamp - startTimestamp;
-                      const progress = Math.min(elapsed / DURATION_MS, 1);
+                      // Use modulo to loop: elapsed resets to 0 after each cycle
+                      const elapsed = (timestamp - startTimestamp) % DURATION_MS;
+                      const progress = elapsed / DURATION_MS;
 
                       const headKm = progress * totalDist;
                       const tailKm = Math.max(0, headKm - TAIL_KM);
@@ -628,12 +629,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                           geometry: { type: 'LineString', coordinates: sliceCoords.length >= 2 ? sliceCoords : [] }
                       });
 
-                      if (progress < 1) {
-                          snakeAnimationId = requestAnimationFrame(animateSnake);
-                      } else {
-                          // Hold the full route visible
-                          snakeSource.setData({ type: 'Feature', properties: {}, geometry: route });
-                      }
+                      snakeAnimationId = requestAnimationFrame(animateSnake);
                   };
                   snakeAnimationId = requestAnimationFrame(animateSnake);
               }
