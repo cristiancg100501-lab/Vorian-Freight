@@ -51,6 +51,15 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
     return dots;
   }, []);
 
+  // Create a stable string of coordinates to prevent endless redraws 
+  // if the parent passes a new array reference (e.g. `shipments || []`) on every render
+  const shipmentsHash = useMemo(() => {
+    return shipments
+      .filter((s) => s.delivery_latitude && s.delivery_longitude)
+      .map((s) => `${s.delivery_latitude},${s.delivery_longitude}`)
+      .join("|");
+  }, [shipments]);
+
   // Map shipment coords → demand grid keys
   const demandZones = useMemo(() => {
     const zones: Record<string, number> = {};
@@ -65,7 +74,8 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
       }
     });
     return zones;
-  }, [shipments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shipmentsHash]); // Depend on the hash, not the array reference
 
   // Draw everything on canvas whenever dots or demand changes
   useEffect(() => {
@@ -96,32 +106,31 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
       const cy = ly * scaleY;
       const r = hasDemand ? 2.5 * scaleX : 1.5 * scaleX;
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-
       if (hasDemand) {
         ctx.fillStyle = "#fa788e";
         ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
 
         if (highDemand) {
-          // Subtle glow for high-demand zones — replaces animate-pulse
-          ctx.shadowColor = "#fa788e";
-          ctx.shadowBlur = 8 * scaleX;
-        } else {
-          ctx.shadowBlur = 0;
+          // Fast glow effect using a larger circle instead of expensive shadowBlur
+          ctx.globalAlpha = 0.3;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r * 2.5, 0, Math.PI * 2);
+          ctx.fill();
         }
       } else {
         ctx.fillStyle = mutedColor || "#888";
         ctx.globalAlpha = 0.2;
-        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
       }
-
-      ctx.fill();
     }
 
     // Reset context state
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
   }, [gridDots, demandZones]);
 
   // Density bar: how many non-zero zones exist
