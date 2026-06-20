@@ -572,51 +572,49 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                   mapInst.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 2200 });
               }
 
-              // --- ANIMACION TURF SNAKE ---
+              // --- ANIMACION TURF SNAKE (Pre-computed, 60fps) ---
               if (snakeSource) {
                   const routeLine = turf.lineString(route.coordinates);
                   const totalLength = turf.length(routeLine, { units: 'kilometers' });
-                  
+                  const TOTAL_FRAMES = 60; // Pre-compute 60 frames
+                  const TAIL_RATIO = 0.25;
+                  const TAIL_LENGTH = Math.max(1, totalLength * TAIL_RATIO);
+
+                  // 1. PRE-COMPUTE all frames (heavy work done ONCE, before animation starts)
+                  const precomputedFrames: any[] = [];
+                  for (let f = 0; f <= TOTAL_FRAMES; f++) {
+                      const progress = f / TOTAL_FRAMES;
+                      const headDist = progress * totalLength;
+                      const tailDist = Math.max(0, headDist - TAIL_LENGTH);
+                      try {
+                          if (headDist > tailDist) {
+                              const seg = turf.lineSliceAlong(routeLine, tailDist, Math.min(headDist, totalLength), { units: 'kilometers' });
+                              precomputedFrames.push(seg);
+                          } else {
+                              precomputedFrames.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+                          }
+                      } catch (e) {
+                          precomputedFrames.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+                      }
+                  }
+
+                  // 2. ANIMATE at 60fps — only array indexing per frame (zero math)
+                  const DURATION_MS = 1800;
                   let startTimestamp: number | null = null;
-                  const DURATION = 2000;
-                  const TAIL_LENGTH = Math.max(2, totalLength * 0.25);
-                  
-                  let lastSnakeTime = 0;
-                  const snakeFpsInterval = 1000 / 20; // 20 FPS for heavy turf calc
 
                   const animateSnake = (timestamp: number) => {
                       if (!startTimestamp) startTimestamp = timestamp;
-                      
-                      const elapsed = timestamp - lastSnakeTime;
-                      if (elapsed < snakeFpsInterval) {
-                          snakeAnimationId = requestAnimationFrame(animateSnake);
-                          return;
-                      }
-                      lastSnakeTime = timestamp - (elapsed % snakeFpsInterval);
+                      const elapsed = timestamp - startTimestamp;
+                      const progress = Math.min(elapsed / DURATION_MS, 1);
+                      const frameIndex = Math.min(Math.floor(progress * TOTAL_FRAMES), TOTAL_FRAMES - 1);
 
-                      const progress = (timestamp - startTimestamp) / DURATION;
-                      
-                      if (progress <= 1.2) {
-                          const currentDistance = progress * totalLength;
-                          const startDistance = Math.max(0, currentDistance - TAIL_LENGTH);
-                          
-                          try {
-                              if (currentDistance > startDistance) {
-                                  const sliceEnd = Math.min(currentDistance, totalLength);
-                                  const sliceStart = Math.min(startDistance, totalLength);
-                                  
-                                  if (sliceEnd > sliceStart) {
-                                      const segment = turf.lineSliceAlong(routeLine, sliceStart, sliceEnd, { units: 'kilometers' });
-                                      snakeSource.setData(segment);
-                                  } else {
-                                      snakeSource.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
-                                  }
-                              }
-                          } catch (e) {}
+                      snakeSource.setData(precomputedFrames[frameIndex]);
+
+                      if (progress < 1) {
                           snakeAnimationId = requestAnimationFrame(animateSnake);
                       } else {
-                          startTimestamp = timestamp;
-                          snakeAnimationId = requestAnimationFrame(animateSnake);
+                          // Hold the full route
+                          snakeSource.setData(precomputedFrames[TOTAL_FRAMES]);
                       }
                   };
                   snakeAnimationId = requestAnimationFrame(animateSnake);
