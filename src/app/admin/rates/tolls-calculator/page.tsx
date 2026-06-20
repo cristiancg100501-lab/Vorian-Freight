@@ -211,13 +211,22 @@ export default function TollsCalculatorPage() {
                 }
             });
 
-            // Animación de pulso profesional
+            // Animación de pulso profesional - throttled to 20fps to save CPU
             let step = 0;
             let animationId: number;
+            let lastAnimTime = 0;
+            const animFpsInterval = 1000 / 20;
 
-            const animateRoute = () => {
+            const animateRoute = (timestamp: number) => {
                 // Guardia: Si el mapa ya no existe o se destruyó, cancelar
                 if (!map.current || !map.current.getStyle()) return;
+
+                const elapsed = timestamp - lastAnimTime;
+                if (elapsed < animFpsInterval) {
+                    animationId = requestAnimationFrame(animateRoute);
+                    return;
+                }
+                lastAnimTime = timestamp - (elapsed % animFpsInterval);
 
                 step += 0.05;
                 const opacity = 0.2 + Math.abs(Math.sin(step)) * 0.1;
@@ -238,13 +247,14 @@ export default function TollsCalculatorPage() {
                 
                 animationId = requestAnimationFrame(animateRoute);
             };
-            animateRoute();
+            animationId = requestAnimationFrame(animateRoute);
 
             fetchRoute();
         });
 
         return () => {
             // Limpieza robusta: Cancelar animación y remover mapa
+            if (animationId) cancelAnimationFrame(animationId);
             if (map.current) {
                 map.current.remove();
                 map.current = null;

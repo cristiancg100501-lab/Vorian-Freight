@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 
@@ -15,13 +15,19 @@ type SupabaseContext = {
 const Context = createContext<SupabaseContext | undefined>(undefined)
 
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const [supabase] = useState(() => createClient())
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
+    // Initialize from existing session immediately (avoids loading flash)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -40,7 +46,7 @@ export default function SupabaseProvider({ children }: { children: React.ReactNo
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Context.Provider value={{ supabase, user, session, isLoading }}>
