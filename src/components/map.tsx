@@ -354,7 +354,8 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         }
     };
     syncFinancialData();
-  }, [styleLoadedCount, activeTolls, categoryKey, supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleLoadedCount, JSON.stringify(activeTolls), categoryKey, supabase]);
 
   // 2.5 Render Driver Locations
   useEffect(() => {
@@ -478,7 +479,8 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     return () => {
         mapInstance.off('zoom', updateMarkerSizes);
     };
-  }, [styleLoadedCount, drivers, selectedDriver, onDriverSelect, theme]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleLoadedCount, JSON.stringify(drivers), selectedDriver?.id, onDriverSelect, theme]);
 
   // 3a. Markers: Place origin/destination markers as soon as coords are available.
   // NOTE: Mapbox markers are DOM-based — they do NOT need isStyleLoaded().
