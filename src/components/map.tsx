@@ -495,10 +495,13 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     }
   }, [styleLoadedCount, origin, destination]);
 
-  // 3d. Interaction lock: disable pan/zoom when a route is active (view-only mode).
+  // 3d. Interaction lock: disable pan/zoom only in full-screen mission control mode (when drivers are actively tracked)
   useEffect(() => {
     if (!map.current) return;
-    if (route) {
+    // Only lock interactions if there are drivers to track AND a route is active
+    // In the new shipment form (no drivers), always keep interactions enabled
+    const hasDrivers = drivers && drivers.length > 0;
+    if (route && hasDrivers) {
       map.current.dragPan.disable();
       map.current.scrollZoom.disable();
       map.current.doubleClickZoom.disable();
@@ -511,7 +514,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
       map.current.touchZoomRotate.enable();
       map.current.keyboard.enable();
     }
-  }, [route]);
+  }, [route, drivers]);
 
   // 3b. Camera: FlyTo origin when only point 1 is set.
   //     FitBounds is handled in the route effect (3c) when point 2 + route arrive.
@@ -533,78 +536,95 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
   useEffect(() => {
     let snakeAnimationId: number | null = null;
     try {
-        if (styleLoadedCount === 0 || !map.current || !map.current.isStyleLoaded()) return;
+        if (styleLoadedCount === 0 || !map.current) return;
         const mapInstance = map.current;
 
-        if (!route) return;
-        
-        // Comprobar la fuente de manera segura
-        if (!mapInstance.getSource('route')) return;
-        const source = mapInstance.getSource('route') as mapboxgl.GeoJSONSource;
-        const snakeSource = mapInstance.getSource('route-snake') as mapboxgl.GeoJSONSource;
-        
-        if (source && Array.isArray(route.coordinates) && route.coordinates.length > 0) {
-            source.setData({ type: 'Feature', properties: {}, geometry: route });
-            
-            const bounds = new mapboxgl.LngLatBounds();
-            route.coordinates.forEach((c: any) => { if (isValidLngLat(c)) bounds.extend(c); });
-            if (origin && isValidLngLat(origin)) bounds.extend(origin);
-            if (destination && isValidLngLat(destination)) bounds.extend(destination);
-
-            if (!bounds.isEmpty()) {
-                mapInstance.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 2200 });
-            }
-
-            // --- ANIMACION TURF SNAKE ---
-            if (snakeSource) {
-                const routeLine = turf.lineString(route.coordinates);
-                const totalLength = turf.length(routeLine, { units: 'kilometers' });
-                
-                let startTimestamp: number | null = null;
-                const DURATION = 2000;
-                const TAIL_LENGTH = Math.max(2, totalLength * 0.25);
-                
-                let lastSnakeTime = 0;
-                const snakeFpsInterval = 1000 / 20; // 20 FPS for heavy turf calc
-
-                const animateSnake = (timestamp: number) => {
-                    if (!startTimestamp) startTimestamp = timestamp;
-                    
-                    const elapsed = timestamp - lastSnakeTime;
-                    if (elapsed < snakeFpsInterval) {
-                        snakeAnimationId = requestAnimationFrame(animateSnake);
-                        return;
-                    }
-                    lastSnakeTime = timestamp - (elapsed % snakeFpsInterval);
-
-                    const progress = (timestamp - startTimestamp) / DURATION;
-                    
-                    if (progress <= 1.2) {
-                        const currentDistance = progress * totalLength;
-                        const startDistance = Math.max(0, currentDistance - TAIL_LENGTH);
-                        
-                        try {
-                            if (currentDistance > startDistance) {
-                                const sliceEnd = Math.min(currentDistance, totalLength);
-                                const sliceStart = Math.min(startDistance, totalLength);
-                                
-                                if (sliceEnd > sliceStart) {
-                                    const segment = turf.lineSliceAlong(routeLine, sliceStart, sliceEnd, { units: 'kilometers' });
-                                    snakeSource.setData(segment);
-                                } else {
-                                    snakeSource.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
-                                }
-                            }
-                        } catch (e) {}
-                        snakeAnimationId = requestAnimationFrame(animateSnake);
-                    } else {
-                        startTimestamp = timestamp;
-                        snakeAnimationId = requestAnimationFrame(animateSnake);
-                    }
-                };
-                snakeAnimationId = requestAnimationFrame(animateSnake);
-            }
+        if (!route) {
+          // Clear route when no route is active
+          const source = mapInstance.getSource('route') as mapboxgl.GeoJSONSource;
+          const snakeSource = mapInstance.getSource('route-snake') as mapboxgl.GeoJSONSource;
+          if (source) source.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+          if (snakeSource) snakeSource.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+          return;
         }
+        
+        // Retry up to 10 times if style isn't loaded yet
+        const tryDraw = (attempt: number) => {
+          if (!map.current) return;
+          const mapInst = map.current;
+          const source = mapInst.getSource('route') as mapboxgl.GeoJSONSource;
+          const snakeSource = mapInst.getSource('route-snake') as mapboxgl.GeoJSONSource;
+
+          if (!source || !snakeSource) {
+            if (attempt < 10) setTimeout(() => tryDraw(attempt + 1), 200);
+            return;
+          }
+
+          if (source && Array.isArray(route.coordinates) && route.coordinates.length > 0) {
+              source.setData({ type: 'Feature', properties: {}, geometry: route });
+              
+              const bounds = new mapboxgl.LngLatBounds();
+              route.coordinates.forEach((c: any) => { if (isValidLngLat(c)) bounds.extend(c); });
+              if (origin && isValidLngLat(origin)) bounds.extend(origin);
+              if (destination && isValidLngLat(destination)) bounds.extend(destination);
+
+              if (!bounds.isEmpty()) {
+                  mapInst.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 2200 });
+              }
+
+              // --- ANIMACION TURF SNAKE ---
+              if (snakeSource) {
+                  const routeLine = turf.lineString(route.coordinates);
+                  const totalLength = turf.length(routeLine, { units: 'kilometers' });
+                  
+                  let startTimestamp: number | null = null;
+                  const DURATION = 2000;
+                  const TAIL_LENGTH = Math.max(2, totalLength * 0.25);
+                  
+                  let lastSnakeTime = 0;
+                  const snakeFpsInterval = 1000 / 20; // 20 FPS for heavy turf calc
+
+                  const animateSnake = (timestamp: number) => {
+                      if (!startTimestamp) startTimestamp = timestamp;
+                      
+                      const elapsed = timestamp - lastSnakeTime;
+                      if (elapsed < snakeFpsInterval) {
+                          snakeAnimationId = requestAnimationFrame(animateSnake);
+                          return;
+                      }
+                      lastSnakeTime = timestamp - (elapsed % snakeFpsInterval);
+
+                      const progress = (timestamp - startTimestamp) / DURATION;
+                      
+                      if (progress <= 1.2) {
+                          const currentDistance = progress * totalLength;
+                          const startDistance = Math.max(0, currentDistance - TAIL_LENGTH);
+                          
+                          try {
+                              if (currentDistance > startDistance) {
+                                  const sliceEnd = Math.min(currentDistance, totalLength);
+                                  const sliceStart = Math.min(startDistance, totalLength);
+                                  
+                                  if (sliceEnd > sliceStart) {
+                                      const segment = turf.lineSliceAlong(routeLine, sliceStart, sliceEnd, { units: 'kilometers' });
+                                      snakeSource.setData(segment);
+                                  } else {
+                                      snakeSource.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
+                                  }
+                              }
+                          } catch (e) {}
+                          snakeAnimationId = requestAnimationFrame(animateSnake);
+                      } else {
+                          startTimestamp = timestamp;
+                          snakeAnimationId = requestAnimationFrame(animateSnake);
+                      }
+                  };
+                  snakeAnimationId = requestAnimationFrame(animateSnake);
+              }
+          }
+        };
+
+        tryDraw(0);
     } catch (e) {
         console.error("Vorian Map Route Engine Error:", e);
     }
