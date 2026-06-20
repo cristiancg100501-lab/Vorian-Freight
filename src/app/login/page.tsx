@@ -9,7 +9,11 @@ import { Truck, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 
-import { LoginMap } from "@/components/login-map";
+import dynamic from 'next/dynamic';
+const LoginMap = dynamic(() => import('@/components/login-map').then(mod => mod.LoginMap), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-zinc-900 animate-pulse"><span className="text-zinc-500 font-medium">Cargando mapa interactivo...</span></div>
+});
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

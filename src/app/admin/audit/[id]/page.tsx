@@ -1,7 +1,11 @@
 "use client";
 
 import { useSupabaseDoc, useSupabaseCollection } from "@/hooks/supabase-hooks";
-import ShipmentAuditMap from "@/components/shipment-audit-map";
+import dynamic from 'next/dynamic';
+const ShipmentAuditMap = dynamic(() => import('@/components/shipment-audit-map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
+});
 import { useParams, useRouter } from "next/navigation";
 import { LocationHistoryPoint, MOCK_PLANNED_ROUTE } from "@/lib/mock-audit-data";
 import { Button } from "@/components/ui/button";

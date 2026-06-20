@@ -12,7 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Truck, MapPin, Activity } from "lucide-react";
 import { format } from "date-fns";
-import Map from "@/components/map";
+import dynamic from 'next/dynamic';
+const Map = dynamic(() => import('@/components/map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
+});
 import { useMemo, useCallback } from "react";
 
 const statusStyles: { [key: string]: string } = {

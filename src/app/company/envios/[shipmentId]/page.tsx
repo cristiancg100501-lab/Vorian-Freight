@@ -47,7 +47,11 @@ import {
     Pencil,
     Layers,
 } from "lucide-react";
-import ShipmentMap from "@/components/map";
+import dynamic from 'next/dynamic';
+const ShipmentMap = dynamic(() => import('@/components/map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
+});
 import Link from "next/link";
 import { useMemo, useState, useCallback } from "react";
 import { format } from "date-fns";

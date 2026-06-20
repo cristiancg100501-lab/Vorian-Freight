@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Truck, MapPin, Calendar, DollarSign, User, ArrowLeft, Save, Map as MapIcon, Activity, CheckCircle2, Clock } from 'lucide-react';
-import Map from '@/components/map';
+import dynamic from 'next/dynamic';
+const Map = dynamic(() => import('@/components/map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
+});
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 

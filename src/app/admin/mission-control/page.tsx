@@ -22,7 +22,11 @@ import {
   Filter,
   Maximize2
 } from "lucide-react";
-import VorianMap from "@/components/map";
+import dynamic from 'next/dynamic';
+const VorianMap = dynamic(() => import('@/components/map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[500px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
+});
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "motion/react";

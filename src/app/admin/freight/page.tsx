@@ -48,7 +48,11 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-import ChileDottedMap from "@/components/chile-dotted-map";
+import dynamic from 'next/dynamic';
+const ChileDottedMap = dynamic(() => import('@/components/chile-dotted-map'), { 
+  ssr: false,
+  loading: () => <div className="w-full h-[600px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa de Chile...</span></div>
+});
 import { CountUp } from "@/components/count-up";
 
 const statusStyles: { [key: string]: string } = {
