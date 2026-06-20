@@ -125,7 +125,7 @@ export default function MissionControlPage() {
         <VorianMap 
           drivers={activeDrivers} 
           selectedDriver={selectedDriver}
-          onDriverSelect={(id) => setSelectedDriverId(id)}
+          onDriverSelect={setSelectedDriverId}
           route={null} 
           origin={null} 
           destination={null} 

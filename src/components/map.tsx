@@ -354,7 +354,10 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         }
     };
     syncFinancialData();
-  }, [styleLoadedCount, activeTolls, categoryKey, supabase]);
+  // Stringify activeTolls so the effect only runs when the contents actually change,
+  // preventing infinite network loops if a new array reference is passed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [styleLoadedCount, JSON.stringify(activeTolls), categoryKey, supabase]);
 
   // 2.5 Render Driver Locations
   useEffect(() => {
