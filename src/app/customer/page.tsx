@@ -10,7 +10,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Truck, MapPin, Navigation, Package, Clock, DollarSign, CheckCircle2, ChevronRight, Activity, Plus } from "lucide-react";
+import { Truck, MapPin, Navigation, Package, Clock, DollarSign, CheckCircle2, ChevronRight, Activity, Plus, ArrowRight } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useCallback, useState, useEffect, useMemo } from "react";
@@ -119,7 +119,7 @@ export default function CustomerDashboard() {
     return { total: shipments.length, active, spent, delivered, chartData, isDummy: !hasData };
   }, [shipments]);
 
-  const containerVariants = {
+  const containerVariants: any = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -127,7 +127,7 @@ export default function CustomerDashboard() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
