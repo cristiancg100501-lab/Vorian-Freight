@@ -81,8 +81,8 @@ export function LoginMap({ theme }: { theme?: string }) {
         maxLat: -33.3
       };
       
-      const numRoutes = 20;
-      const numPointsPerRoute = 10; // Total 200 particles
+      const numRoutes = 8;
+      const numPointsPerRoute = 3; // Reduced for performance
 
       const randomPoint = () => ({
         lon: Math.random() * (bounds.maxLon - bounds.minLon) + bounds.minLon,
@@ -161,17 +161,27 @@ export function LoginMap({ theme }: { theme?: string }) {
                   particles.push({
                       route: route.coordinates,
                       progress: Math.random(),
-                      speed: 0.0003 + Math.random() * 0.0007,
+                      speed: 0.0005 + Math.random() * 0.001,
                       trail: [] 
                   });
               }
           });
 
-          const animate = () => {
+          let lastTime = 0;
+          const fpsInterval = 1000 / 24; // Throttle to 24 FPS to save CPU
+
+          const animate = (time: number) => {
               if (!animationFrameId.current) return;
+              
+              animationFrameId.current = requestAnimationFrame(animate);
+
+              // Throttle execution
+              const elapsed = time - lastTime;
+              if (elapsed < fpsInterval) return;
+              lastTime = time - (elapsed % fpsInterval);
 
               const features: any[] = [];
-              const trailLength = 8; 
+              const trailLength = 4; // Reduced trail length
 
               particles.forEach(p => {
                   p.progress += p.speed;
@@ -215,7 +225,6 @@ export function LoginMap({ theme }: { theme?: string }) {
                       type: 'FeatureCollection', features: features
                   });
               }
-              animationFrameId.current = requestAnimationFrame(animate);
           };
 
           animationFrameId.current = requestAnimationFrame(animate);
