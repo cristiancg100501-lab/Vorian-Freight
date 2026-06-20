@@ -137,6 +137,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                 <TooltipTrigger asChild>
                         <Link
                             href={item.href}
+                            prefetch={false}
                             className={cn(
                                 "group flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg",
                                 hoverColorClass,
@@ -156,6 +157,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
         <Link
             key={item.label}
             href={item.href}
+            prefetch={false}
             className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground group",
                 isActive && cn("shadow-[0_0_20px_rgba(0,0,0,0.2)] font-semibold", "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]")

@@ -533,7 +533,7 @@ export default function AdminDashboard() {
           </Card>
 
           <div className="grid grid-cols-2 gap-4 flex-1">
-            <Link href="/admin/mission-control" className="group">
+            <Link href="/admin/mission-control" prefetch={false} className="group">
               <Card className="h-full border-none shadow-md bg-[#4a1d80] text-white overflow-hidden relative cursor-pointer hover:scale-[1.03] hover:shadow-xl transition-all duration-300">
                 <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
                   <MapIcon size={100} />
