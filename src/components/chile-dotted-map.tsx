@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
 
 interface ChileDottedMapProps {
   shipments: any[];
@@ -72,18 +71,14 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
             const hasDemand = demandValue > 0;
             
             return (
-              <motion.circle
+              <circle
                 key={`chile-dot-${i}`}
                 cx={dot.x}
                 cy={dot.y}
                 r={hasDemand ? 2.5 : 1.5}
-                initial={false}
-                animate={{
-                  fill: hasDemand ? "#fa788e" : "currentColor",
-                  opacity: hasDemand ? 1 : 0.2,
-                  r: hasDemand ? 2.5 : 1.5
-                }}
-                className={hasDemand ? "drop-shadow-[0_0_5px_#fa788e]" : "text-muted-foreground"}
+                fill={hasDemand ? "#fa788e" : "currentColor"}
+                opacity={hasDemand ? 1 : 0.2}
+                className={`transition-all duration-500 ${hasDemand ? "drop-shadow-[0_0_5px_#fa788e]" : "text-muted-foreground"}`}
               />
             );
           })}
