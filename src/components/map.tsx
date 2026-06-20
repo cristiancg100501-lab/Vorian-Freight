@@ -152,20 +152,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
       trackResize: true
     });
 
-    // Handle container resizing with RAF throttling for smooth sidebar transitions
-    const resizeObserver = new ResizeObserver(() => {
-      // If a resize is already scheduled for this frame, skip — avoids
-      // dozens of map.resize() calls during the sidebar's CSS transition.
-      if (resizeRafRef.current !== null) return;
-      resizeRafRef.current = requestAnimationFrame(() => {
-        if (map.current) map.current.resize();
-        resizeRafRef.current = null;
-      });
-    });
-    
-    if (mapContainer.current) {
-      resizeObserver.observe(mapContainer.current);
-    }
+    // Mapbox already handles window resizes natively via trackResize: true.
     
     map.current.on('style.load', () => {
         const mapInstance = map.current;
@@ -292,7 +279,6 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     });
     
     return () => {
-        resizeObserver.disconnect();
         if (resizeRafRef.current !== null) {
           cancelAnimationFrame(resizeRafRef.current);
           resizeRafRef.current = null;

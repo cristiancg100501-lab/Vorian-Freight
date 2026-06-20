@@ -83,11 +83,9 @@ const Trend = ({ value }: { value: number }) => {
 };
 
 export default function AdminDashboard() {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const { data: allShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments");
-  const { data: driverProfiles, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles");
-  const { data: userProfiles } = useSupabaseCollection("userProfiles");
+  const { data: allShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments", undefined, { realtime: false });
+  const { data: driverProfiles, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles", undefined, { realtime: false });
+  const { data: userProfiles } = useSupabaseCollection("userProfiles", undefined, { realtime: false });
 
   const isLoading = isLoadingShipments || isLoadingDrivers;
 
@@ -173,25 +171,14 @@ export default function AdminDashboard() {
     };
   }, [allShipments, driverProfiles, userProfiles]);
 
-  const filteredShipments = useMemo(() => {
-    if (!searchTerm || !allShipments) return (allShipments || []).slice(0, 6);
-    return allShipments.filter(s => 
-      s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (s.client_name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 6);
-  }, [allShipments, searchTerm]);
-
   const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+    hidden: { opacity: 1 },
+    visible: { opacity: 1 }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { y: 0, opacity: 1 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0 } }
   };
 
   return (
@@ -207,7 +194,7 @@ export default function AdminDashboard() {
             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
             Sistema Activo
           </Badge>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_15px_rgba(250,120,142,0.4)]">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <Plus className="h-4 w-4 mr-2" /> Nuevo Envío
           </Button>
         </div>
@@ -227,7 +214,7 @@ export default function AdminDashboard() {
           { title: "Pendientes", value: <CountUp end={stats.pending} />, icon: Clock, trend: 5.1, color: "text-orange-500" },
         ].map((kpi, i) => (
           <motion.div key={i} variants={itemVariants}>
-            <Card className="overflow-hidden border-none shadow-md bg-card/50 backdrop-blur-sm group hover:scale-[1.02] hover:-translate-y-1 hover:shadow-primary/10 transition-all duration-300 cursor-default">
+            <Card className="overflow-hidden border-none shadow-md bg-card/95 group hover:bg-card transition-colors duration-300 cursor-default">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-2 rounded-lg bg-background shadow-sm border border-border/50 group-hover:bg-primary/10 transition-colors`}>
@@ -252,7 +239,7 @@ export default function AdminDashboard() {
       {/* Analytics Section */}
       <div className="grid gap-6 lg:grid-cols-3">
         <motion.div variants={itemVariants} initial="hidden" animate="visible" className="lg:col-span-2">
-          <Card className="h-full border-none shadow-md overflow-hidden bg-card/50 backdrop-blur-sm">
+          <Card className="h-full border-none shadow-md overflow-hidden bg-card/95">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -309,7 +296,7 @@ export default function AdminDashboard() {
         </motion.div>
 
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
-          <Card className="h-full border-none shadow-md bg-card/50 backdrop-blur-sm">
+          <Card className="h-full border-none shadow-md bg-card/95">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="h-5 w-5 text-[#4a1d80]" />
@@ -359,7 +346,7 @@ export default function AdminDashboard() {
       {/* Demand Distribution Section */}
       <div className="grid gap-6 lg:grid-cols-3">
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
-          <Card className="h-[500px] border-none shadow-md overflow-hidden bg-card/50 backdrop-blur-sm">
+          <Card className="h-[500px] border-none shadow-md overflow-hidden bg-card/95">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -379,7 +366,7 @@ export default function AdminDashboard() {
 
         <motion.div variants={itemVariants} initial="hidden" animate="visible" className="lg:col-span-2">
           <div className="grid gap-6 h-full">
-            <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
+            <Card className="border-none shadow-md bg-card/95">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ListFilter className="h-5 w-5 text-primary" />
@@ -390,7 +377,7 @@ export default function AdminDashboard() {
               <CardContent className="pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {stats.topComunas.map((comuna, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-background/40 border border-border/50 group hover:border-primary/30 hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-background/40 border border-border/50 group hover:border-primary/30 hover:shadow-md transition-all duration-300">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm group-hover:bg-primary/20 transition-colors">
                           {i + 1}
@@ -437,79 +424,10 @@ export default function AdminDashboard() {
         </motion.div>
       </div>
 
-      {/* Recent Activity & Quick Actions */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <motion.div variants={itemVariants} initial="hidden" animate="visible" className="lg:col-span-2">
-          <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Operaciones Recientes</CardTitle>
-                  <CardDescription>Seguimiento de los últimos movimientos</CardDescription>
-                </div>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Filtrar ID..." 
-                    className="pl-9 h-9 w-[200px] bg-background" 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {isLoading ? (
-                  <div className="space-y-3 py-2">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 rounded-xl border border-transparent">
-                        <div className="h-10 w-10 rounded-full bg-muted/40 animate-pulse shrink-0"></div>
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 w-1/3 bg-muted/40 rounded animate-pulse"></div>
-                          <div className="h-3 w-1/2 bg-muted/40 rounded animate-pulse"></div>
-                        </div>
-                        <div className="h-4 w-16 bg-muted/40 rounded animate-pulse hidden sm:block"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : filteredShipments.length === 0 ? (
-                  <div className="py-10 text-center text-muted-foreground">No se encontraron resultados.</div>
-                ) : (
-                  filteredShipments.map((s, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 rounded-xl hover:bg-card/80 transition-all duration-200 group cursor-pointer border border-transparent hover:border-border/50 hover:shadow-sm">
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${statusStyles[s.status]?.split(' ')[0] || 'bg-muted'}`}>
-                        <Package className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm">#{s.id.substring(0, 8).toUpperCase()}</p>
-                          <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 border-none ${statusStyles[s.status] || 'bg-muted text-muted-foreground'}`}>
-                            {s.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">{(s.pickup_address || "").split(',')[0]} → {(s.delivery_address || "").split(',')[0]}</p>
-                      </div>
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold">${(s.estimated_price || 0).toLocaleString('es-CL')}</p>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{format(new Date(s.createdAt), "HH:mm 'hs'")}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-              <Button variant="ghost" className="w-full mt-4 text-primary hover:text-primary hover:bg-primary/5">
-                Ver Todos los Envíos <ExternalLink className="h-3 w-3 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={itemVariants} initial="hidden" animate="visible" className="flex flex-col gap-6">
-          <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
+      {/* System Activity & Quick Actions */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" className="flex flex-col">
+          <Card className="flex-1 border-none shadow-md bg-card/95">
             <CardHeader>
               <CardTitle>Actividad del Sistema</CardTitle>
               <CardDescription>Eventos críticos registrados</CardDescription>
@@ -531,37 +449,37 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
 
-          <div className="grid grid-cols-2 gap-4 flex-1">
-            <Link href="/admin/mission-control" prefetch={false} className="group">
-              <Card className="h-full border-none shadow-md bg-[#4a1d80] text-white overflow-hidden relative cursor-pointer hover:scale-[1.03] hover:shadow-xl transition-all duration-300">
-                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
-                  <MapIcon size={100} />
+        <motion.div variants={itemVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-4">
+          <Link href="/admin/mission-control" prefetch={false} className="group">
+            <Card className="h-full border-none shadow-md bg-[#4a1d80] text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
+              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
+                <MapIcon size={100} />
+              </div>
+              <CardContent className="p-4 flex flex-col h-full justify-between">
+                <MapIcon className="h-6 w-6" />
+                <div className="mt-8">
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-60">Control</p>
+                  <h4 className="font-bold text-sm">Mission Control</h4>
                 </div>
-                <CardContent className="p-4 flex flex-col h-full justify-between">
-                  <MapIcon className="h-6 w-6" />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-60">Control</p>
-                    <h4 className="font-bold text-sm">Mission Control</h4>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/admin/users" className="group">
-              <Card className="h-full border-none shadow-md bg-primary text-white overflow-hidden relative cursor-pointer hover:scale-[1.03] hover:shadow-xl transition-all duration-300">
-                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
-                  <Users size={100} />
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/admin/users" className="group">
+            <Card className="h-full border-none shadow-md bg-primary text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
+              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
+                <Users size={100} />
+              </div>
+              <CardContent className="p-4 flex flex-col h-full justify-between">
+                <Users className="h-6 w-6" />
+                <div className="mt-8">
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-60">Flota</p>
+                  <h4 className="font-bold text-sm">Gestión Usuarios</h4>
                 </div>
-                <CardContent className="p-4 flex flex-col h-full justify-between">
-                  <Users className="h-6 w-6" />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-60">Flota</p>
-                    <h4 className="font-bold text-sm">Gestión Usuarios</h4>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+              </CardContent>
+            </Card>
+          </Link>
         </motion.div>
       </div>
     </div>

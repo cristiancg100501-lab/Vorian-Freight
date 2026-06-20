@@ -172,7 +172,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
       <div 
         className={cn(
           "sticky top-4 flex h-full max-h-[calc(100vh-2rem)] flex-col gap-2 rounded-xl border shadow-2xl overflow-hidden transition-all duration-300",
-          "bg-card/95 backdrop-blur-xl border-border"
+          "bg-card/98 border-border"
         )}
         style={{ 
           borderColor: 'rgba(255,255,255,0.05)',
@@ -187,7 +187,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                     alt="Vorian Freight Light"
                     width={80}
                     height={80}
-                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] block dark:hidden transition-all duration-500 group-hover:scale-[2.8] group-hover:-rotate-3"
+                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] block dark:hidden"
                     priority
                     unoptimized
                   />
@@ -196,7 +196,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                     alt="Vorian Freight Dark"
                     width={80}
                     height={80}
-                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] hidden dark:block transition-all duration-500 group-hover:scale-[2.8] group-hover:-rotate-3"
+                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] hidden dark:block"
                     priority
                     unoptimized
                   />

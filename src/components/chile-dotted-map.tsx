@@ -146,8 +146,7 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
         ref={canvasRef}
         width={200}
         height={1400}
-        className="h-full w-auto drop-shadow-[0_0_15px_rgba(0,0,0,0.2)]"
-        style={{ imageRendering: "crisp-edges" }}
+        className="h-full w-auto"
       />
 
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">

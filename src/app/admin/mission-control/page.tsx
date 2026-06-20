@@ -133,7 +133,7 @@ export default function MissionControlPage() {
       </div>
 
       {/* Floating Header / Stats Overlay */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-card/80 backdrop-blur-xl border shadow-2xl p-2 px-6 rounded-full">
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-card/95 border shadow-2xl p-2 px-6 rounded-full">
         <div className="flex items-center gap-2 pr-4 border-r">
           <Activity className="h-4 w-4 text-primary animate-pulse" />
           <h1 className="text-sm font-black uppercase tracking-widest">Mission Control</h1>
@@ -164,7 +164,7 @@ export default function MissionControlPage() {
         animate={{ x: 0, opacity: 1 }}
         className="absolute top-6 left-6 bottom-6 w-80 z-20 flex flex-col pointer-events-none"
       >
-        <div className="bg-card/80 backdrop-blur-xl border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-full pointer-events-auto">
+        <div className="bg-card/95 border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-full pointer-events-auto">
           <div className="p-4 border-b bg-muted/20">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
