@@ -17,7 +17,7 @@ const Map = dynamic(() => import('@/components/map'), {
   ssr: false,
   loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
 });
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 
 const statusStyles: { [key: string]: string } = {
   "In transit": "bg-muted text-muted-foreground",
@@ -30,6 +30,7 @@ const statusStyles: { [key: string]: string } = {
 
 
 export default function AdminShipmentsPage() {
+  const [showMap, setShowMap] = useState(false);
   const { data: allShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments");
   const { data: driverProfiles, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles");
 
@@ -94,8 +95,20 @@ export default function AdminShipmentsPage() {
                     <CardDescription>Ubicación en tiempo real de los conductores que están en servicio.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 rounded-b-lg overflow-hidden">
-                    <div className="h-[420px] w-full">
-                        <Map drivers={activeDrivers} route={null} origin={null} destination={null} />
+                    <div className="h-[420px] w-full relative">
+                        {showMap ? (
+                            <Map drivers={activeDrivers} route={null} origin={null} destination={null} />
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
+                                <MapPin className="w-12 h-12 mb-4 opacity-30" />
+                                <h3 className="text-lg font-medium mb-2 text-foreground">Mapa de Conductores</h3>
+                                <p className="text-sm mb-6 max-w-md text-center">Visualiza la ubicación en tiempo real de los conductores en servicio. Este mapa interactivo 3D consume recursos adicionales.</p>
+                                <Button onClick={() => setShowMap(true)} variant="outline" className="shadow-sm">
+                                    <MapPin className="w-4 h-4 mr-2" />
+                                    Cargar Mapa
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
