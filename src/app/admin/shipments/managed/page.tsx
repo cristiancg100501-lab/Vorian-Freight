@@ -43,7 +43,6 @@ export default function ManagedShipmentPage() {
     const [routeDetails, setRouteDetails] = useState({ distance: 0, duration: 0, geometry: null as any });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [showMap, setShowMap] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -313,25 +312,13 @@ export default function ManagedShipmentPage() {
 
                 {/* Mapa y Resumen */}
                 <div className="space-y-6">
-                    <Card className="h-[400px] overflow-hidden relative">
-                        {showMap ? (
-                            <Map 
-                                route={routeDetails.geometry} 
-                                origin={pickup.coords} 
-                                destination={delivery.coords} 
-                                drivers={null} 
-                            />
-                        ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
-                                <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                                <h3 className="text-lg font-medium mb-2 text-foreground">Previsualización de Ruta</h3>
-                                <p className="text-sm mb-6 max-w-sm text-center">El mapa interactivo 3D consume recursos adicionales. Haz clic para visualizar la estimación de ruta.</p>
-                                <Button onClick={() => setShowMap(true)} variant="outline" className="shadow-sm">
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    Cargar Mapa Interactivo
-                                </Button>
-                            </div>
-                        )}
+                    <Card className="h-[400px] overflow-hidden">
+                        <Map 
+                            route={routeDetails.geometry} 
+                            origin={pickup.coords} 
+                            destination={delivery.coords} 
+                            drivers={null} 
+                        />
                     </Card>
 
                     <Card className="bg-muted/30">

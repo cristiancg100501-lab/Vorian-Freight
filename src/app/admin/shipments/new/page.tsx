@@ -78,7 +78,6 @@ export default function NewShipmentPage() {
 
     // Multi-step form state
     const [step, setStep] = useState(1);
-    const [showMap, setShowMap] = useState(false);
 
     // Step 1 State
     const [clientId, setClientId] = useState('');
@@ -386,20 +385,8 @@ export default function NewShipmentPage() {
         <div className="max-w-screen-xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight mb-6">Crear Nuevo Envío - {step === 1 ? 'Ruta y Horario' : step === 2 ? 'Detalles de Carga' : 'Opciones y Reserva'}</h1>
             
-            <div className="h-80 w-full rounded-lg overflow-hidden border mb-8 relative">
-                {showMap ? (
-                    <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
-                ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
-                        <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                        <h3 className="text-lg font-medium mb-2 text-foreground">Previsualización de Ruta</h3>
-                        <p className="text-sm mb-6 max-w-sm text-center">El mapa interactivo 3D consume recursos adicionales. Haz clic para visualizar la estimación de ruta del viaje.</p>
-                        <Button type="button" onClick={() => setShowMap(true)} variant="default" className="shadow-lg">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            Cargar Mapa de Ruta
-                        </Button>
-                    </div>
-                )}
+            <div className="h-80 w-full rounded-lg overflow-hidden border mb-8">
+                <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
             </div>
 
             <div className="mb-8">

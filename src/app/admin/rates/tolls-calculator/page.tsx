@@ -74,8 +74,6 @@ export default function TollsCalculatorPage() {
     useEffect(() => {
         if (!mapContainer.current) return;
         
-        let animationId: number;
-
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
             style: theme === 'light' ? 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr' : 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv',
@@ -215,6 +213,7 @@ export default function TollsCalculatorPage() {
 
             // Animación de pulso profesional - throttled to 20fps to save CPU
             let step = 0;
+            let animationId: number;
             let lastAnimTime = 0;
             const animFpsInterval = 1000 / 20;
 

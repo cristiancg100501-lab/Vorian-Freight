@@ -84,7 +84,6 @@ const Trend = ({ value }: { value: number }) => {
 
 export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showMap, setShowMap] = useState(false);
 
   const { data: allShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments");
   const { data: driverProfiles, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles");
@@ -372,20 +371,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="h-[400px] p-4 relative">
-              {showMap ? (
-                <ChileDottedMap shipments={allShipments || []} />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6 text-center rounded-xl border border-dashed border-border/50">
-                  <MapIcon className="w-12 h-12 mb-4 opacity-30" />
-                  <h3 className="text-lg font-medium mb-2 text-foreground">Mapa de Demanda Nacional</h3>
-                  <p className="text-sm mb-6 max-w-sm">Visualiza la concentración de envíos en tiempo real a través de todo Chile. Este mapa requiere recursos gráficos.</p>
-                  <Button onClick={() => setShowMap(true)} variant="outline" className="shadow-sm">
-                    <MapIcon className="w-4 h-4 mr-2" />
-                    Cargar Mapa Interactivo
-                  </Button>
-                </div>
-              )}
+            <CardContent className="h-[400px] p-4">
+               <ChileDottedMap shipments={allShipments || []} />
             </CardContent>
           </Card>
         </motion.div>

@@ -54,7 +54,6 @@ const statusLabels: { [key: string]: string } = {
 export default function CustomerDashboard() {
   const { user } = useUser();
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
-  const [showMap, setShowMap] = useState(false);
 
   const filterShipments = useCallback((q: any) => {
     if (!user) return q;
@@ -285,29 +284,16 @@ export default function CustomerDashboard() {
         <Card className="xl:col-span-2 bg-card border overflow-hidden shadow-sm relative min-h-[400px]">
             {selectedShipment ? (
                 <>
-                    {showMap ? (
-                      <Map 
-                          route={selectedShipment.details?.route} 
-                          origin={selectedShipment.originCoords || selectedShipment.details?.originCoords} 
-                          destination={selectedShipment.destinationCoords || selectedShipment.details?.destinationCoords} 
-                          drivers={selectedShipment.current_location ? [{
-                              id: selectedShipment.id,
-                              coords: [selectedShipment.current_longitude, selectedShipment.current_latitude],
-                              vehicleType: selectedShipment.details?.vehicleType || 'camion_3_4'
-                          }] : null}
-                      />
-                    ) : (
-                      <div className="w-full h-full min-h-[400px] flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6 text-center">
-                        <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                        <h3 className="text-lg font-medium mb-2 text-foreground">Mapa Interactivo 3D</h3>
-                        <p className="text-sm mb-6 max-w-md">El motor de mapas requiere recursos de procesamiento adicionales. Cárgalo solo cuando lo necesites para ahorrar batería y datos.</p>
-                        <Button onClick={() => setShowMap(true)} variant="default" className="shadow-lg">
-                          <Navigation className="w-4 h-4 mr-2" />
-                          Cargar Mapa en Vivo
-                        </Button>
-                      </div>
-                    )}
-                    
+                    <Map 
+                        route={selectedShipment.details?.route} 
+                        origin={selectedShipment.originCoords || selectedShipment.details?.originCoords} 
+                        destination={selectedShipment.destinationCoords || selectedShipment.details?.destinationCoords} 
+                        drivers={selectedShipment.current_location ? [{
+                            id: selectedShipment.id,
+                            coords: [selectedShipment.current_longitude, selectedShipment.current_latitude],
+                            vehicleType: selectedShipment.details?.vehicleType || 'camion_3_4'
+                        }] : null}
+                    />
                     <div className="absolute top-4 left-4 right-4 pointer-events-none">
                         <div className="bg-background/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl pointer-events-auto flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">

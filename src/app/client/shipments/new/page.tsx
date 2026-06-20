@@ -96,7 +96,6 @@ export default function NewClientShipmentPage() {
 
     // Multi-step form state
     const [step, setStep] = useState<number>(1);
-    const [showMap, setShowMap] = useState(false);
 
     // Step 1 State
     const [equipment, setEquipment] = useState('20 ST');
@@ -1038,26 +1037,14 @@ Broadway: 1
 
                 {/* Right Column: Map and Summary */}
                 <div className="space-y-6">
-                    <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4 relative">
-                        {showMap ? (
-                            <Map 
-                                route={routeDetails.geometry} 
-                                origin={pickup.coords} 
-                                destination={delivery.coords} 
-                                activeTolls={tollsBreakdown} 
-                                vehicleType={vehicleType}
-                            />
-                        ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
-                                <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                                <h3 className="text-lg font-medium mb-2 text-foreground">Previsualización de Ruta</h3>
-                                <p className="text-sm mb-6 max-w-md text-center">El mapa interactivo 3D consume recursos adicionales. Haz clic para visualizar la estimación de ruta y peajes.</p>
-                                <Button type="button" onClick={() => setShowMap(true)} variant="default" className="shadow-lg">
-                                    <MapPin className="w-4 h-4 mr-2" />
-                                    Cargar Mapa de Ruta
-                                </Button>
-                            </div>
-                        )}
+                    <div className="h-80 w-full rounded-lg overflow-hidden border sticky top-4">
+                        <Map 
+                            route={routeDetails.geometry} 
+                            origin={pickup.coords} 
+                            destination={delivery.coords} 
+                            activeTolls={tollsBreakdown} 
+                            vehicleType={vehicleType}
+                        />
                     </div>
                     <Card className="bg-card border shadow-lg relative overflow-hidden">
                         {isRefreshingPrice && (

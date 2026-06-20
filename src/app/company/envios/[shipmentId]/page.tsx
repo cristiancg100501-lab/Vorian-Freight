@@ -83,7 +83,6 @@ export default function ShipmentDetailPage() {
     const [selectedDriverId, setSelectedDriverId] = useState<string>("");
     const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
     const [isAssigning, setIsAssigning] = useState(false);
-    const [showMap, setShowMap] = useState(false);
     
     const { data: shipment, isLoading } = useSupabaseDoc("shipments", shipmentId);
 
@@ -259,19 +258,7 @@ export default function ShipmentDetailPage() {
                         <CardHeader><CardTitle>Ruta y Horarios</CardTitle></CardHeader>
                         <CardContent className="space-y-6">
                             <div className="h-80 w-full rounded-lg overflow-hidden border">
-                                {showMap ? (
-                                    <ShipmentMap origin={shipmentOrigin} destination={shipmentDestination} drivers={null} route={null} />
-                                ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
-                                        <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                                        <h3 className="text-lg font-medium mb-2 text-foreground">Mapa Interactivo 3D</h3>
-                                        <p className="text-sm mb-6 max-w-sm text-center">El mapa interactivo 3D consume batería y datos. Haz clic para activarlo y visualizar el origen y destino.</p>
-                                        <Button type="button" onClick={() => setShowMap(true)} variant="outline" className="shadow-sm">
-                                            <MapPin className="w-4 h-4 mr-2" />
-                                            Cargar Mapa
-                                        </Button>
-                                    </div>
-                                )}
+                                <ShipmentMap origin={shipmentOrigin} destination={shipmentDestination} drivers={null} route={null} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">

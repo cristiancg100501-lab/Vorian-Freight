@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, Layers, Calendar as CalendarIcon, MapPin, ArrowRight, ArrowLeft, Upload, Package, Ruler, Weight, Check, Star, HelpCircle, Bolt, DollarSign, Navigation } from 'lucide-react';
+import { Truck, Layers, Calendar as CalendarIcon, MapPin, ArrowRight, ArrowLeft, Upload, Package, Ruler, Weight, Check, Star, HelpCircle, Bolt, DollarSign } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,7 +78,6 @@ export default function NewShipmentPage() {
 
     // Multi-step form state
     const [step, setStep] = useState(1);
-    const [showMap, setShowMap] = useState(false);
 
     // Step 1 State
     const [isInternalShipment, setIsInternalShipment] = useState(false);
@@ -526,20 +525,8 @@ export default function NewShipmentPage() {
         <div className="max-w-screen-xl mx-auto">
             <h1 className="text-3xl font-bold tracking-tight mb-6">Crear Nuevo Envío - {step === 1 ? 'Ruta y Horario' : step === 2 ? 'Detalles de Carga' : 'Opciones y Reserva'}</h1>
             
-            <div className="h-80 w-full rounded-lg overflow-hidden border mb-8 relative">
-                {showMap ? (
-                  <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6">
-                    <MapPin className="w-12 h-12 mb-4 opacity-30" />
-                    <h3 className="text-lg font-medium mb-2 text-foreground">Previsualización de Ruta</h3>
-                    <p className="text-sm mb-6 max-w-md text-center">El mapa interactivo 3D consume recursos adicionales. Haz clic para visualizar la estimación de ruta del viaje.</p>
-                    <Button type="button" onClick={() => setShowMap(true)} variant="default" className="shadow-lg">
-                      <Navigation className="w-4 h-4 mr-2" />
-                      Cargar Mapa de Ruta
-                    </Button>
-                  </div>
-                )}
+            <div className="h-80 w-full rounded-lg overflow-hidden border mb-8">
+                <Map route={routeDetails.geometry} origin={pickup.coords} destination={delivery.coords} drivers={null} />
             </div>
 
             <div className="mb-8">

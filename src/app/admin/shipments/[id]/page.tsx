@@ -29,7 +29,6 @@ export default function ShipmentDetailPage() {
     const [customer, setCustomer] = useState<any>(null);
     const [driver, setDriver] = useState<any>(null);
     const [routeGeometry, setRouteGeometry] = useState<any>(null);
-    const [showMap, setShowMap] = useState(false);
 
     useEffect(() => {
         const fetchShipment = async () => {
@@ -120,40 +119,26 @@ export default function ShipmentDetailPage() {
                         </CardTitle>
                     </CardHeader>
                     <div className="h-[450px] relative">
-                        {showMap ? (
-                            <>
-                                <Map 
-                                    route={routeGeometry} 
-                                    origin={[shipment.pickup_longitude, shipment.pickup_latitude]} 
-                                    destination={[shipment.delivery_longitude, shipment.delivery_latitude]}
-                                    drivers={shipment.current_latitude ? [{
-                                        userId: shipment.driver_id,
-                                        currentLatitude: shipment.current_latitude,
-                                        currentLongitude: shipment.current_longitude,
-                                        isAvailable: true
-                                    }] : null}
-                                />
-                                {shipment.current_latitude && (
-                                    <div className="absolute bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm p-3 rounded-lg border shadow-xl flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-3 w-3 bg-green-500 rounded-full animate-ping" />
-                                            <span className="text-sm font-bold">Ubicación Actual del Chofer</span>
-                                        </div>
-                                        <span className="text-xs font-mono text-muted-foreground">
-                                            {shipment.current_latitude.toFixed(4)}, {shipment.current_longitude.toFixed(4)}
-                                        </span>
-                                    </div>
-                                )}
-                            </>
-                        ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-muted/20 text-muted-foreground p-6 text-center">
-                                <MapIcon className="w-12 h-12 mb-4 opacity-30" />
-                                <h3 className="text-lg font-medium mb-2 text-foreground">Ruta Interactiva 3D</h3>
-                                <p className="text-sm mb-6 max-w-sm text-center">El mapa interactivo de rutas y seguimiento en vivo consume recursos adicionales.</p>
-                                <Button onClick={() => setShowMap(true)} variant="outline" className="shadow-sm">
-                                    <MapIcon className="w-4 h-4 mr-2" />
-                                    Cargar Mapa Interactivo
-                                </Button>
+                        <Map 
+                            route={routeGeometry} 
+                            origin={[shipment.pickup_longitude, shipment.pickup_latitude]} 
+                            destination={[shipment.delivery_longitude, shipment.delivery_latitude]}
+                            drivers={shipment.current_latitude ? [{
+                                userId: shipment.driver_id,
+                                currentLatitude: shipment.current_latitude,
+                                currentLongitude: shipment.current_longitude,
+                                isAvailable: true
+                            }] : null}
+                        />
+                        {shipment.current_latitude && (
+                            <div className="absolute bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm p-3 rounded-lg border shadow-xl flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-3 w-3 bg-green-500 rounded-full animate-ping" />
+                                    <span className="text-sm font-bold">Ubicación Actual del Chofer</span>
+                                </div>
+                                <span className="text-xs font-mono text-muted-foreground">
+                                    {shipment.current_latitude.toFixed(4)}, {shipment.current_longitude.toFixed(4)}
+                                </span>
                             </div>
                         )}
                     </div>
