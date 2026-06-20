@@ -119,6 +119,8 @@ export default function TollsCalculatorPage() {
         markerA.current.on('dragend', onDragEnd);
         markerB.current.on('dragend', onDragEnd);
 
+        let animationId: number;
+
         map.current.on('load', () => {
             // Estética Profesional: Ocultar POIs y landmarks para que sea gris y limpio
             const style = map.current?.getStyle();
@@ -213,7 +215,6 @@ export default function TollsCalculatorPage() {
 
             // Animación de pulso profesional - throttled to 20fps to save CPU
             let step = 0;
-            let animationId: number;
             let lastAnimTime = 0;
             const animFpsInterval = 1000 / 20;
 
