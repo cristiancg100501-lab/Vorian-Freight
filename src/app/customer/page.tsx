@@ -10,11 +10,10 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Truck, MapPin, Navigation, Package, Clock, DollarSign, CheckCircle2, ChevronRight, Activity, Plus, ArrowRight } from "lucide-react";
+import { Truck, MapPin, Navigation, Package, Clock, DollarSign, CheckCircle2, ChevronRight, Activity, Plus } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { useCallback, useState, useEffect, useMemo } from "react";
-import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from "motion/react";
 import {
   AreaChart,
@@ -27,11 +26,6 @@ import {
 } from "recharts";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const Map = dynamic(() => import('@/components/map'), { 
-  ssr: false,
-  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted/50 rounded-xl animate-pulse backdrop-blur-md"><span className="text-muted-foreground font-medium text-sm flex items-center gap-2"><Navigation className="w-4 h-4 animate-spin"/> Conectando satélite...</span></div>
-});
 
 const statusStyles: { [key: string]: string } = {
   "In transit": "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -280,58 +274,80 @@ export default function CustomerDashboard() {
           </CardContent>
         </Card>
 
-        {/* MAP */}
-        <Card className="xl:col-span-2 bg-card border overflow-hidden shadow-sm relative min-h-[400px]">
+        {/* ROUTE PREVIEW - lightweight, no WebGL */}
+        <Card className="xl:col-span-2 bg-card border overflow-hidden shadow-sm relative min-h-[400px] flex flex-col">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Navigation className="w-5 h-5 text-primary" />
+              Envío Seleccionado
+            </CardTitle>
+            {selectedShipment && (
+              <CardDescription>
+                ID #{selectedShipment.id.substring(0,8).toUpperCase()} &bull; <span className={cn("font-semibold", statusStyles[selectedShipment.status]?.split(' ')[1])}>{statusLabels[selectedShipment.status] || selectedShipment.status}</span>
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col gap-4">
             {selectedShipment ? (
-                <>
-                    <Map 
-                        route={selectedShipment.details?.route} 
-                        origin={selectedShipment.originCoords || selectedShipment.details?.originCoords} 
-                        destination={selectedShipment.destinationCoords || selectedShipment.details?.destinationCoords} 
-                        drivers={selectedShipment.current_location ? [{
-                            id: selectedShipment.id,
-                            coords: [selectedShipment.current_longitude, selectedShipment.current_latitude],
-                            vehicleType: selectedShipment.details?.vehicleType || 'camion_3_4'
-                        }] : null}
-                    />
-                    <div className="absolute top-4 left-4 right-4 pointer-events-none">
-                        <div className="bg-background/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl pointer-events-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className={cn("p-3 rounded-full border", statusStyles[selectedShipment.status] || "bg-muted")}>
-                                    <Truck className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rastreo Activo</p>
-                                    <p className="text-sm font-black flex items-center gap-2">
-                                        ID: {selectedShipment.id.substring(0,8)} 
-                                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold uppercase", statusStyles[selectedShipment.status])}>
-                                            {statusLabels[selectedShipment.status] || selectedShipment.status}
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col md:flex-row md:items-center gap-4 text-xs">
-                                <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                                    <MapPin className="w-3 h-3 text-green-500" />
-                                    <span className="truncate max-w-[120px]">{selectedShipment.originAddress?.split(',')[0]}</span>
-                                </div>
-                                <ArrowRight className="w-3 h-3 text-muted-foreground hidden md:block" />
-                                <div className="flex items-center gap-2 text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-                                    <MapPin className="w-3 h-3 text-red-500" />
-                                    <span className="truncate max-w-[120px]">{selectedShipment.destinationAddress?.split(',')[0]}</span>
-                                </div>
-                            </div>
-                        </div>
+              <>
+                {/* Route visual */}
+                <div className="flex flex-col gap-3 p-4 bg-muted/30 rounded-xl border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-green-500 shrink-0 ring-4 ring-green-500/20" />
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground">Origen</p>
+                      <p className="text-sm font-semibold">{selectedShipment.originAddress || '—'}</p>
                     </div>
-                </>
-             ) : (
-                <div className="h-full w-full flex flex-col items-center justify-center bg-muted/20 border-dashed border-2 border-muted-foreground/20 m-4 rounded-xl w-[calc(100%-2rem)] h-[calc(100%-2rem)]">
-                    <div className="p-4 bg-background rounded-full shadow-sm mb-4">
-                        <Navigation className="w-8 h-8 text-muted-foreground/50" />
+                  </div>
+                  <div className="ml-[5px] h-8 border-l-2 border-dashed border-muted-foreground/30" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-red-500 shrink-0 ring-4 ring-red-500/20" />
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground">Destino</p>
+                      <p className="text-sm font-semibold">{selectedShipment.destinationAddress || '—'}</p>
                     </div>
-                    <p className="text-muted-foreground font-medium">Selecciona un envío de la lista para rastrearlo.</p>
+                  </div>
                 </div>
-             )}
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Estado', value: statusLabels[selectedShipment.status] || selectedShipment.status, style: statusStyles[selectedShipment.status] },
+                    { label: 'Precio', value: `$${(parseFloat(selectedShipment.client_price) || parseFloat(selectedShipment.estimatedPrice) || 0).toLocaleString('es-CL')}`, style: '' },
+                    { label: 'Equipo', value: selectedShipment.details?.equipment || 'Estándar', style: '' },
+                  ].map((item, i) => (
+                    <div key={i} className="p-3 bg-muted/20 rounded-xl border">
+                      <p className="text-[10px] uppercase font-black text-muted-foreground mb-1">{item.label}</p>
+                      <p className={cn("text-xs font-bold", item.style?.split(' ')[1])}>{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA to tracking page */}
+                <div className="mt-auto pt-2">
+                  <Link href="/customer/tracking">
+                    <Button className="w-full gap-2 h-11">
+                      <Navigation className="w-4 h-4" />
+                      Ver en Mapa en Tiempo Real
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center py-12">
+                <div className="p-4 bg-muted rounded-full">
+                  <Navigation className="w-8 h-8 text-muted-foreground/40" />
+                </div>
+                <div>
+                  <p className="font-semibold text-muted-foreground">Sin envíos activos</p>
+                  <p className="text-sm text-muted-foreground/60 mt-1">Crea tu primer envío para empezar a rastrear.</p>
+                </div>
+                <Link href="/customer/new">
+                  <Button variant="outline" size="sm">Crear Envío</Button>
+                </Link>
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
 

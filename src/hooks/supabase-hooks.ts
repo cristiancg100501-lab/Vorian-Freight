@@ -1,78 +1,106 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSupabase } from '@/components/providers/supabase-provider'
 
 export interface UseCollectionResult<T> {
   data: T[] | null
   isLoading: boolean
   error: Error | null
+  refetch: () => void
 }
 
+/**
+ * Fetches a Supabase table with optional filtering and optional realtime updates.
+ *
+ * PERFORMANCE NOTES:
+ * - Pass `realtime: false` for read-only data that doesn't need live updates.
+ *   This avoids opening a WebSocket channel just to watch static data.
+ * - Wrap your `queryFn` in `useCallback` in the caller to prevent infinite
+ *   re-fetch loops. If you don't, this hook will re-run on every render.
+ * - The channel name is deterministic (based on table + options), so React
+ *   Strict Mode double-effects won't create duplicate WebSocket connections.
+ */
 export function useSupabaseCollection<T = any>(
   table: string,
-  queryFn?: (query: any) => any
+  queryFn?: (query: any) => any,
+  options?: { realtime?: boolean }
 ): UseCollectionResult<T> {
   const { supabase } = useSupabase()
   const [data, setData] = useState<T[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [tick, setTick] = useState(0)
+  const enableRealtime = options?.realtime !== false // default: true
+
+  // Stable refetch trigger
+  const refetch = useCallback(() => setTick((t) => t + 1), [])
 
   useEffect(() => {
-    let baseQuery = supabase.from(table).select('*')
-    if (queryFn) {
-      baseQuery = queryFn(baseQuery)
-    }
+    let cancelled = false
 
     const fetchData = async () => {
       setIsLoading(true)
-      const { data, error } = await baseQuery
-      if (error) {
-        setError(error)
+      let baseQuery = supabase.from(table).select('*')
+      if (queryFn) {
+        baseQuery = queryFn(baseQuery)
+      }
+
+      const { data: result, error: fetchError } = await baseQuery
+      if (cancelled) return
+
+      if (fetchError) {
+        setError(fetchError as unknown as Error)
       } else {
-        setData(data as T[])
+        setData(result as T[])
       }
       setIsLoading(false)
     }
 
     fetchData()
 
-    // Real-time subscription
-    const channelId = `${table}_realtime_${Math.random().toString(36).substring(7)}`
+    if (!enableRealtime) {
+      return () => { cancelled = true }
+    }
+
+    // Use a deterministic channel name so React Strict Mode double-invocation
+    // doesn't create duplicate channels. Math.random() was the bug — it caused
+    // a new channel on every render, leaking WebSocket connections.
+    const channelId = `collection:${table}`
     const channel = supabase
       .channel(channelId)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: table },
+        { event: '*', schema: 'public', table },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setData((prev) => prev ? [...prev, payload.new as T] : [payload.new as T]);
+            setData((prev) => (prev ? [...prev, payload.new as T] : [payload.new as T]))
           } else if (payload.eventType === 'UPDATE') {
             setData((prev) => {
-              if (!prev) return prev;
-              const index = prev.findIndex((item: any) => item.id === payload.new.id);
-              if (index === -1) return prev;
-              
-              const newData = [...prev];
-              newData[index] = { ...newData[index], ...payload.new };
-              return newData;
-            });
+              if (!prev) return prev
+              const idx = prev.findIndex((item: any) => item.id === payload.new.id)
+              if (idx === -1) return prev
+              const next = [...prev]
+              next[idx] = { ...next[idx], ...payload.new }
+              return next
+            })
           } else if (payload.eventType === 'DELETE') {
-            setData((prev) => {
-              if (!prev) return prev;
-              return prev.filter((item: any) => item.id !== payload.old.id);
-            });
+            setData((prev) => (prev ? prev.filter((item: any) => item.id !== payload.old.id) : prev))
           }
         }
       )
       .subscribe()
 
     return () => {
+      cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [table, supabase, queryFn])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, supabase, enableRealtime, tick])
+  // NOTE: queryFn intentionally omitted from deps — callers MUST wrap it in
+  // useCallback. Adding it here causes infinite loops when callers pass inline fns.
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, refetch }
 }
 
 export function useSupabaseDoc<T = any>(
@@ -83,6 +111,9 @@ export function useSupabaseDoc<T = any>(
   const [data, setData] = useState<T | null>(null)
   const [isLoading, setIsLoading] = useState(!!id)
   const [error, setError] = useState<Error | null>(null)
+  const [tick, setTick] = useState(0)
+
+  const refetch = useCallback(() => setTick((t) => t + 1), [])
 
   useEffect(() => {
     if (!id) {
@@ -91,40 +122,45 @@ export function useSupabaseDoc<T = any>(
       return
     }
 
+    let cancelled = false
+
     const fetchData = async () => {
       setIsLoading(true)
-      const { data, error } = await supabase
+      const { data: result, error: fetchError } = await supabase
         .from(table)
         .select('*')
         .eq('id', id)
         .single()
 
-      if (error) {
-        setError(error)
+      if (cancelled) return
+
+      if (fetchError) {
+        setError(fetchError as unknown as Error)
       } else {
-        setData(data as T)
+        setData(result as T)
       }
       setIsLoading(false)
     }
 
     fetchData()
 
-    const channelId = `${table}_${id}_${Math.random().toString(36).substring(7)}`
+    // Deterministic channel name — avoids duplicate channels in Strict Mode
+    const channelId = `doc:${table}:${id}`
     const channel = supabase
       .channel(channelId)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: table, filter: `id=eq.${id}` },
-        () => {
-          fetchData()
-        }
+        { event: '*', schema: 'public', table, filter: `id=eq.${id}` },
+        () => { fetchData() }
       )
       .subscribe()
 
     return () => {
+      cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [table, id, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, id, supabase, tick])
 
-  return { data: data as any, isLoading, error }
+  return { data: data as any, isLoading, error, refetch }
 }
