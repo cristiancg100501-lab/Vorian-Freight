@@ -53,10 +53,17 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     let frameId: number;
     let lastTime = performance.now();
 
+    const fpsInterval = 1000 / 24; // Throttle to 24 FPS
+
     const animate = (time: number) => {
-      const deltaTimeMs = time - lastTime;
+      const elapsed = time - lastTime;
+      if (elapsed < fpsInterval) {
+          frameId = requestAnimationFrame(animate);
+          return;
+      }
+      const deltaTimeMs = elapsed;
       const deltaTime = deltaTimeMs / 16.666; // Normalize to 60fps
-      lastTime = time;
+      lastTime = time - (elapsed % fpsInterval);
 
       Object.entries(driverAnimStatesRef.current).forEach(([id, state]) => {
         const marker = driverMarkersRef.current[id];
@@ -568,8 +575,19 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 const DURATION = 2000;
                 const TAIL_LENGTH = Math.max(2, totalLength * 0.25);
                 
+                let lastSnakeTime = 0;
+                const snakeFpsInterval = 1000 / 20; // 20 FPS for heavy turf calc
+
                 const animateSnake = (timestamp: number) => {
                     if (!startTimestamp) startTimestamp = timestamp;
+                    
+                    const elapsed = timestamp - lastSnakeTime;
+                    if (elapsed < snakeFpsInterval) {
+                        snakeAnimationId = requestAnimationFrame(animateSnake);
+                        return;
+                    }
+                    lastSnakeTime = timestamp - (elapsed % snakeFpsInterval);
+
                     const progress = (timestamp - startTimestamp) / DURATION;
                     
                     if (progress <= 1.2) {
