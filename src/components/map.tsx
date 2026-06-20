@@ -572,33 +572,38 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                   mapInst.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 2200 });
               }
 
-              // --- ANIMACION TURF SNAKE (Pre-computed, 60fps) ---
+              // --- SNAKE ANIMATION: coordinate-slice approach (zero turf per frame) ---
               if (snakeSource) {
-                  const routeLine = turf.lineString(route.coordinates);
-                  const totalLength = turf.length(routeLine, { units: 'kilometers' });
-                  const TOTAL_FRAMES = 60; // Pre-compute 60 frames
-                  const TAIL_RATIO = 0.25;
-                  const TAIL_LENGTH = Math.max(1, totalLength * TAIL_RATIO);
+                  const coords = route.coordinates as [number, number][];
+                  const n = coords.length;
+                  if (n < 2) return;
 
-                  // 1. PRE-COMPUTE all frames (heavy work done ONCE, before animation starts)
-                  const precomputedFrames: any[] = [];
-                  for (let f = 0; f <= TOTAL_FRAMES; f++) {
-                      const progress = f / TOTAL_FRAMES;
-                      const headDist = progress * totalLength;
-                      const tailDist = Math.max(0, headDist - TAIL_LENGTH);
-                      try {
-                          if (headDist > tailDist) {
-                              const seg = turf.lineSliceAlong(routeLine, tailDist, Math.min(headDist, totalLength), { units: 'kilometers' });
-                              precomputedFrames.push(seg);
-                          } else {
-                              precomputedFrames.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
-                          }
-                      } catch (e) {
-                          precomputedFrames.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } });
-                      }
+                  // 1. Pre-compute cumulative distances in ONE pass (O(n), runs instantly)
+                  const cumDist = new Float64Array(n);
+                  const toRad = (d: number) => d * Math.PI / 180;
+                  for (let i = 1; i < n; i++) {
+                      const [lng1, lat1] = coords[i - 1];
+                      const [lng2, lat2] = coords[i];
+                      const dLat = toRad(lat2 - lat1);
+                      const dLng = toRad(lng2 - lng1);
+                      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+                      cumDist[i] = cumDist[i-1] + 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
                   }
+                  const totalDist = cumDist[n - 1];
+                  const TAIL_KM = Math.max(1, totalDist * 0.25);
 
-                  // 2. ANIMATE at 60fps — only array indexing per frame (zero math)
+                  // Binary search: find coord index where cumDist >= targetKm
+                  const findIdx = (targetKm: number): number => {
+                      let lo = 0, hi = n - 1;
+                      while (lo < hi) {
+                          const mid = (lo + hi) >> 1;
+                          if (cumDist[mid] < targetKm) lo = mid + 1;
+                          else hi = mid;
+                      }
+                      return lo;
+                  };
+
+                  // 2. ANIMATE at 60fps — only binary search + array slice per frame
                   const DURATION_MS = 1800;
                   let startTimestamp: number | null = null;
 
@@ -606,15 +611,28 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                       if (!startTimestamp) startTimestamp = timestamp;
                       const elapsed = timestamp - startTimestamp;
                       const progress = Math.min(elapsed / DURATION_MS, 1);
-                      const frameIndex = Math.min(Math.floor(progress * TOTAL_FRAMES), TOTAL_FRAMES - 1);
 
-                      snakeSource.setData(precomputedFrames[frameIndex]);
+                      const headKm = progress * totalDist;
+                      const tailKm = Math.max(0, headKm - TAIL_KM);
+
+                      const headIdx = Math.min(findIdx(headKm), n - 1);
+                      const tailIdx = findIdx(tailKm);
+
+                      const sliceCoords = tailIdx <= headIdx
+                          ? coords.slice(tailIdx, headIdx + 1)
+                          : [];
+
+                      snakeSource.setData({
+                          type: 'Feature',
+                          properties: {},
+                          geometry: { type: 'LineString', coordinates: sliceCoords.length >= 2 ? sliceCoords : [] }
+                      });
 
                       if (progress < 1) {
                           snakeAnimationId = requestAnimationFrame(animateSnake);
                       } else {
-                          // Hold the full route
-                          snakeSource.setData(precomputedFrames[TOTAL_FRAMES]);
+                          // Hold the full route visible
+                          snakeSource.setData({ type: 'Feature', properties: {}, geometry: route });
                       }
                   };
                   snakeAnimationId = requestAnimationFrame(animateSnake);
