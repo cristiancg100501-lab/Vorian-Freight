@@ -50,7 +50,7 @@ export default function ReportesPage() {
     return q.order("anio", { ascending: true }).order("mes", { ascending: true });
   }, []);
 
-  const { data: fuelPrices, isLoading } = useSupabaseCollection("combustibles", filterFuelPrices);
+  const { data: fuelPrices, isLoading } = useSupabaseCollection("combustibles", filterFuelPrices, { realtime: false });
 
   // Get unique fuel types and regions for the filter dropdowns
   const { uniqueFuelTypes, uniqueRegions } = useMemo(() => {

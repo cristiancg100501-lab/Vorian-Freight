@@ -169,14 +169,14 @@ export default function AdminRatesPage() {
     const [markupPercentage, setMarkupPercentage] = useState(28);
     const ITEMS_PER_PAGE = 10;
 
-    const { data: vehicleRates, isLoading: isLoadingRates } = useSupabaseCollection("vehicleRates");
+    const { data: vehicleRates, isLoading: isLoadingRates } = useSupabaseCollection("vehicleRates", undefined, { realtime: false });
 
     const { data: globalSettings, isLoading: isLoadingSettings } = useSupabaseDoc("settings", "global");
 
     const filterFuelPrices = useCallback((q: any) => {
         return q.order("anio", { ascending: false }).order("mes", { ascending: false });
     }, []);
-    const { data: fuelPrices, isLoading: isLoadingFuelPrices } = useSupabaseCollection("combustibles", filterFuelPrices);
+    const { data: fuelPrices, isLoading: isLoadingFuelPrices } = useSupabaseCollection("combustibles", filterFuelPrices, { realtime: false });
 
     const { uniqueFuelTypes, uniqueRegions } = useMemo(() => {
         if (!fuelPrices) return { uniqueFuelTypes: [], uniqueRegions: [] };

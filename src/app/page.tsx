@@ -113,11 +113,7 @@ export default function Home() {
   if (isUserLoading || (user && isProfileLoading)) {
     return (
       <div className="min-h-screen w-full bg-black flex flex-col justify-center items-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-6"
-        >
+        <div className="flex flex-col items-center gap-6 animate-in fade-in duration-300">
           <div className="relative">
             <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full" />
             <Image 
@@ -126,11 +122,12 @@ export default function Home() {
               height={50} 
               alt="Loading" 
               className="relative animate-pulse"
+              priority
               unoptimized
             />
           </div>
           <p className="text-xl font-light tracking-[0.2em] text-white/80 uppercase">Vorian Logistics</p>
-        </motion.div>
+        </div>
         
         <AnimatePresence>
           {showRetry && (
@@ -236,10 +233,7 @@ export default function Home() {
                   width={180}
                   height={75}
                   alt="Vorian Logistics Logo"
-                  className={cn(
-                    "transition-all duration-300 drop-shadow-md", 
-                    !mounted && "opacity-0"
-                  )}
+                  className="transition-all duration-300 drop-shadow-md"
                   priority
                   unoptimized
                 />

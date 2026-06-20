@@ -21,10 +21,8 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link
-          href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css"
-          rel="stylesheet"
-        />
+        {/* Preload logo so browser fetches it at HTML parse time, not after JS boots */}
+        <link rel="preload" href="/vorian.svg" as="image" type="image/svg+xml" />
       </head>
       <body>
         <ThemeProvider

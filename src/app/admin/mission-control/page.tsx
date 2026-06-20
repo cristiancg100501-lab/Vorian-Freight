@@ -200,7 +200,6 @@ export default function MissionControlPage() {
             ) : (
               filteredDrivers.map((driver: any) => (
                 <motion.div
-                  layout
                   key={driver.id}
                   onClick={() => setSelectedDriverId(driver.id)}
                   className={`p-3 rounded-xl cursor-pointer transition-all border group ${
