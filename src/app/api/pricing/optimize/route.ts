@@ -95,10 +95,7 @@ export async function POST(request: Request) {
         } catch (e) {}
     }
 
-    // a) Hora Peak (17:00 a 19:00) -> +10%
-    if (currentHour >= 17 && currentHour <= 19) {
-        factorMarket += 0.10;
-    }
+    // a) (Anteriormente Hora Peak) - Eliminado a petición del usuario.
     
     // b) Zonas de Alta Demanda Dinámicas (Geocerca H3 - Últimos 45 min)
     let pickup_lat = null;
