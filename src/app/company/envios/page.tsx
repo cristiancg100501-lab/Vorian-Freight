@@ -124,7 +124,7 @@ export default function CompanyMyShipmentsPage() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2 font-semibold">
                                             <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                            <span>${shipment.estimated_price.toLocaleString('es-CL')}</span>
+                                            <span>${(shipment.estimated_price || 0).toLocaleString('es-CL')}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

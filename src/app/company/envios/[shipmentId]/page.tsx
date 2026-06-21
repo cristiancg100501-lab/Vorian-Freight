@@ -279,7 +279,7 @@ export default function ShipmentDetailPage() {
                         <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-6">
                             <DetailItem icon={Truck} label="Equipamiento" value={s.equipment} />
                             <DetailItem icon={Package} label="Mercancía" value={s.commodity} />
-                            <DetailItem icon={Weight} label="Peso" value={`${s.weight_lbs.toLocaleString()} lbs`} />
+                            <DetailItem icon={Weight} label="Peso" value={`${(s.weight_lbs || 0).toLocaleString()} lbs`} />
                             {s.pallets > 0 && <DetailItem icon={Layers} label="Pallets" value={s.pallets} />}
                             {s.dimensions && <DetailItem icon={Ruler} label="Dimensiones" value={s.dimensions} />}
                             {s.itemDescription && <DetailItem icon={ClipboardList} label="Descripción Item" value={s.itemDescription} />}
@@ -305,7 +305,7 @@ export default function ShipmentDetailPage() {
                     <Card>
                         <CardHeader><CardTitle>Información de Reserva</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
-                            <DetailItem icon={DollarSign} label="Tu Pago" value={`$${s.estimated_price.toLocaleString('es-CL')}`} />
+                            <DetailItem icon={DollarSign} label="Tu Pago" value={`$${(s.estimated_price || 0).toLocaleString('es-CL')}`} />
                             <DetailItem icon={Building} label="Cliente" value={currentClientName} />
                             <DetailItem icon={UserIcon} label="Conductor" value={currentDriverName} />
                              <DetailItem icon={Truck} label="Vehículo" value={currentVehicleDetails} />
