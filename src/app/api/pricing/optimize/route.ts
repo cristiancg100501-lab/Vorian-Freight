@@ -154,12 +154,13 @@ export async function POST(request: Request) {
             }).length;
         }
         
-        if (highDemandShipmentsCount >= 5) {
-            factorMarket += 0.25; 
-            console.log(`🔥 ZONA MUY CALIENTE: ${highDemandShipmentsCount} fletes. Factor +25%`);
-        } else if (highDemandShipmentsCount >= 2) {
-            factorMarket += 0.15;
-            console.log(`🔥 ZONA CALIENTE: ${highDemandShipmentsCount} fletes. Factor +15%`);
+        // Fórmula Continua de Demanda Zonal:
+        // Sube gradualmente a medida que aumentan los envíos en este polígono.
+        // Cap máximo: +30% (cuando hay 50+ envíos en el mismo polígono de 5km2 en 45 mins)
+        if (highDemandShipmentsCount > 0) {
+            const zonalSurge = Math.min((highDemandShipmentsCount / 50) * 0.30, 0.30);
+            factorMarket += zonalSurge;
+            console.log(`🔥 ZONA CALIENTE: ${highDemandShipmentsCount} fletes. Factor +${(zonalSurge * 100).toFixed(1)}%`);
         }
     } catch (e) {
         console.warn('Error calculando zonas de alta demanda dinámicas', e);
