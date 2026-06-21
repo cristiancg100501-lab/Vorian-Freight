@@ -307,8 +307,13 @@ export async function POST(request: Request) {
     const platformFee = priceWithoutTolls * 0.10; // 10% de comisión Vorian
     const carrierPayment = priceWithoutTolls - platformFee;
     
-    const marketAdjustmentCost = (basePrice * factorML * factorMarket) - basePrice;
-    const weatherAdjustmentCost = (basePrice * factorML * factorWeather);
+    // The base factorMarket starts at 1.0. We want to isolate the purely "market" (peak hours / hot zones) markup.
+    // factorMarket already includes factorSupplyDemand (added at line 243).
+    // So the pure market markup is factorMarket - factorSupplyDemand - 1.0
+    const pureMarketMarkup = factorMarket - factorSupplyDemand - 1.0;
+    const marketAdjustmentCost = basePrice * factorML * pureMarketMarkup;
+    const weatherAdjustmentCost = basePrice * factorML * factorWeather;
+    const supplyDemandAdjustmentCost = basePrice * factorML * factorSupplyDemand;
 
     return NextResponse.json({
         success: true,
@@ -323,7 +328,7 @@ export async function POST(request: Request) {
             market_adjustment: Math.round(marketAdjustmentCost),
             weather_adjustment: Math.round(weatherAdjustmentCost),
             tolls_cost: Math.round(tollsCost),
-            supply_demand_adjustment: Math.round(basePrice * factorML * factorSupplyDemand)
+            supply_demand_adjustment: Math.round(supplyDemandAdjustmentCost)
         },
         factors: {
             ml_factor: factorML,
