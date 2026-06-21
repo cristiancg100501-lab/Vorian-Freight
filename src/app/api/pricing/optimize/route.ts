@@ -123,6 +123,22 @@ export async function POST(request: Request) {
             highDemandShipmentsCount = recentShipments.filter((s: any) => {
                 let lat = s.pickup_latitude;
                 let lng = s.pickup_longitude;
+                
+                // Decode WKB Hex string into lat/lng if available and lat/lng are missing
+                if (!lat && !lng && s.origin && typeof s.origin === 'string' && !s.origin.startsWith('POINT')) {
+                    try {
+                        const buf = Buffer.from(s.origin, 'hex');
+                        const isLittleEndian = buf[0] === 1;
+                        let offset = 1;
+                        const type = isLittleEndian ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
+                        offset += 4;
+                        if (type & 0x20000000) offset += 4; // skip SRID
+                        lng = isLittleEndian ? buf.readDoubleLE(offset) : buf.readDoubleBE(offset);
+                        offset += 8;
+                        lat = isLittleEndian ? buf.readDoubleLE(offset) : buf.readDoubleBE(offset);
+                    } catch(e) {}
+                }
+
                 if (!lat && s.origin && s.origin.includes('POINT')) {
                     const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
                     if (match) {
@@ -164,12 +180,11 @@ export async function POST(request: Request) {
                 .eq('isAvailable', true),
 
             // Demanda real: envíos ACEPTADOS (reservados) en los últimos 30 minutos
-            // Más preciso que cotizaciones, ya que refleja conversión real del mercado
             supabaseAdmin
-                .from('pricing_ml_logs')
+                .from('shipments')
                 .select('id', { count: 'exact', head: true })
-                .gte('created_at', windowStart)
-                .eq('status', 'reserved'),
+                .gte('createdAt', windowStart)
+                .in('status', ['Pending', 'Booked', 'Assigned', 'In Transit']),
 
             // Sensibilidad configurada en settings
             supabaseAdmin
