@@ -1026,13 +1026,17 @@ export default function NewShipmentPage() {
                                             </div>
                                             
                                             <div className="flex justify-between items-center text-orange-600/80 dark:text-orange-400/80">
-                                                <span>Factor Demanda / Zona</span>
-                                                <span className="font-mono">{priceBreakdown.market_adjustment >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
-                                            </div>
-
-                                            <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
-                                                <span>Factor Oferta / Demanda (Flota)</span>
-                                                <span className="font-mono">{priceBreakdown.supply_demand_adjustment >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.supply_demand_adjustment).toLocaleString()}</span>
+                                                <div className="flex items-center gap-1 group relative">
+                                                    <span className="border-b border-dashed border-orange-600/50 cursor-help">Tarifa Dinámica Vorian</span>
+                                                    <div className="absolute bottom-full left-0 mb-2 hidden w-64 rounded bg-popover text-popover-foreground text-xs p-3 shadow-lg border group-hover:block z-10 font-normal">
+                                                        Ajuste automático en tiempo real. Incluye:
+                                                        <ul className="mt-1 ml-4 list-disc text-[10px] text-muted-foreground">
+                                                            <li>Congestión local (alta demanda en tu zona)</li>
+                                                            <li>Disponibilidad global de flota</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <span className="font-mono">{(priceBreakdown.market_adjustment + priceBreakdown.supply_demand_adjustment) >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment + priceBreakdown.supply_demand_adjustment).toLocaleString()}</span>
                                             </div>
 
                                             <div className="flex justify-between items-center text-blue-600/80 dark:text-blue-400/80">
