@@ -203,7 +203,7 @@ export default function CompanyShipmentsPage() {
 
     const driverIds = useMemo(() => availableDrivers?.map((d: any) => d.id) || [], [availableDrivers]);
     const usersQuery = useCallback((query: any) => {
-        if (driverIds.length === 0) return query.none();
+        if (driverIds.length === 0) return query.limit(0);
         return query.in("id", driverIds);
     }, [driverIds]);
     const { data: driverUsers } = useSupabaseCollection<any>("userProfiles", usersQuery);
