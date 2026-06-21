@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { latLngToCell, gridDisk } from 'h3-js';
 
 // URL del microservicio FastAPI (asumimos que corre en el puerto 8000 localmente)
 const ML_ENGINE_URL = process.env.ML_ENGINE_URL || 'http://localhost:8000';
@@ -94,37 +95,34 @@ export async function POST(request: Request) {
         } catch (e) {}
     }
 
-    // a) Curva Suave de Hora Peak (Campana de Gauss en vez de escalón brusco)
-    if (currentHour === 16) {
-        factorMarket += 0.05; // Empieza a subir (16:00 - 16:59)
-    } else if (currentHour === 17) {
-        factorMarket += 0.10; // Subiendo (17:00 - 17:59)
-    } else if (currentHour === 18) {
-        factorMarket += 0.15; // Peak máximo (18:00 - 18:59)
-    } else if (currentHour === 19) {
-        factorMarket += 0.10; // Bajando (19:00 - 19:59)
-    } else if (currentHour === 20) {
-        factorMarket += 0.03; // Cola final (20:00 - 20:59)
+    // a) Hora Peak (17:00 a 19:00) -> +10%
+    if (currentHour >= 17 && currentHour <= 19) {
+        factorMarket += 0.10;
     }
     
-    // b) Zonas de Alta Demanda Dinámicas (Geocerca en tiempo real - Últimos 45 min)
+    // b) Zonas de Alta Demanda Dinámicas (Geocerca H3 - Últimos 45 min)
     let pickup_lat = null;
     let pickup_lng = null;
+    let pickup_h3_hexes: string[] = [];
+    
     if (route_geometry && route_geometry.coordinates && route_geometry.coordinates.length > 0) {
         pickup_lng = route_geometry.coordinates[0][0];
         pickup_lat = route_geometry.coordinates[0][1];
+        
+        // Calcular hexágono central (resolución 7 = ~5.1 km2) y su anillo inmediato
+        const centerHex = latLngToCell(pickup_lat, pickup_lng, 7);
+        pickup_h3_hexes = gridDisk(centerHex, 1);
     }
     
     let highDemandShipmentsCount = 0;
     try {
-        // Reducido de 3 horas a 45 minutos para ser verdaderamente "tiempo real"
         const fortyFiveMinsAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         const { data: recentShipments } = await supabaseAdmin
             .from('shipments')
             .select('id, origin, pickup_latitude, pickup_longitude')
             .gte('createdAt', fortyFiveMinsAgo);
             
-        if (recentShipments && pickup_lat && pickup_lng) {
+        if (recentShipments && pickup_h3_hexes.length > 0) {
             highDemandShipmentsCount = recentShipments.filter((s: any) => {
                 let lat = s.pickup_latitude;
                 let lng = s.pickup_longitude;
@@ -136,15 +134,8 @@ export async function POST(request: Request) {
                     }
                 }
                 if (lat && lng) {
-                    const R = 6371; // km
-                    const dLat = (lat - pickup_lat) * Math.PI / 180;
-                    const dLng = (lng - pickup_lng) * Math.PI / 180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                            Math.cos(pickup_lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
-                            Math.sin(dLng/2) * Math.sin(dLng/2);
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    const distance = R * c;
-                    return distance <= 15; // 15 km radius
+                    const hex = latLngToCell(lat, lng, 7);
+                    return pickup_h3_hexes.includes(hex);
                 }
                 return false;
             }).length;
@@ -191,22 +182,18 @@ export async function POST(request: Request) {
                 .single()
         ]);
 
-        // Filtrar conductores regionales (radio estricto de 20km para relevancia hiperlocal)
+        // Filtrar conductores por celda H3 (solo los que caen en el cluster de la carga)
         let freeDrivers = 0;
         let busyDrivers = 0;
         
         if (driversResult.data) {
             driversResult.data.forEach((d: any) => {
-                let isNear = true;
-                if (pickup_lat && pickup_lng && d.currentLatitude && d.currentLongitude) {
-                    const R = 6371;
-                    const dLat = (d.currentLatitude - pickup_lat) * Math.PI / 180;
-                    const dLng = (d.currentLongitude - pickup_lng) * Math.PI / 180;
-                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                            Math.cos(pickup_lat * Math.PI / 180) * Math.cos(d.currentLatitude * Math.PI / 180) *
-                            Math.sin(dLng/2) * Math.sin(dLng/2);
-                    const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    if (distance > 20) isNear = false; // Reducido de 50km a 20km
+                let isNear = false;
+                if (d.currentLatitude && d.currentLongitude && pickup_h3_hexes.length > 0) {
+                    const driverHex = latLngToCell(d.currentLatitude, d.currentLongitude, 7);
+                    if (pickup_h3_hexes.includes(driverHex)) {
+                        isNear = true;
+                    }
                 }
                 if (isNear) {
                     if (d.currentOrderId) busyDrivers++;

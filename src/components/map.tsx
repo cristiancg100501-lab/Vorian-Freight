@@ -203,25 +203,37 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 type: 'geojson',
                 data: { type: 'FeatureCollection', features: [] }
             });
+            // H3 Polygons Fill (Color based on demand count/weight)
             mapInstance.addLayer({
-                id: 'demand-zones-heatmap',
-                type: 'heatmap',
+                id: 'h3-grid-fill',
+                type: 'fill',
                 source: 'demand-zones-source',
-                maxzoom: 15,
                 paint: {
-                    'heatmap-weight': 1,
-                    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
-                    'heatmap-color': [
-                        'interpolate', ['linear'], ['heatmap-density'],
-                        0, 'rgba(239, 68, 68, 0)',
-                        0.2, 'rgba(239, 68, 68, 0.2)',
-                        0.4, 'rgba(239, 68, 68, 0.4)',
-                        0.6, 'rgba(239, 68, 68, 0.6)',
-                        0.8, 'rgba(239, 68, 68, 0.8)',
-                        1, 'rgba(220, 38, 38, 1)'
+                    'fill-color': [
+                        'interpolate', ['linear'], ['get', 'count'],
+                        0, 'rgba(0, 0, 0, 0)',
+                        1, 'rgba(234, 179, 8, 0.4)',  // Yellow for low demand
+                        3, 'rgba(249, 115, 22, 0.5)', // Orange for medium demand
+                        5, 'rgba(239, 68, 68, 0.6)'   // Red for high demand
                     ],
-                    'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 40],
-                    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.8, 15, 0.5]
+                    'fill-outline-color': 'rgba(255,255,255,0.2)'
+                }
+            });
+            // H3 Polygons Border (Optional glow/stroke)
+            mapInstance.addLayer({
+                id: 'h3-grid-line',
+                type: 'line',
+                source: 'demand-zones-source',
+                paint: {
+                    'line-color': [
+                        'interpolate', ['linear'], ['get', 'count'],
+                        0, 'rgba(0, 0, 0, 0)',
+                        1, 'rgba(234, 179, 8, 0.8)',
+                        3, 'rgba(249, 115, 22, 0.9)',
+                        5, 'rgba(239, 68, 68, 1)'
+                    ],
+                    'line-width': 2,
+                    'line-dasharray': [2, 2]
                 }
             });
         }
@@ -652,6 +664,23 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
     const style = theme === 'dark' ? 'mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv' : 'mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr';
     map.current.setStyle(style, { diff: false } as any);
   }, [theme]);
+
+  // 5. Visibility Toggle for H3 Grid (Only show in Mission Control)
+  useEffect(() => {
+    if (styleLoadedCount === 0 || !map.current) return;
+    const mapInstance = map.current;
+    
+    // Si drivers es null, estamos en la vista de Cliente (ocultar grilla)
+    // Si drivers es un array (incluso vacío), estamos en Mission Control Admin
+    const visibility = drivers === null ? 'none' : 'visible';
+    
+    if (mapInstance.getLayer('h3-grid-fill')) {
+        mapInstance.setLayoutProperty('h3-grid-fill', 'visibility', visibility);
+    }
+    if (mapInstance.getLayer('h3-grid-line')) {
+        mapInstance.setLayoutProperty('h3-grid-line', 'visibility', visibility);
+    }
+  }, [styleLoadedCount, drivers]);
 
   return (
     <div className="w-full h-full relative group">

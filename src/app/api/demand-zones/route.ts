@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { latLngToCell } from 'h3-js';
+import { h3SetToFeatureCollection } from 'geojson2h3';
 
 export async function GET() {
     try {
-        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+        const fortyFiveMinsAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         
         const { data: recentShipments, error } = await supabaseAdmin
             .from('shipments')
             .select('id, origin, pickup_latitude, pickup_longitude, createdAt')
-            .gte('createdAt', threeHoursAgo);
+            .gte('createdAt', fortyFiveMinsAgo);
 
         if (error) throw error;
 
-        const features = (recentShipments || []).map((s: any) => {
+        // Group by H3 index
+        const h3Counts: Record<string, number> = {};
+
+        (recentShipments || []).forEach((s: any) => {
             let lat = s.pickup_latitude;
             let lng = s.pickup_longitude;
             
-            // Parse WKB Hex (PostGIS default return format)
             if (!lat && s.origin && typeof s.origin === 'string') {
                 if (s.origin.includes('POINT')) {
                     const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
@@ -35,25 +39,18 @@ export async function GET() {
                 }
             }
             
-            if (!lat || !lng) return null;
-            
-            return {
-                type: 'Feature',
-                properties: {
-                    id: s.id,
-                    weight: 1 // Para el heatmap
-                },
-                geometry: {
-                    type: 'Point',
-                    coordinates: [lng, lat]
-                }
-            };
-        }).filter(Boolean);
+            if (lat && lng) {
+                const hex = latLngToCell(lat, lng, 7);
+                h3Counts[hex] = (h3Counts[hex] || 0) + 1;
+            }
+        });
 
-        const geojson = {
-            type: 'FeatureCollection',
-            features: features
-        };
+        // Convert grouped H3 indices to GeoJSON polygons
+        const hexes = Object.keys(h3Counts);
+        const geojson = h3SetToFeatureCollection(hexes, (hex: string) => ({
+            weight: h3Counts[hex],
+            count: h3Counts[hex]
+        }));
 
         return NextResponse.json(geojson);
     } catch (error: any) {
