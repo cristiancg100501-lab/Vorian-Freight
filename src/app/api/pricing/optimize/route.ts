@@ -94,12 +94,20 @@ export async function POST(request: Request) {
         } catch (e) {}
     }
 
-    // a) Hora Peak (17:00 a 19:00) -> +10%
-    if (currentHour >= 17 && currentHour <= 19) {
-        factorMarket += 0.10;
+    // a) Curva Suave de Hora Peak (Campana de Gauss en vez de escalón brusco)
+    if (currentHour === 16) {
+        factorMarket += 0.05; // Empieza a subir (16:00 - 16:59)
+    } else if (currentHour === 17) {
+        factorMarket += 0.10; // Subiendo (17:00 - 17:59)
+    } else if (currentHour === 18) {
+        factorMarket += 0.15; // Peak máximo (18:00 - 18:59)
+    } else if (currentHour === 19) {
+        factorMarket += 0.10; // Bajando (19:00 - 19:59)
+    } else if (currentHour === 20) {
+        factorMarket += 0.03; // Cola final (20:00 - 20:59)
     }
     
-    // b) Zonas de Alta Demanda Dinámicas (Últimas 3 horas)
+    // b) Zonas de Alta Demanda Dinámicas (Geocerca en tiempo real - Últimos 45 min)
     let pickup_lat = null;
     let pickup_lng = null;
     if (route_geometry && route_geometry.coordinates && route_geometry.coordinates.length > 0) {
@@ -109,11 +117,12 @@ export async function POST(request: Request) {
     
     let highDemandShipmentsCount = 0;
     try {
-        const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+        // Reducido de 3 horas a 45 minutos para ser verdaderamente "tiempo real"
+        const fortyFiveMinsAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         const { data: recentShipments } = await supabaseAdmin
             .from('shipments')
             .select('id, origin, pickup_latitude, pickup_longitude')
-            .gte('createdAt', threeHoursAgo);
+            .gte('createdAt', fortyFiveMinsAgo);
             
         if (recentShipments && pickup_lat && pickup_lng) {
             highDemandShipmentsCount = recentShipments.filter((s: any) => {
@@ -182,7 +191,7 @@ export async function POST(request: Request) {
                 .single()
         ]);
 
-        // Filtrar conductores regionales (radio 50km)
+        // Filtrar conductores regionales (radio estricto de 20km para relevancia hiperlocal)
         let freeDrivers = 0;
         let busyDrivers = 0;
         
@@ -197,7 +206,7 @@ export async function POST(request: Request) {
                             Math.cos(pickup_lat * Math.PI / 180) * Math.cos(d.currentLatitude * Math.PI / 180) *
                             Math.sin(dLng/2) * Math.sin(dLng/2);
                     const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    if (distance > 50) isNear = false;
+                    if (distance > 20) isNear = false; // Reducido de 50km a 20km
                 }
                 if (isNear) {
                     if (d.currentOrderId) busyDrivers++;
