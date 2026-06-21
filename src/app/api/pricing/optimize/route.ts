@@ -154,13 +154,26 @@ export async function POST(request: Request) {
             }).length;
         }
         
-        // Fórmula Continua de Demanda Zonal:
-        // Sube gradualmente a medida que aumentan los envíos en este polígono.
-        // Cap máximo: +30% (cuando hay 50+ envíos en el mismo polígono de 5km2 en 45 mins)
-        if (highDemandShipmentsCount > 0) {
-            const zonalSurge = Math.min((highDemandShipmentsCount / 50) * 0.30, 0.30);
+        // Fórmula Auto-Calibrable de Demanda Zonal:
+        // No asume un número fijo de envíos (como 50 o 200). 
+        // Compara el volumen en este polígono (local) contra el volumen de TODO el país (global) en los últimos 45 mins.
+        const totalPlatformShipments = recentShipments?.length || 1;
+        
+        if (highDemandShipmentsCount >= 2) {
+            // 1. Concentración: Qué porcentaje del tráfico nacional está ocurriendo SOLO en este hexágono
+            const concentration = highDemandShipmentsCount / totalPlatformShipments;
+            
+            // 2. Puntaje Dinámico: Multiplica el volumen absoluto por la concentración.
+            // Si hay 5 envíos en todo el país y 5 acá -> Score = 5 * 1.0 = 5
+            // Si hay 500 envíos en el país y 50 acá -> Score = 50 * 0.1 = 5
+            // Si hay 500 envíos en el país y 150 acá -> Score = 150 * 0.3 = 45 (Zona hirviendo)
+            const dynamicScore = highDemandShipmentsCount * concentration;
+            
+            // 3. Mapeo a tarifa (Máximo +30% de recargo cuando el score llega a 15)
+            const zonalSurge = Math.min((dynamicScore / 15) * 0.30, 0.30);
             factorMarket += zonalSurge;
-            console.log(`🔥 ZONA CALIENTE: ${highDemandShipmentsCount} fletes. Factor +${(zonalSurge * 100).toFixed(1)}%`);
+            
+            console.log(`🔥 AUTO-CALIBRACIÓN ZONAL: ${highDemandShipmentsCount}/${totalPlatformShipments} fletes (${(concentration*100).toFixed(0)}% del país). Score: ${dynamicScore.toFixed(1)}. Factor +${(zonalSurge * 100).toFixed(1)}%`);
         }
     } catch (e) {
         console.warn('Error calculando zonas de alta demanda dinámicas', e);
