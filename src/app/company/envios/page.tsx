@@ -44,7 +44,7 @@ export default function CompanyMyShipmentsPage() {
     
     // 3. Get user profiles for only those drivers
     const filterDrivers = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none();
+        if (driverIds.length === 0) return q.limit(0);
         return q.in("id", driverIds);
     }, [driverIds]);
     const { data: drivers, isLoading: isLoadingDrivers } = useSupabaseCollection("userProfiles", filterDrivers);
@@ -89,10 +89,9 @@ export default function CompanyMyShipmentsPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {isLoading && (
+                        {isLoading ? (
                             <tr><td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">Cargando envíos...</td></tr>
-                        )}
-                        {!isLoading && (!companyShipments || companyShipments.length === 0) ? (
+                        ) : (!companyShipments || companyShipments.length === 0) ? (
                             <tr><td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">No ha reservado ningún envío.</td></tr>
                         ) : (
                             companyShipments?.map((shipment: any) => (
@@ -102,12 +101,12 @@ export default function CompanyMyShipmentsPage() {
                                             <Truck className="h-4 w-4 text-muted-foreground" />
                                             <span>{shipment.id}</span>
                                         </div>
-                                        <div className="text-xs text-muted-foreground mt-1">{(shipment.pickup_address || '').split(',')[0]} a {(shipment.delivery_address || '').split(',')[0]}</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{(shipment.originAddress || '').split(',')[0]} a {(shipment.destinationAddress || '').split(',')[0]}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-muted-foreground" />
-                                            <span>{format(new Date(shipment.pickup_date), "dd MMM, yyyy")}</span>
+                                            <span>{shipment.pickup_date ? format(new Date(shipment.pickup_date), "dd MMM, yyyy") : format(new Date(shipment.createdAt), "dd MMM, yyyy")}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

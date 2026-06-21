@@ -263,13 +263,13 @@ export default function ShipmentDetailPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-1">
                                     <p className="text-sm font-bold flex items-center gap-2"><MapPin className="h-4 w-4 text-green-500" />Recogida</p>
-                                    <p className="text-muted-foreground">{s.pickup_address}</p>
-                                    <p className="font-semibold">{format(new Date(s.pickup_date), "dd MMM, yyyy")} <span className="text-muted-foreground font-normal">({s.pickup_window})</span></p>
+                                    <p className="text-muted-foreground">{s.originAddress}</p>
+                                    <p className="font-semibold">{s.pickup_date ? format(new Date(s.pickup_date), "dd MMM, yyyy") : format(new Date(s.createdAt), "dd MMM, yyyy")} <span className="text-muted-foreground font-normal">({s.pickup_window || 'Horario abierto'})</span></p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-sm font-bold flex items-center gap-2"><MapPin className="h-4 w-4 text-red-500" />Entrega</p>
-                                    <p className="text-muted-foreground">{s.delivery_address}</p>
-                                    <p className="font-semibold">{format(new Date(s.delivery_date), "dd MMM, yyyy")} <span className="text-muted-foreground font-normal">({s.delivery_window})</span></p>
+                                    <p className="text-muted-foreground">{s.destinationAddress}</p>
+                                    <p className="font-semibold">{s.delivery_date ? format(new Date(s.delivery_date), "dd MMM, yyyy") : 'Fecha por definir'} <span className="text-muted-foreground font-normal">({s.delivery_window || 'Horario abierto'})</span></p>
                                 </div>
                             </div>
                         </CardContent>
