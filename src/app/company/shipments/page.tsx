@@ -119,7 +119,7 @@ const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelect
                                 )}
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-[10px] font-mono text-muted-foreground">#{load.id.substring(0, 8)}</span>
-                                    <span className="text-sm font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
+                                    <span className="text-sm font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
                                 </div>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 text-xs">
@@ -525,7 +525,7 @@ export default function CompanyShipmentsPage() {
                                                 <CardDescription className="text-xs">ID: {selectedLoad.id.substring(0, 8)}</CardDescription>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-lg font-bold text-primary">CLP {selectedLoad.price.toLocaleString('es-CL')}</p>
+                                                <p className="text-lg font-bold text-primary">CLP {(selectedLoad.price || 0).toLocaleString('es-CL')}</p>
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -616,7 +616,7 @@ export default function CompanyShipmentsPage() {
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
                                         <div className="text-right">
-                                            <span className="text-lg font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
+                                            <span className="text-lg font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
                                             <div className="flex items-center justify-end text-[10px] text-orange-500 font-bold gap-1 mt-0.5">
                                                 <Zap className="h-3 w-3 fill-orange-500" /> Tarifa Dinámica
                                             </div>
