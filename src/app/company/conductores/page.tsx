@@ -82,7 +82,7 @@ export default function MisConductoresPage() {
 
     // 2. Get user profiles for only this company's drivers
     const filterCompanyUsers = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none();
+        if (driverIds.length === 0) return q.limit(0);
         return q.in('id', driverIds.slice(0, 30));
     }, [driverIds]);
     const { data: companyUsers, isLoading: isLoadingUsers } = useSupabaseCollection("userProfiles", filterCompanyUsers);
@@ -90,7 +90,7 @@ export default function MisConductoresPage() {
     // 3. Get active shipments to determine if busy
 
     const filterActiveShipments = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none();
+        if (driverIds.length === 0) return q.limit(0);
         return q.in("driverId", driverIds.slice(0, 30)).in("status", ["Booked", "In transit"]);
     }, [driverIds]);
     const { data: activeShipments } = useSupabaseCollection("shipments", filterActiveShipments);
