@@ -212,11 +212,16 @@ export default function CompanyShipmentsPage() {
         if (!availableDrivers || !driverUsers) return [];
         return availableDrivers.map((driver: any) => {
             const profile = driverUsers.find((u: any) => u.id === driver.id);
+            const firstName = profile?.firstName || '';
+            const lastName = profile?.lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim();
+            
             return {
                 id: driver.id,
-                name: profile ? `${profile.firstName} ${profile.lastName}` : 'Conductor',
-                vehicle: driver.vehicleType,
-                licensePlate: driver.licensePlate
+                name: fullName || 'Conductor',
+                vehicle: driver.vehicleType || 'Auto',
+                licensePlate: driver.licensePlate || 'Sin placa',
+                rut: driver.rut || profile?.rut || 'Sin RUT'
             };
         });
     }, [availableDrivers, driverUsers]);
@@ -565,7 +570,7 @@ export default function CompanyShipmentsPage() {
                                                     ) : (
                                                         mergedDrivers.map(d => (
                                                             <SelectItem key={d.id} value={d.id}>
-                                                                {d.name} ({d.vehicle})
+                                                                {d.name} - RUT: {d.rut} ({d.vehicle})
                                                             </SelectItem>
                                                         ))
                                                     )}
