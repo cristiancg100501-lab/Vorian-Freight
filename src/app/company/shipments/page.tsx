@@ -54,6 +54,7 @@ interface ShipmentLoad {
     destination: string;
     originCoords: { lat: number; lng: number };
     destinationCoords: { lat: number; lng: number };
+    routeGeometry?: any;
     status: string;
     price: number;
     createdAt: any;
@@ -166,21 +167,31 @@ export default function CompanyShipmentsPage() {
     // Adapt shipments to the UI ShipmentLoad interface
     const availableLoads = useMemo(() => {
         if (!shipmentsData) return [];
-        return shipmentsData.map((s: any) => ({
-            id: s.id,
-            clientId: s.clientId,
-            origin: s.originAddress,
-            destination: s.destinationAddress,
-            // Las coordenadas vendrán en el JSONB details si las guardamos ahí,
-            // o se pueden extraer del campo origin (geography)
-            originCoords: s.details?.originCoords || { lat: 0, lng: 0 },
-            destinationCoords: s.details?.destinationCoords || { lat: 0, lng: 0 },
-            status: s.status,
-            price: s.estimatedPrice || 0,
-            createdAt: s.createdAt,
-            equipment: s.details?.equipment,
-            weight_lbs: s.details?.weightLbs
-        }));
+        return shipmentsData.map((s: any) => {
+            // Parse coordinates from GeoJSON route
+            let originCoords = { lat: 0, lng: 0 };
+            let destinationCoords = { lat: 0, lng: 0 };
+            const route = s.details?.route;
+            if (route && route.coordinates && route.coordinates.length > 0) {
+                const coords = route.coordinates;
+                originCoords = { lng: coords[0][0], lat: coords[0][1] };
+                destinationCoords = { lng: coords[coords.length - 1][0], lat: coords[coords.length - 1][1] };
+            }
+            return {
+                id: s.id,
+                clientId: s.clientId,
+                origin: s.originAddress,
+                destination: s.destinationAddress,
+                originCoords,
+                destinationCoords,
+                routeGeometry: route,
+                status: s.status,
+                price: s.estimatedPrice || 0,
+                createdAt: s.createdAt,
+                equipment: s.details?.equipment,
+                weight_lbs: s.details?.weightLbs
+            };
+        });
     }, [shipmentsData]);
 
     // Query for available drivers in the company
@@ -352,18 +363,74 @@ export default function CompanyShipmentsPage() {
 
     const handleSelectLoad = (load: any) => {
         setSelectedLoad(load);
-        
-        let lng: number | undefined = load.originCoords?.lng;
-        let lat: number | undefined = load.originCoords?.lat;
-
-        if (map.current && lng !== undefined && lat !== undefined) {
-            map.current.flyTo({
-                center: [lng, lat],
-                zoom: 14,
-                essential: true
-            });
-        }
     };
+
+    // Draw route when load is selected
+    useEffect(() => {
+        if (!map.current) return;
+        const mapInstance = map.current;
+
+        if (!selectedLoad) {
+            if (mapInstance.getSource('route')) {
+                (mapInstance.getSource('route') as mapboxgl.GeoJSONSource).setData({
+                    type: 'Feature',
+                    properties: {},
+                    geometry: { type: 'LineString', coordinates: [] }
+                });
+            }
+            return;
+        }
+
+        if (selectedLoad.routeGeometry) {
+            const geojson = {
+                type: 'Feature',
+                properties: {},
+                geometry: selectedLoad.routeGeometry
+            };
+
+            if (mapInstance.getSource('route')) {
+                (mapInstance.getSource('route') as mapboxgl.GeoJSONSource).setData(geojson as any);
+            } else {
+                mapInstance.addSource('route', {
+                    type: 'geojson',
+                    data: geojson as any
+                });
+                mapInstance.addLayer({
+                    id: 'route',
+                    type: 'line',
+                    source: 'route',
+                    layout: {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    paint: {
+                        'line-color': '#f97316', // orange-500
+                        'line-width': 4,
+                        'line-opacity': 0.8
+                    }
+                });
+            }
+
+            // Fit bounds
+            const coordinates = selectedLoad.routeGeometry.coordinates;
+            if (coordinates && coordinates.length > 0) {
+                const bounds = new mapboxgl.LngLatBounds(
+                    coordinates[0],
+                    coordinates[0]
+                );
+                for (const coord of coordinates) {
+                    bounds.extend(coord as [number, number]);
+                }
+                mapInstance.fitBounds(bounds, { padding: 50, duration: 1000 });
+            }
+        } else {
+            let lng: number | undefined = selectedLoad.originCoords?.lng;
+            let lat: number | undefined = selectedLoad.originCoords?.lat;
+            if (lng !== undefined && lat !== undefined && lng !== 0 && lat !== 0) {
+                mapInstance.flyTo({ center: [lng, lat], zoom: 14, essential: true });
+            }
+        }
+    }, [selectedLoad]);
 
     const handleAcceptLoad = async () => {
         if (!supabase || !user || !selectedLoad) return;
