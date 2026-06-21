@@ -502,7 +502,7 @@ export default function NewShipmentPage() {
             },
             // Campos adicionales de tracking
             customer_id: user.id,
-            driver_id: null,
+            driverId: null,
             carrier_cost: carrierPayment,
             client_price: estimatedPrice,
           });

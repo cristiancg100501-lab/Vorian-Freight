@@ -365,7 +365,7 @@ export default function NewShipmentPage() {
             createdAt: new Date().toISOString(),
             // Managed Freight Fields
             customer_id: selectedCustomerId || null,
-            driver_id: selectedDriverId || null,
+            driverId: selectedDriverId || null,
             carrier_cost: parseFloat(manualCarrierCost) || carrierPayment,
             client_price: parseFloat(manualClientPrice) || estimatedPrice,
           });

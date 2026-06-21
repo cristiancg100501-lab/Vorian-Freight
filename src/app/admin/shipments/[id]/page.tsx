@@ -41,8 +41,8 @@ export default function ShipmentDetailPage() {
                     const { data: cust } = await supabase.from('userProfiles').select('*').eq('id', data.customer_id).single();
                     setCustomer(cust);
                 }
-                if (data.driver_id) {
-                    const { data: drv } = await supabase.from('userProfiles').select('*').eq('id', data.driver_id).single();
+                if (data.driverId) {
+                    const { data: drv } = await supabase.from('userProfiles').select('*').eq('id', data.driverId).single();
                     setDriver(drv);
                 }
 
@@ -124,7 +124,7 @@ export default function ShipmentDetailPage() {
                             origin={[shipment.pickup_longitude, shipment.pickup_latitude]} 
                             destination={[shipment.delivery_longitude, shipment.delivery_latitude]}
                             drivers={shipment.current_latitude ? [{
-                                userId: shipment.driver_id,
+                                userId: shipment.driverId,
                                 currentLatitude: shipment.current_latitude,
                                 currentLongitude: shipment.current_longitude,
                                 isAvailable: true

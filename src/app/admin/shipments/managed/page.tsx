@@ -117,8 +117,8 @@ export default function ManagedShipmentPage() {
             const { data, error: insertError } = await supabase.from('shipments').insert({
                 id: customId,
                 customer_id: selectedCustomerId,
-                driver_id: selectedDriverId || null,
-                clientId: user?.id,
+                driverId: selectedDriverId || null,
+                carrierId: selectedDriverId || null,
                 originAddress: pickup.address,
                 pickup_latitude: pickup.coords[1],
                 pickup_longitude: pickup.coords[0],
