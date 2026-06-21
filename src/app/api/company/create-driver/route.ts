@@ -31,8 +31,9 @@ export async function POST(req: NextRequest) {
 
         const uid = authData.user.id;
 
-        // 2. Create userProfile (no RLS issue since we use service_role)
-        const { error: profileError } = await supabaseAdmin.from("userProfiles").insert({
+        // 2. Upsert userProfile — a DB trigger may have already created a partial row
+        //    when the auth user was created, so we use upsert to avoid duplicate key errors.
+        const { error: profileError } = await supabaseAdmin.from("userProfiles").upsert({
             id: uid,
             email,
             firstName,
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
             role: "driver",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-        });
+        }, { onConflict: "id" });
 
         if (profileError) {
             // Rollback: delete the auth user we just created
@@ -50,8 +51,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: profileError.message }, { status: 400 });
         }
 
-        // 3. Create driverProfile linked to this company
-        const { error: driverError } = await supabaseAdmin.from("driverProfiles").insert({
+        // 3. Upsert driverProfile linked to this company
+        const { error: driverError } = await supabaseAdmin.from("driverProfiles").upsert({
             id: uid,
             userId: uid,
             rut,
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
             currentLongitude: null,
             lastLocationUpdate: null,
             updatedAt: new Date().toISOString(),
-        });
+        }, { onConflict: "id" });
 
         if (driverError) {
             // Rollback both
