@@ -72,11 +72,23 @@ export default function CompanyDashboardPage() {
         if (driverIds.length === 0) return q.none();
         return q.in("driverId", driverIds.slice(0, 30)).in("status", ["Booked", "In transit"]);
     }, [driverIds]);
-    const { data: activeShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments", filterActiveShipments);
+    const { data: activeShipments, isLoading: isLoadingShipments } = useSupabaseCollection<any>("shipments", filterActiveShipments);
+
+    // 4. Get completed shipments for revenue
+    const filterCompletedShipments = useCallback((q: any) => {
+        if (!user) return q.none();
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0,0,0,0);
+        return q.eq("carrierId", user.id)
+                .in("status", ["Delivered", "completed"])
+                .gte("createdAt", startOfMonth.toISOString());
+    }, [user]);
+    const { data: completedShipments } = useSupabaseCollection<any>("shipments", filterCompletedShipments);
 
     const isLoading = isLoadingDrivers || isLoadingUsers || isLoadingShipments;
 
-    // 4. Process and merge data
+    // 5. Process and merge data
     const { kpiData, driverData, jobData } = useMemo(() => {
         if (isLoading || !companyDrivers || !companyUsers) {
             return { kpiData: {}, driverData: [], jobData: [] };
@@ -110,12 +122,17 @@ export default function CompanyDashboardPage() {
             status: s.status,
         })).sort((a,b) => a.driverName.localeCompare(b.driverName));
 
+        // Calculate Revenue
+        const totalRevenue = (completedShipments || []).reduce((acc: number, s: any) => {
+            return acc + (s.carrier_cost || s.client_price || s.estimatedPrice || 0);
+        }, 0);
+
         // Process KPIs
         const kpis = {
             totalDrivers: companyDrivers.length,
-            activeDrivers: companyDrivers.filter(d => d.isAvailable).length,
+            activeDrivers: companyDrivers.filter((d: any) => d.isAvailable).length,
             activeJobs: jobs.length,
-            monthlyRevenue: '$1,234,567', // Placeholder
+            monthlyRevenue: `$${totalRevenue.toLocaleString('es-CL')}`,
         };
         
         return { kpiData: kpis, driverData: drivers, jobData: jobs };

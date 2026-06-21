@@ -25,12 +25,20 @@ import {
     X,
     Maximize2,
     Map as MapIcon,
-    List as ListIcon
+    List as ListIcon,
+    Zap
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 import { motion, AnimatePresence } from "motion/react";
@@ -145,6 +153,7 @@ export default function CompanyShipmentsPage() {
     const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
     const [selectedLoad, setSelectedLoad] = useState<ShipmentLoad | null>(null);
     const [isAccepting, setIsAccepting] = useState(false);
+    const [selectedDriverId, setSelectedDriverId] = useState<string>("");
     
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
@@ -173,6 +182,33 @@ export default function CompanyShipmentsPage() {
             weight_lbs: s.details?.weightLbs
         }));
     }, [shipmentsData]);
+
+    // Query for available drivers in the company
+    const driversQuery = useCallback((query: any) => {
+        if (!user) return query;
+        return query.eq("companyId", user.id).eq("isAvailable", true);
+    }, [user]);
+    const { data: availableDrivers } = useSupabaseCollection<any>("driverProfiles", driversQuery);
+
+    const driverIds = useMemo(() => availableDrivers?.map((d: any) => d.id) || [], [availableDrivers]);
+    const usersQuery = useCallback((query: any) => {
+        if (driverIds.length === 0) return query.none();
+        return query.in("id", driverIds);
+    }, [driverIds]);
+    const { data: driverUsers } = useSupabaseCollection<any>("userProfiles", usersQuery);
+
+    const mergedDrivers = useMemo(() => {
+        if (!availableDrivers || !driverUsers) return [];
+        return availableDrivers.map((driver: any) => {
+            const profile = driverUsers.find((u: any) => u.id === driver.id);
+            return {
+                id: driver.id,
+                name: profile ? `${profile.firstName} ${profile.lastName}` : 'Conductor',
+                vehicle: driver.vehicleType,
+                licensePlate: driver.licensePlate
+            };
+        });
+    }, [availableDrivers, driverUsers]);
 
     // Initialize Map
     useEffect(() => {
@@ -332,12 +368,18 @@ export default function CompanyShipmentsPage() {
     const handleAcceptLoad = async () => {
         if (!supabase || !user || !selectedLoad) return;
         
+        if (!selectedDriverId) {
+            alert("Por favor, selecciona un conductor para asignar esta carga.");
+            return;
+        }
+
         setIsAccepting(true);
         try {
             // Actualizamos la tabla consolidada 'shipments'
             const { error } = await supabase.from("shipments").update({
                 status: "Booked",
                 carrierId: user.id,
+                driverId: selectedDriverId,
                 updatedAt: new Date().toISOString()
             }).eq('id', selectedLoad.id);
 
@@ -443,18 +485,37 @@ export default function CompanyShipmentsPage() {
                                             </div>
                                         </div>
                                     </CardContent>
-                                    <CardFooter className="px-4 pb-4">
+                                    <CardFooter className="px-4 pb-4 flex-col gap-3">
+                                        <div className="w-full">
+                                            <label className="text-xs font-semibold mb-1 block text-muted-foreground">Asignar a Conductor:</label>
+                                            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                                                <SelectTrigger className="w-full h-9 text-xs">
+                                                    <SelectValue placeholder="Seleccione un conductor..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {mergedDrivers.length === 0 ? (
+                                                        <SelectItem value="none" disabled>No hay conductores disponibles</SelectItem>
+                                                    ) : (
+                                                        mergedDrivers.map(d => (
+                                                            <SelectItem key={d.id} value={d.id}>
+                                                                {d.name} ({d.vehicle})
+                                                            </SelectItem>
+                                                        ))
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                         <Button 
                                             className="w-full h-10 text-sm font-bold shadow-md shadow-primary/20"
                                             onClick={handleAcceptLoad}
-                                            disabled={isAccepting}
+                                            disabled={isAccepting || !selectedDriverId}
                                         >
                                             {isAccepting ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : (
                                                 <CheckCircle className="mr-2 h-4 w-4" />
                                             )}
-                                            Aceptar Carga
+                                            Asignar y Aceptar Carga
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -482,7 +543,12 @@ export default function CompanyShipmentsPage() {
                                 <CardHeader>
                                     <div className="flex justify-between items-start">
                                         <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
-                                        <span className="text-lg font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
+                                        <div className="text-right">
+                                            <span className="text-lg font-bold text-primary">CLP {load.price.toLocaleString('es-CL')}</span>
+                                            <div className="flex items-center justify-end text-[10px] text-orange-500 font-bold gap-1 mt-0.5">
+                                                <Zap className="h-3 w-3 fill-orange-500" /> Tarifa Dinámica
+                                            </div>
+                                        </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
