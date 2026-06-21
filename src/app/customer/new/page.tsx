@@ -1025,26 +1025,20 @@ export default function NewShipmentPage() {
                                                 <span className="font-mono">${priceBreakdown.base_freight.toLocaleString()}</span>
                                             </div>
                                             
-                                            {priceBreakdown.market_adjustment !== 0 && (
-                                                <div className="flex justify-between items-center text-orange-600/80 dark:text-orange-400/80">
-                                                    <span>Factor Demanda / Zona</span>
-                                                    <span className="font-mono">{priceBreakdown.market_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
-                                                </div>
-                                            )}
+                                            <div className="flex justify-between items-center text-orange-600/80 dark:text-orange-400/80">
+                                                <span>Factor Demanda / Zona</span>
+                                                <span className="font-mono">{priceBreakdown.market_adjustment >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
+                                            </div>
 
-                                            {priceBreakdown.supply_demand_adjustment !== 0 && (
-                                                <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
-                                                    <span>Factor Oferta / Demanda (Flota)</span>
-                                                    <span className="font-mono">{priceBreakdown.supply_demand_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.supply_demand_adjustment).toLocaleString()}</span>
-                                                </div>
-                                            )}
+                                            <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
+                                                <span>Factor Oferta / Demanda (Flota)</span>
+                                                <span className="font-mono">{priceBreakdown.supply_demand_adjustment >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.supply_demand_adjustment).toLocaleString()}</span>
+                                            </div>
 
-                                            {priceBreakdown.weather_adjustment !== 0 && (
-                                                <div className="flex justify-between items-center text-blue-600/80 dark:text-blue-400/80">
-                                                    <span>Factor Clima ({weatherCondition})</span>
-                                                    <span className="font-mono">{priceBreakdown.weather_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.weather_adjustment).toLocaleString()}</span>
-                                                </div>
-                                            )}
+                                            <div className="flex justify-between items-center text-blue-600/80 dark:text-blue-400/80">
+                                                <span>Factor Clima ({weatherCondition})</span>
+                                                <span className="font-mono">{priceBreakdown.weather_adjustment >= 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.weather_adjustment).toLocaleString()}</span>
+                                            </div>
 
                                             {priceBreakdown.accessorials_total > 0 && (
                                                 <div className="flex justify-between items-center text-primary/80">
