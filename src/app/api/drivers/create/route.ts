@@ -39,20 +39,28 @@ export async function POST(request: Request) {
     if (profileError) throw profileError;
 
     // 3. Create driverProfile in driverProfiles table
-    const { error: driverError } = await supabaseAdmin.from('driverProfiles').insert({
+    const { error: driverError } = await supabaseAdmin.from('driverProfiles').upsert({
       id: uid,
       userId: uid,
       companyId,
-      vehicleType: 'Auto', // Default
+      rut,
+      vehicleType: 'Auto',
       licensePlate: 'No especificada',
-      licenseType: 'B', // Default
+      licenseType: 'B',
       phone: phone || '',
       isAvailable: false,
       currentLatitude: null,
       currentLongitude: null,
       lastLocationUpdate: null,
       updatedAt: new Date().toISOString(),
-    });
+      status: 'active',
+      maxWeightCapacity: 0,
+      equipment: [],
+      documents: {},
+      bankDetails: {},
+      rating: 5.0,
+      totalTrips: 0
+    }, { onConflict: 'id' });
 
     if (driverError) throw driverError;
 

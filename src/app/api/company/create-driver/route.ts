@@ -66,6 +66,13 @@ export async function POST(req: NextRequest) {
             currentLongitude: null,
             lastLocationUpdate: null,
             updatedAt: new Date().toISOString(),
+            status: "active", // Default active since company is creating them
+            maxWeightCapacity: 0,
+            equipment: [],
+            documents: {},
+            bankDetails: {},
+            rating: 5.0,
+            totalTrips: 0
         }, { onConflict: "id" });
 
         if (driverError) {
