@@ -147,69 +147,28 @@ export default function MisConductoresPage() {
         setCreateError(null);
 
         try {
-            // IMPORTANT: In Supabase, creating another user from the client-side 
-            // will likely change the current session unless using an Edge Function 
-            // with the Service Role key.
-            // For now, we will at least create the profile records.
-            // You should implement an Edge Function for the Auth part.
-            
-            /* 
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { firstName, lastName, role: 'driver' }
-                }
+            const res = await fetch("/api/company/create-driver", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    firstName,
+                    lastName,
+                    email,
+                    password,
+                    rut,
+                    phone,
+                    companyId: user.id,
+                }),
             });
-            if (authError) throw authError;
-            const uid = authData.user?.id;
-            */
 
-            // Assuming we have a UID (e.g. from an Edge Function or temporary logic)
-            // For this migration, we'll use a placeholder or assume the user exists
-            const tempUid = crypto.randomUUID(); 
+            const data = await res.json();
 
-            // 1. Create userProfile in Supabase
-            const { error: profileError } = await supabase.from("userProfiles").insert({
-                id: tempUid,
-                email,
-                firstName,
-                lastName,
-                rut,
-                phone: phone || '',
-                role: 'driver',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            });
-            if (profileError) throw profileError;
-
-            // 2. Create driverProfile in Supabase
-            const { error: driverError } = await supabase.from("driverProfiles").insert({
-                id: tempUid,
-                userId: tempUid,
-                rut,
-                companyId: user.id,
-                vehicleType: 'Auto',
-                licensePlate: 'No especificada',
-                licenseType: 'B',
-                phone: phone || '',
-                isAvailable: false,
-                currentLatitude: null,
-                currentLongitude: null,
-                lastLocationUpdate: null,
-                updatedAt: new Date().toISOString(),
-            });
-            if (driverError) throw driverError;
+            if (!res.ok) {
+                throw new Error(data.error || "Error al crear el conductor.");
+            }
 
             setIsCreateOpen(false);
-            setNewDriver({
-                firstName: "",
-                lastName: "",
-                email: "",
-                password: "",
-                rut: "",
-                phone: "",
-            });
+            setNewDriver({ firstName: "", lastName: "", email: "", password: "", rut: "", phone: "" });
         } catch (err: any) {
             console.error("Error creating driver:", err);
             setCreateError(err.message || "Error al crear el conductor.");
@@ -217,6 +176,7 @@ export default function MisConductoresPage() {
             setIsSubmitting(false);
         }
     };
+
 
     const handleRemoveDriver = async (driverId: string) => {
         if (!user) return;
