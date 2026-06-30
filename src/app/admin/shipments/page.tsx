@@ -20,12 +20,14 @@ const Map = dynamic(() => import('@/components/map'), {
 import { useMemo, useCallback } from "react";
 
 const statusStyles: { [key: string]: string } = {
-  "In transit": "bg-muted text-muted-foreground",
-  "Delivered": "bg-foreground text-background",
-  "Pending": "bg-secondary text-secondary-foreground",
-  "Booked": "bg-accent text-accent-foreground",
-  "Cancelled": "bg-destructive text-destructive-foreground",
-  "in_progress": "bg-muted text-muted-foreground",
+  "PENDING": "bg-secondary text-secondary-foreground",
+  "ACCEPTED": "bg-accent text-accent-foreground",
+  "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
+  "IN_TRANSIT": "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200",
+  "COMPLETED": "bg-foreground text-background",
+  "CANCELLED": "bg-destructive text-destructive-foreground",
 };
 
 
@@ -44,7 +46,7 @@ export default function AdminShipmentsPage() {
 
   const activeOperations = useMemo(() => {
     return (allShipments || [])
-        .filter((s: any) => ["Booked", "In transit"].includes(s.status))
+        .filter((s: any) => ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"].includes(s.status))
         .map((s: any) => ({
             id: s.id,
             type: 'Envío',
@@ -183,7 +185,7 @@ export default function AdminShipmentsPage() {
                             statusStyles[shipment.status] || "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {shipment.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
+                          {shipment.bookingMethod === 'quote' && shipment.status === 'PENDING' ? 'Esperando Ofertas' : shipment.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">

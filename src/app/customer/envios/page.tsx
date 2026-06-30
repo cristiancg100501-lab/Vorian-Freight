@@ -11,11 +11,18 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { ShipmentChat } from "@/components/shipment-chat";
 
 const statusStyles: { [key: string]: { bg: string, text: string, label: string } } = {
   "PENDING":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
@@ -28,29 +35,30 @@ const statusStyles: { [key: string]: { bg: string, text: string, label: string }
   "CANCELLED":         { bg: "bg-red-500/10", text: "text-red-500", label: "Cancelado" },
 };
 
-export default function CompanyMyShipmentsPage() {
+export default function CustomerMyShipmentsPage() {
     const { user } = useUser();
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
-    // 1. Get all shipments booked by this company
-    const filterCompanyShipments = useCallback((q: any) => {
+    // 1. Get all shipments booked by this customer
+    const filterCustomerShipments = useCallback((q: any) => {
         if (!user) return q;
-        return q.eq("carrierId", user.id).order("createdAt", { ascending: false });
+        return q.eq("customer_id", user.id).order("createdAt", { ascending: false });
     }, [user]);
-    const { data: companyShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments", filterCompanyShipments);
+    const { data: customerShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments", filterCustomerShipments);
 
     // 2. Get all unique driver IDs from those shipments
     const driverIds = useMemo(() => {
-        if (!companyShipments) return [];
-        const ids = companyShipments
+        if (!customerShipments) return [];
+        const ids = customerShipments
             .map((s: any) => s.driverId || s.driver_id)
             .filter((id): id is string => !!id);
         return [...new Set(ids)].slice(0, 30);
-    }, [companyShipments]);
+    }, [customerShipments]);
 
     // 3. Fetch names via RPC — direct userProfiles query is blocked by RLS.
     const { supabase } = useSupabase();
     const [drivers, setDrivers] = useState<any[] | null>(null);
+    const [selectedShipmentPOD, setSelectedShipmentPOD] = useState<any>(null);
     useEffect(() => {
         if (driverIds.length === 0) { setDrivers([]); return; }
         supabase
@@ -61,7 +69,6 @@ export default function CompanyMyShipmentsPage() {
     // 4. Create a map of driver IDs to names for easy lookup
     const driverNameMap = useMemo(() => {
         if (!drivers) return new Map();
-        // RPC returns { id, full_name, email }
         return new Map(drivers.map((d: any) => [d.id, d.full_name || d.email || 'Conductor']));
     }, [drivers]);
 
@@ -72,7 +79,7 @@ export default function CompanyMyShipmentsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card/50 backdrop-blur-md p-6 rounded-2xl border shadow-sm">
                 <div>
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mis Envíos Activos</h1>
-                    <p className="text-muted-foreground mt-1">Gestione sus operaciones logísticas y asigne conductores a sus cargas.</p>
+                    <p className="text-muted-foreground mt-1">Supervisa y gestiona todos los envíos que has solicitado.</p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="flex bg-muted p-1 rounded-lg">
@@ -93,10 +100,10 @@ export default function CompanyMyShipmentsPage() {
                             Cuadrícula
                         </Button>
                     </div>
-                    <Link href="/company/shipments" className="w-full md:w-auto">
+                    <Link href="/customer/new" className="w-full md:w-auto">
                         <Button className="w-full md:w-auto shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
                             <PlusCircle className="h-4 w-4 mr-2" />
-                            Buscar Nuevas Cargas
+                            Nuevo Envío
                         </Button>
                     </Link>
                 </div>
@@ -105,16 +112,16 @@ export default function CompanyMyShipmentsPage() {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                     <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4" />
-                    <p className="font-medium animate-pulse">Sincronizando operaciones...</p>
+                    <p className="font-medium animate-pulse">Sincronizando tus envíos...</p>
                 </div>
-            ) : (!companyShipments || companyShipments.length === 0) ? (
+            ) : (!customerShipments || customerShipments.length === 0) ? (
                 <Card className="border-dashed bg-card/30">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <Package className="h-16 w-16 text-muted-foreground/30 mb-4" />
                         <h3 className="text-xl font-semibold mb-2">No hay envíos activos</h3>
-                        <p className="text-muted-foreground mb-6 max-w-sm">Su flota no tiene cargas asignadas en este momento. Busque nuevas oportunidades en el mercado.</p>
-                        <Link href="/company/shipments">
-                            <Button>Ir al Mercado de Cargas</Button>
+                        <p className="text-muted-foreground mb-6 max-w-sm">No tienes ningún envío en este momento. Puedes crear uno nuevo para empezar a realizar entregas.</p>
+                        <Link href="/customer/new">
+                            <Button>Crear mi primer envío</Button>
                         </Link>
                     </CardContent>
                 </Card>
@@ -132,20 +139,19 @@ export default function CompanyMyShipmentsPage() {
                                 <table className="w-full text-sm text-left">
                                     <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b">
                                         <tr>
-                                            <th scope="col" className="px-6 py-4 font-semibold">Operación</th>
+                                            <th scope="col" className="px-6 py-4 font-semibold">Envío</th>
                                             <th scope="col" className="px-6 py-4 font-semibold">Ruta</th>
-                                            <th scope="col" className="px-6 py-4 font-semibold">Fechas</th>
+                                            <th scope="col" className="px-6 py-4 font-semibold">Fecha</th>
                                             <th scope="col" className="px-6 py-4 font-semibold">Conductor</th>
-                                            <th scope="col" className="px-6 py-4 font-semibold">Ingreso</th>
-                                            <th scope="col" className="px-6 py-4 font-semibold text-right">Acciones</th>
+                                            <th scope="col" className="px-6 py-4 font-semibold text-right">Precio</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
-                                        {companyShipments.map((shipment: any, idx: number) => {
+                                        {customerShipments.map((shipment: any, idx: number) => {
                                             const driverId = shipment.driverId || shipment.driver_id;
                                             const origin = (shipment.originAddress || shipment.pickup_address || '').split(',')[0] || 'Desconocido';
                                             const destination = (shipment.destinationAddress || shipment.delivery_address || '').split(',')[0] || 'Desconocido';
-                                            const price = shipment.estimatedPrice || shipment.estimated_price || shipment.price || 0;
+                                            const price = shipment.client_price || shipment.clientPrice || shipment.estimatedPrice || shipment.price || 0;
                                             const date = shipment.pickup_date ? new Date(shipment.pickup_date) : new Date(shipment.createdAt);
                                             const status = statusStyles[shipment.status] || { bg: "bg-muted", text: "text-muted-foreground", label: shipment.status };
                                             
@@ -160,13 +166,18 @@ export default function CompanyMyShipmentsPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className={cn("p-2 rounded-xl bg-background border shadow-sm group-hover:scale-110 transition-transform", status.text)}>
-                                                                <Truck className="h-4 w-4" />
+                                                                <Package className="h-4 w-4" />
                                                             </div>
                                                             <div>
                                                                 <p className="font-mono text-xs font-semibold">{shipment.id}</p>
-                                                                <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold mt-1", status.bg, status.text)}>
-                                                                    {status.label}
-                                                                </span>
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold", status.bg, status.text)}>
+                                                                        {status.label}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-bold">
+                                                                        PIN: {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -194,22 +205,39 @@ export default function CompanyMyShipmentsPage() {
                                                                 <User className="h-3 w-3 text-muted-foreground" />
                                                             </div>
                                                             <span className="text-xs font-medium truncate max-w-[100px]">
-                                                                {driverId ? (driverNameMap.get(driverId) || <span className="text-orange-500 animate-pulse">Asignando...</span>) : <span className="text-muted-foreground">No asignado</span>}
+                                                                {driverId ? (driverNameMap.get(driverId) || <span className="text-orange-500 animate-pulse">Asignando...</span>) : <span className="text-muted-foreground">Pendiente</span>}
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold text-primary">
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="font-bold text-primary mb-2">
                                                             CLP {price.toLocaleString('es-CL')}
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <Link href={`/company/envios/${shipment.id}`}>
-                                                            <Button variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                Ver Detalles
-                                                                <ExternalLink className="h-3 w-3 ml-2" />
-                                                            </Button>
-                                                        </Link>
+                                                        <div className="flex flex-col items-end gap-2">
+                                                            <ShipmentChat 
+                                                                shipmentId={shipment.id} 
+                                                                isCompanyRole={false} 
+                                                                triggerButton={
+                                                                    <Button variant="outline" size="sm" className="text-xs">
+                                                                        Chat Transporte 💬
+                                                                    </Button>
+                                                                }
+                                                            />
+                                                            {(shipment.pickup_photo || shipment.delivery_photo || shipment.delivery_signature) && (
+                                                                <Button 
+                                                                    variant="outline" 
+                                                                    size="sm"
+                                                                    className="text-xs"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedShipmentPOD(shipment);
+                                                                    }}
+                                                                >
+                                                                    <ImageIcon className="h-3 w-3 mr-1" />
+                                                                    Evidencias
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </motion.tr>
                                             )
@@ -226,11 +254,11 @@ export default function CompanyMyShipmentsPage() {
                             exit={{ opacity: 0, y: -10 }}
                             className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                         >
-                            {companyShipments.map((shipment: any, idx: number) => {
+                            {customerShipments.map((shipment: any, idx: number) => {
                                 const driverId = shipment.driverId || shipment.driver_id;
                                 const origin = (shipment.originAddress || shipment.pickup_address || '').split(',')[0] || 'Desconocido';
                                 const destination = (shipment.destinationAddress || shipment.delivery_address || '').split(',')[0] || 'Desconocido';
-                                const price = shipment.estimatedPrice || shipment.estimated_price || shipment.price || 0;
+                                const price = shipment.client_price || shipment.clientPrice || shipment.estimatedPrice || shipment.price || 0;
                                 const date = shipment.pickup_date ? new Date(shipment.pickup_date) : new Date(shipment.createdAt);
                                 const status = statusStyles[shipment.status] || { bg: "bg-muted", text: "text-muted-foreground", label: shipment.status };
                                 
@@ -249,10 +277,15 @@ export default function CompanyMyShipmentsPage() {
                                                         <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold mb-2 uppercase tracking-wider", status.bg, status.text)}>
                                                             {status.label}
                                                         </span>
-                                                        <p className="font-mono text-xs text-muted-foreground flex items-center gap-1">
-                                                            <Package className="h-3 w-3" />
-                                                            #{shipment.id}
-                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+                                                                <Package className="h-3 w-3" />
+                                                                #{shipment.id}
+                                                            </p>
+                                                            <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-bold">
+                                                                PIN: {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-lg font-bold text-primary">CLP {price.toLocaleString('es-CL')}</p>
@@ -295,12 +328,26 @@ export default function CompanyMyShipmentsPage() {
                                                     </div>
                                                 </div>
                                             </CardContent>
-                                            <div className="p-4 pt-0">
-                                                <Link href={`/company/envios/${shipment.id}`}>
-                                                    <Button variant="outline" className="w-full group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all">
-                                                        Gestionar Operación
+                                            <div className="px-6 pb-4 pt-0 space-y-2">
+                                                <ShipmentChat 
+                                                    shipmentId={shipment.id} 
+                                                    isCompanyRole={false} 
+                                                    triggerButton={
+                                                        <Button variant="outline" className="w-full">
+                                                            Chat Transporte 💬
+                                                        </Button>
+                                                    }
+                                                />
+                                                {(shipment.pickup_photo || shipment.delivery_photo || shipment.delivery_signature) && (
+                                                    <Button 
+                                                        variant="outline" 
+                                                        className="w-full"
+                                                        onClick={() => setSelectedShipmentPOD(shipment)}
+                                                    >
+                                                        <ImageIcon className="h-4 w-4 mr-2" />
+                                                        Ver Evidencias (POD)
                                                     </Button>
-                                                </Link>
+                                                )}
                                             </div>
                                         </Card>
                                     </motion.div>
@@ -310,6 +357,39 @@ export default function CompanyMyShipmentsPage() {
                     )}
                 </AnimatePresence>
             )}
+
+            {/* POD Dialog */}
+            <Dialog open={!!selectedShipmentPOD} onOpenChange={(open) => !open && setSelectedShipmentPOD(null)}>
+                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Evidencias de Entrega</DialogTitle>
+                    </DialogHeader>
+                    {selectedShipmentPOD && (
+                        <div className="space-y-6 py-4">
+                            {selectedShipmentPOD.pickup_photo && (
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-muted-foreground">Foto de Recogida</p>
+                                    <img src={selectedShipmentPOD.pickup_photo} alt="Recogida" className="w-full rounded-md border" />
+                                </div>
+                            )}
+                            {selectedShipmentPOD.delivery_photo && (
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-muted-foreground">Foto de Entrega</p>
+                                    <img src={selectedShipmentPOD.delivery_photo} alt="Entrega" className="w-full rounded-md border" />
+                                </div>
+                            )}
+                            {selectedShipmentPOD.delivery_signature && (
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-muted-foreground">Firma del Cliente</p>
+                                    <div className="bg-white rounded-md border p-2">
+                                        <img src={selectedShipmentPOD.delivery_signature} alt="Firma" className="w-full" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

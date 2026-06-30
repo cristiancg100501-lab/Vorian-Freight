@@ -76,7 +76,7 @@ export default function MissionControlPage() {
 
   // Fetch active shipments
   const filterActiveShipments = useCallback((q: any) => {
-    return q.in("status", ["In transit", "Booked"]);
+    return q.in("status", ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"]);
   }, []);
   const { data: activeShipments } = useSupabaseCollection("shipments", filterActiveShipments);
 

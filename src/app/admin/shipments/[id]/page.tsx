@@ -86,7 +86,7 @@ export default function ShipmentDetailPage() {
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                             {shipment.id}
-                            <Badge variant={shipment.status === 'Delivered' ? 'default' : 'secondary'} className="text-xs uppercase px-3">
+                            <Badge variant={shipment.status === 'COMPLETED' ? 'default' : 'secondary'} className="text-xs uppercase px-3">
                                 {shipment.status}
                             </Badge>
                         </h1>
@@ -95,15 +95,18 @@ export default function ShipmentDetailPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <Select value={shipment.status} onValueChange={handleUpdateStatus}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[200px]">
                             <SelectValue placeholder="Cambiar Estado" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Pending">Pendiente</SelectItem>
-                            <SelectItem value="Booked">Reservado</SelectItem>
-                            <SelectItem value="In transit">En Tránsito</SelectItem>
-                            <SelectItem value="Delivered">Entregado</SelectItem>
-                            <SelectItem value="Cancelled">Cancelado</SelectItem>
+                            <SelectItem value="PENDING">Pendiente</SelectItem>
+                            <SelectItem value="ACCEPTED">Aceptado</SelectItem>
+                            <SelectItem value="EN_ROUTE_TO_PICKUP">En Camino a Origen</SelectItem>
+                            <SelectItem value="ARRIVED_AT_PICKUP">En Punto de Recogida</SelectItem>
+                            <SelectItem value="IN_TRANSIT">En Tránsito</SelectItem>
+                            <SelectItem value="ARRIVED_AT_DROPOFF">En Punto de Entrega</SelectItem>
+                            <SelectItem value="COMPLETED">Completado</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelado</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -180,7 +183,7 @@ export default function ShipmentDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Mandante (Cliente)</p>
-                                    <p className="font-bold">{customer?.name || customer?.email || 'N/A'}</p>
+                                    <p className="font-bold">{customer?.name || (customer?.firstName && customer?.lastName ? `${customer.firstName} ${customer.lastName}` : customer?.firstName || customer?.email || 'N/A')}</p>
                                     <p className="text-xs text-muted-foreground">{customer?.email}</p>
                                 </div>
                             </div>
@@ -190,7 +193,7 @@ export default function ShipmentDetailPage() {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Transportista (Chofer)</p>
-                                    <p className="font-bold">{driver?.name || driver?.email || 'No asignado'}</p>
+                                    <p className="font-bold">{driver?.name || (driver?.firstName && driver?.lastName ? `${driver.firstName} ${driver.lastName}` : driver?.firstName || driver?.email || 'No asignado')}</p>
                                     <p className="text-xs text-muted-foreground">{driver?.email || 'Esperando asignación'}</p>
                                 </div>
                             </div>

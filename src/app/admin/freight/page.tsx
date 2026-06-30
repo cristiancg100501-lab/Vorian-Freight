@@ -96,12 +96,43 @@ export default function AdminDashboard() {
     const users = userProfiles || [];
 
     const totalRevenue = shipments.reduce((acc, s) => acc + (s.estimated_price || 0), 0);
-    const pending = shipments.filter(s => ['Pending', 'pending'].includes(s.status)).length;
-    const active = shipments.filter(s => ['In transit', 'Booked', 'In Transit'].includes(s.status)).length;
-    const completed = shipments.filter(s => ['Completed', 'Delivered', 'completed'].includes(s.status)).length;
+    const pending = shipments.filter(s => s.status === 'PENDING').length;
+    const active = shipments.filter(s => ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(s.status)).length;
+    const completed = shipments.filter(s => s.status === 'COMPLETED').length;
     
+    const totalDrivers = drivers.length;
     const driversOnline = drivers.filter(d => d.isAvailable).length;
-    const totalDrivers = users.filter(u => u.role === 'driver').length;
+    
+    // Métricas por tipo de camión
+    const vehicleTypes = shipments.reduce((acc: any, s) => {
+      acc[s.vehicleType || 'Otro'] = (acc[s.vehicleType || 'Otro'] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Distribución geográfica (orígenes principales)
+    const origins = shipments.reduce((acc: any, s) => {
+      const city = (s.pickup_address || '').split(',')[0] || 'Desconocido';
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Evolución de precios estimados (promedio)
+    const avgPrice = shipments.length > 0 
+      ? shipments.reduce((sum, s) => sum + (s.estimated_price || 0), 0) / shipments.length 
+      : 0;
+      
+    const statusCounts = shipments.reduce((acc: any, s) => {
+      let status = 'Otros';
+      if (s.status === 'PENDING') status = 'Pendiente';
+      else if (s.status === 'COMPLETED') status = 'Entregado';
+      else if (s.status === 'CANCELLED') status = 'Cancelado';
+      else if (['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(s.status)) status = 'Activo';
+      
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const pieData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
 
     // Data para el gráfico de volumen (últimos 7 días)
     const last7Days = eachDayOfInterval({
@@ -117,18 +148,6 @@ export default function AdminDashboard() {
         revenue: dayShipments.reduce((acc, s) => acc + (s.estimated_price || 0), 0),
       };
     });
-
-    // Data para el gráfico circular
-    const statusCounts = shipments.reduce((acc: any, s) => {
-      const status = s.status === 'In transit' ? 'En Ruta' : 
-                     s.status === 'Pending' ? 'Pendiente' : 
-                     s.status === 'Delivered' ? 'Entregado' : 
-                     s.status === 'Cancelled' ? 'Cancelado' : 'Otros';
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, {});
-
-    const pieData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
 
     // Calcular comunas más pedidas
     const comunaCounts = shipments.reduce((acc: any, s) => {

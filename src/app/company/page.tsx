@@ -22,16 +22,14 @@ import {
 } from "lucide-react";
 
 const statusStyles: { [key: string]: string } = {
-    "in_progress": "bg-muted text-muted-foreground",
-    "In transit": "bg-muted text-muted-foreground",
-    "completed": "bg-foreground text-background",
-    "Delivered": "bg-foreground text-background",
-    "pending": "bg-secondary text-secondary-foreground",
-    "Pending": "bg-secondary text-secondary-foreground",
-    "assigned": "bg-accent text-accent-foreground",
-    "Booked": "bg-accent text-accent-foreground",
-    "cancelled": "bg-destructive text-destructive-foreground",
-    "Cancelled": "bg-destructive text-destructive-foreground",
+  "PENDING": "bg-secondary text-secondary-foreground border-secondary",
+  "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
+  "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
+  "IN_TRANSIT": "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
+  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+  "COMPLETED": "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300",
+  "CANCELLED": "bg-destructive/20 text-destructive border-destructive",
 };
 
 const driverStatusStyles: { [key: string]: string } = {
@@ -52,7 +50,7 @@ export default function CompanyDashboardPage() {
 
     // 1. Get all drivers belonging to this company
     const filterCompanyDrivers = useCallback((q: any) => {
-        if (!user) return q;
+        if (!user) return q.limit(0);
         return q.eq("companyId", user.id);
     }, [user]);
     const { data: companyDrivers, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles", filterCompanyDrivers);
@@ -61,22 +59,22 @@ export default function CompanyDashboardPage() {
 
     // 2. Get user profiles for only this company's drivers
     const filterCompanyUsers = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none(); // Trick to return empty if no IDs
+        if (driverIds.length === 0) return q.limit(0); // Trick to return empty if no IDs
         return q.in('id', driverIds.slice(0, 30));
     }, [driverIds]);
     const { data: companyUsers, isLoading: isLoadingUsers } = useSupabaseCollection("userProfiles", filterCompanyUsers);
 
 
     // 3. Get all active shipments for those drivers
-    const filterActiveShipments = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none();
-        return q.in("driverId", driverIds.slice(0, 30)).in("status", ["Booked", "In transit"]);
+    const filterActiveJobs = useCallback((q: any) => {
+        if (driverIds.length === 0) return q.in("id", []);
+        return q.in("driverId", driverIds.slice(0, 30)).in("status", ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"]);
     }, [driverIds]);
-    const { data: activeShipments, isLoading: isLoadingShipments } = useSupabaseCollection<any>("shipments", filterActiveShipments);
+    const { data: activeShipments, isLoading: isLoadingShipments } = useSupabaseCollection<any>("shipments", filterActiveJobs);
 
     // 4. Get completed shipments for revenue
     const filterCompletedShipments = useCallback((q: any) => {
-        if (!user) return q.none();
+        if (!user) return q.limit(0);
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0,0,0,0);

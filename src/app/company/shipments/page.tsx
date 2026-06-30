@@ -154,20 +154,37 @@ export default function CompanyShipmentsPage() {
     const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
     const [selectedLoad, setSelectedLoad] = useState<ShipmentLoad | null>(null);
     const [isAccepting, setIsAccepting] = useState(false);
-    const [selectedDriverId, setSelectedDriverId] = useState<string>("");
+    const [rejectedLoads, setRejectedLoads] = useState<string[]>([]);
+    
+    useEffect(() => {
+        const saved = localStorage.getItem('rejectedLoads');
+        if (saved) {
+            try {
+                setRejectedLoads(JSON.parse(saved));
+            } catch (e) {}
+        }
+    }, []);
+
+    const handleRejectLoad = () => {
+        if (!selectedLoad) return;
+        const newRejected = [...rejectedLoads, selectedLoad.id];
+        setRejectedLoads(newRejected);
+        localStorage.setItem('rejectedLoads', JSON.stringify(newRejected));
+        setSelectedLoad(null);
+    };
     
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
     const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
     // Query for available loads (shipments) from Supabase
-    const queryFn = useCallback((query: any) => query.eq("status", "Pending"), []);
+    const queryFn = useCallback((query: any) => query.eq("status", "PENDING"), []);
     const { data: shipmentsData, isLoading } = useSupabaseCollection<any>("shipments", queryFn);
     
     // Adapt shipments to the UI ShipmentLoad interface
     const availableLoads = useMemo(() => {
         if (!shipmentsData) return [];
-        return shipmentsData.map((s: any) => {
+        return shipmentsData.filter((s: any) => !rejectedLoads.includes(s.id)).map((s: any) => {
             // Parse coordinates from GeoJSON route
             let originCoords = { lat: 0, lng: 0 };
             let destinationCoords = { lat: 0, lng: 0 };
@@ -192,39 +209,7 @@ export default function CompanyShipmentsPage() {
                 weight_lbs: s.details?.weightLbs
             };
         });
-    }, [shipmentsData]);
-
-    // Query for available drivers in the company
-    const driversQuery = useCallback((query: any) => {
-        if (!user) return query;
-        return query.eq("companyId", user.id).eq("isAvailable", true);
-    }, [user]);
-    const { data: availableDrivers } = useSupabaseCollection<any>("driverProfiles", driversQuery);
-
-    const driverIds = useMemo(() => availableDrivers?.map((d: any) => d.id) || [], [availableDrivers]);
-    const usersQuery = useCallback((query: any) => {
-        if (driverIds.length === 0) return query.limit(0);
-        return query.in("id", driverIds);
-    }, [driverIds]);
-    const { data: driverUsers } = useSupabaseCollection<any>("userProfiles", usersQuery);
-
-    const mergedDrivers = useMemo(() => {
-        if (!availableDrivers || !driverUsers) return [];
-        return availableDrivers.map((driver: any) => {
-            const profile = driverUsers.find((u: any) => u.id === driver.id);
-            const firstName = profile?.firstName || '';
-            const lastName = profile?.lastName || '';
-            const fullName = `${firstName} ${lastName}`.trim();
-            
-            return {
-                id: driver.id,
-                name: fullName || 'Conductor',
-                vehicle: driver.vehicleType || 'Auto',
-                licensePlate: driver.licensePlate || 'Sin placa',
-                rut: driver.rut || profile?.rut || 'Sin RUT'
-            };
-        });
-    }, [availableDrivers, driverUsers]);
+    }, [shipmentsData, rejectedLoads]);
 
     // Initialize Map
     useEffect(() => {
@@ -440,18 +425,12 @@ export default function CompanyShipmentsPage() {
     const handleAcceptLoad = async () => {
         if (!supabase || !user || !selectedLoad) return;
         
-        if (!selectedDriverId) {
-            alert("Por favor, selecciona un conductor para asignar esta carga.");
-            return;
-        }
-
         setIsAccepting(true);
         try {
             // Actualizamos la tabla consolidada 'shipments'
             const { error } = await supabase.from("shipments").update({
-                status: "Booked",
+                status: "ACCEPTED",
                 carrierId: user.id,
-                driverId: selectedDriverId,
                 updatedAt: new Date().toISOString()
             }).eq('id', selectedLoad.id);
 
@@ -557,37 +536,26 @@ export default function CompanyShipmentsPage() {
                                             </div>
                                         </div>
                                     </CardContent>
-                                    <CardFooter className="px-4 pb-4 flex-col gap-3">
-                                        <div className="w-full">
-                                            <label className="text-xs font-semibold mb-1 block text-muted-foreground">Asignar a Conductor:</label>
-                                            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                                                <SelectTrigger className="w-full h-9 text-xs">
-                                                    <SelectValue placeholder="Seleccione un conductor..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {mergedDrivers.length === 0 ? (
-                                                        <SelectItem value="none" disabled>No hay conductores disponibles</SelectItem>
-                                                    ) : (
-                                                        mergedDrivers.map(d => (
-                                                            <SelectItem key={d.id} value={d.id}>
-                                                                {d.name} - RUT: {d.rut} ({d.vehicle})
-                                                            </SelectItem>
-                                                        ))
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                    <CardFooter className="px-4 pb-4 flex gap-3">
                                         <Button 
-                                            className="w-full h-10 text-sm font-bold shadow-md shadow-primary/20"
+                                            variant="outline"
+                                            className="flex-1 h-10 text-sm font-bold text-destructive hover:bg-destructive/10"
+                                            onClick={handleRejectLoad}
+                                        >
+                                            <X className="mr-2 h-4 w-4" />
+                                            Rechazar
+                                        </Button>
+                                        <Button 
+                                            className="flex-1 h-10 text-sm font-bold shadow-md shadow-primary/20"
                                             onClick={handleAcceptLoad}
-                                            disabled={isAccepting || !selectedDriverId}
+                                            disabled={isAccepting}
                                         >
                                             {isAccepting ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : (
                                                 <CheckCircle className="mr-2 h-4 w-4" />
                                             )}
-                                            Asignar y Aceptar Carga
+                                            Aceptar Carga
                                         </Button>
                                     </CardFooter>
                                 </Card>

@@ -28,21 +28,25 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const statusStyles: { [key: string]: string } = {
-  "In transit": "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  "Delivered": "bg-green-500/10 text-green-500 border-green-500/20",
-  "Completed": "bg-green-500/10 text-green-500 border-green-500/20",
-  "Pending": "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  "Booked": "bg-primary/10 text-primary border-primary/20",
-  "Cancelled": "bg-destructive/10 text-destructive border-destructive/20",
+  "PENDING": "bg-secondary text-secondary-foreground border-secondary",
+  "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
+  "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
+  "IN_TRANSIT": "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
+  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+  "COMPLETED": "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300",
+  "CANCELLED": "bg-destructive/20 text-destructive border-destructive",
 };
 
 const statusLabels: { [key: string]: string } = {
-  "In transit": "En Ruta",
-  "Delivered": "Entregado",
-  "Completed": "Completado",
-  "Pending": "Pendiente",
-  "Booked": "Reservado",
-  "Cancelled": "Cancelado",
+  "PENDING": "Buscando Chofer",
+  "ACCEPTED": "Chofer Asignado",
+  "EN_ROUTE_TO_PICKUP": "Chofer en Camino",
+  "ARRIVED_AT_PICKUP": "Chofer en Origen",
+  "IN_TRANSIT": "En Tránsito",
+  "ARRIVED_AT_DROPOFF": "Chofer en Destino",
+  "COMPLETED": "Entregado",
+  "CANCELLED": "Cancelado",
 };
 
 export default function CustomerDashboard() {
@@ -58,9 +62,21 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     if (shipments && shipments.length > 0 && !selectedShipment) {
-      // Auto select the first active shipment if possible
-      const active = shipments.find((s:any) => s.status === 'In transit' || s.status === 'Booked');
-      setSelectedShipment(active || shipments[0]);
+      // First try to find a shipment that is already in progress
+      const active = shipments.find((s:any) => ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(s.status));
+      if (active) {
+        setSelectedShipment(active);
+        return;
+      }
+      
+      // If none in progress, check if there's any pending
+      const pending = shipments.find((s:any) => s.status === 'PENDING');
+      if (pending) {
+        setSelectedShipment(pending);
+        return;
+      }
+      
+      setSelectedShipment(shipments[0]);
     }
   }, [shipments, selectedShipment]);
 
@@ -85,8 +101,8 @@ export default function CustomerDashboard() {
 
     shipments.forEach((s: any) => {
       // Counters
-      if (['In transit', 'Pending', 'Booked'].includes(s.status)) active++;
-      if (['Delivered', 'Completed'].includes(s.status)) delivered++;
+      if (['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(s.status)) active++;
+      if (['COMPLETED'].includes(s.status)) delivered++;
       
       const price = parseFloat(s.estimatedPrice) || parseFloat(s.client_price) || 0;
       spent += price;
@@ -276,15 +292,29 @@ export default function CustomerDashboard() {
 
         {/* ROUTE PREVIEW - lightweight, no WebGL */}
         <Card className="xl:col-span-2 bg-card border overflow-hidden shadow-sm relative min-h-[400px] flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Navigation className="w-5 h-5 text-primary" />
-              Envío Seleccionado
-            </CardTitle>
+          <CardHeader className="pb-3 flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Navigation className="w-5 h-5 text-primary" />
+                Envío Seleccionado
+              </CardTitle>
+              {selectedShipment && (
+                <CardDescription className="mt-1">
+                  ID #{selectedShipment.id} &bull; <span className={cn("font-semibold", statusStyles[selectedShipment.status]?.split(' ')[1])}>{statusLabels[selectedShipment.status] || selectedShipment.status}</span>
+                </CardDescription>
+              )}
+            </div>
             {selectedShipment && (
-              <CardDescription>
-                ID #{selectedShipment.id.substring(0,8).toUpperCase()} &bull; <span className={cn("font-semibold", statusStyles[selectedShipment.status]?.split(' ')[1])}>{statusLabels[selectedShipment.status] || selectedShipment.status}</span>
-              </CardDescription>
+              <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
+                <span className="text-xs font-bold uppercase">PIN</span>
+                <span className="font-mono font-bold text-lg">
+                  {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(selectedShipment.status) 
+                    ? selectedShipment.pickup_code || '----'
+                    : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(selectedShipment.status)
+                    ? selectedShipment.delivery_code || '----'
+                    : '----'}
+                </span>
+              </div>
             )}
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-4">
@@ -388,7 +418,7 @@ export default function CustomerDashboard() {
                     <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-3">
                             <div>
-                                <span className="text-xs font-mono font-bold text-muted-foreground">#{shipment.id.substring(0,8)}</span>
+                                <span className="text-xs font-mono font-bold text-muted-foreground">#{shipment.id}</span>
                                 <p className="font-bold mt-0.5">${(parseFloat(shipment.client_price) || parseFloat(shipment.estimatedPrice) || 0).toLocaleString('es-CL')} <span className="text-[10px] font-normal text-muted-foreground">CLP</span></p>
                             </div>
                             <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border", statusStyles[shipment.status] || "bg-muted")}>

@@ -50,7 +50,7 @@ export async function POST(req: Request) {
                 userProfiles!shipment_client_fkey(email, fullName)
             `)
             .eq('carrierId', driverId)
-            .in('status', ['Booked', 'In Transit'])
+            .in('status', ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'])
             .single();
 
         if (loadError || !shipment) {

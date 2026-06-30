@@ -129,7 +129,7 @@ export default function ManagedShipmentPage() {
                 carrier_cost: parseFloat(manualCarrierCost),
                 client_price: parseFloat(manualClientPrice),
                 itemDescription: description,
-                status: 'Booked',
+                status: 'ACCEPTED',
                 equipment: 'Dry van',
                 serviceType: 'FTL',
                 bookingMethod: 'instant',

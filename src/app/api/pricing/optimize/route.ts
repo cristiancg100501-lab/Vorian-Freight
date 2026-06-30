@@ -198,7 +198,7 @@ export async function POST(request: Request) {
                 .from('shipments')
                 .select('id', { count: 'exact', head: true })
                 .gte('createdAt', windowStart)
-                .in('status', ['Pending', 'Booked', 'Assigned', 'In Transit']),
+                .in('status', ['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF']),
 
             // Sensibilidad configurada en settings
             supabaseAdmin

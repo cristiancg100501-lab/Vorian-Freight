@@ -76,7 +76,7 @@ export default function GestionFlotaPage() {
 
     // 3. Get user profiles for these drivers to get their names
     const filterUsers = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.none();
+        if (driverIds.length === 0) return q.limit(0);
         return q.in('id', driverIds.slice(0, 30));
     }, [driverIds]);
     const { data: companyUsers } = useSupabaseCollection("userProfiles", filterUsers);
@@ -96,13 +96,17 @@ export default function GestionFlotaPage() {
     const handleAddVehicle = async () => {
         if (!user) return;
         try {
-            await supabase.from("vehicles").insert({
+            const { error } = await supabase.from("vehicles").insert({
                 ...newVehicle,
+                make: newVehicle.make.toUpperCase(),
+                model: newVehicle.model.toUpperCase(),
+                licensePlate: newVehicle.licensePlate.toUpperCase(),
                 driverId: newVehicle.driverId === "none" ? null : newVehicle.driverId,
                 companyId: user.id,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             });
+            if (error) throw error;
             setIsAddDialogOpen(false);
             setNewVehicle({
                 make: "",
@@ -121,10 +125,16 @@ export default function GestionFlotaPage() {
 
     const handleUpdateVehicle = async (vehicleId: string, updates: any) => {
         try {
-            await supabase.from("vehicles").update({
-                ...updates,
+            const updatesToApply = { ...updates };
+            if (updatesToApply.make) updatesToApply.make = updatesToApply.make.toUpperCase();
+            if (updatesToApply.model) updatesToApply.model = updatesToApply.model.toUpperCase();
+            if (updatesToApply.licensePlate) updatesToApply.licensePlate = updatesToApply.licensePlate.toUpperCase();
+
+            const { error } = await supabase.from("vehicles").update({
+                ...updatesToApply,
                 updatedAt: new Date().toISOString()
             }).eq("id", vehicleId);
+            if (error) throw error;
         } catch (err) {
             console.error(err);
             alert("Error al actualizar el vehículo.");
@@ -134,7 +144,8 @@ export default function GestionFlotaPage() {
     const handleDeleteVehicle = async (vehicleId: string) => {
         if (!confirm("¿Está seguro de que desea eliminar este vehículo de su flota?")) return;
         try {
-            await supabase.from("vehicles").delete().eq("id", vehicleId);
+            const { error } = await supabase.from("vehicles").delete().eq("id", vehicleId);
+            if (error) throw error;
         } catch (err) {
             console.error(err);
             alert("Error al eliminar el vehículo.");

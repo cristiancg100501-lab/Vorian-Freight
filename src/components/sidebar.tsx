@@ -23,7 +23,8 @@ import {
   Navigation,
   Car,
   CreditCard,
-  Zap
+  Zap,
+  MessageCircle
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -48,6 +49,7 @@ const adminNavItems: NavItem[] = [
   { group: "GENERAL", href: "/admin/shipments", icon: Package, label: "Envíos (Freight)" },
   { group: "GENERAL", href: "/admin/shipments/managed", icon: PlusCircle, label: "Nuevo Envío Gestionado" },
   { group: "GENERAL", href: "/admin/users", icon: Users, label: "Usuarios" },
+  { group: "GENERAL", href: "/admin/soporte", icon: MessageCircle, label: "Soporte (Chat)" },
   { group: "OTROS", href: "/admin/rates/tolls-map", icon: Map, label: "Mapa de Pórticos" },
   { group: "OTROS", href: "/admin/rates/tolls", icon: Waypoints, label: "Gestión de Peajes (TAG)" },
   { group: "OTROS", href: "/admin/rates/avo", icon: Waypoints, label: "Gestión AVO" },
@@ -78,7 +80,8 @@ const companyNavItems: NavItem[] = [
 ];
 
 const customerNavItems: NavItem[] = [
-    { group: "GENERAL", href: "/customer", icon: Package, label: "Mis Envíos" },
+    { group: "GENERAL", href: "/customer", icon: LayoutDashboard, label: "Dashboard" },
+    { group: "GENERAL", href: "/customer/envios", icon: List, label: "Mis Envíos" },
     { group: "GENERAL", href: "/customer/new", icon: PlusCircle, label: "Crear Envío" },
     { group: "GENERAL", href: "/customer/tracking", icon: Map, label: "Seguimiento Real" },
     { group: "OTROS", href: "#", icon: Users, label: "Mi Perfil" },
@@ -105,10 +108,41 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
   const { supabase } = useSupabase();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [unreadSupport, setUnreadSupport] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    if (role === 'company' || role === 'admin') {
+      const channel = supabase
+        .channel('support-alerts')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'support_messages',
+            filter: 'is_from_support=eq.false',
+          },
+          (payload) => {
+            setUnreadSupport(true);
+            // Opcional: Podríamos reproducir un sonido aquí
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [supabase, role]);
+
+  // Clear unread badge if we navigate to it
+  useEffect(() => {
+    if (pathname === '/company/soporte' || pathname === '/admin/soporte') {
+      setUnreadSupport(false);
+    }
+  }, [pathname]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -136,12 +170,18 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                             href={item.href}
                             prefetch={false}
                             className={cn(
-                                "group flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg",
+                                "group relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg",
                                 hoverColorClass,
                                 isActive && activeColorClass
                             )}
                         >
                             <item.icon className={cn("h-5 w-5 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
+                            {item.label === "Soporte (Chat)" && unreadSupport && (
+                                <span className="absolute right-2 top-2 flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            )}
                             <span className="sr-only">{item.label}</span>
                         </Link>
                 </TooltipTrigger>
@@ -156,12 +196,18 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
             href={item.href}
             prefetch={false}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground group",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground group relative",
                 isActive && cn("shadow-[0_0_20px_rgba(0,0,0,0.2)] font-semibold", "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]")
             )}
         >
-            <item.icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-110", isActive && "scale-110")} />
+            <item.icon className={cn("h-4 w-4 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
             {item.label}
+            {item.label === "Soporte (Chat)" && unreadSupport && (
+                <span className="ml-auto flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+            )}
         </Link>
     );
   }

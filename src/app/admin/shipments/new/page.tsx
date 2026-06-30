@@ -361,7 +361,7 @@ export default function NewShipmentPage() {
             bookingMethod: finalBookingMethod,
             // Metadata
             estimated_price: finalBookingMethod === 'instant' ? estimatedPrice : 0,
-            status: isInternalShipment ? 'Booked' : 'Pending',
+            status: isInternalShipment ? 'ACCEPTED' : 'PENDING',
             createdAt: new Date().toISOString(),
             // Managed Freight Fields
             customer_id: selectedCustomerId || null,

@@ -89,11 +89,11 @@ export default function MisConductoresPage() {
 
     // 3. Get active shipments to determine if busy
 
-    const filterActiveShipments = useCallback((q: any) => {
-        if (driverIds.length === 0) return q.limit(0);
-        return q.in("driverId", driverIds.slice(0, 30)).in("status", ["Booked", "In transit"]);
+    const filterActiveJobs = useCallback((q: any) => {
+        if (driverIds.length === 0) return q.in("id", []);
+        return q.in("driverId", driverIds.slice(0, 30)).in("status", ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"]);
     }, [driverIds]);
-    const { data: activeShipments } = useSupabaseCollection("shipments", filterActiveShipments);
+    const { data: activeShipments } = useSupabaseCollection("shipments", filterActiveJobs);
 
     const isLoading = isLoadingDrivers || isLoadingUsers;
 

@@ -18,37 +18,38 @@ const VorianMap = dynamic(() => import("@/components/map"), {
 });
 
 const statusStyles: { [key: string]: string } = {
-  "In transit": "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  Delivered: "bg-green-500/10 text-green-500 border-green-500/20",
-  Completed: "bg-green-500/10 text-green-500 border-green-500/20",
-  Pending: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  Booked: "bg-primary/10 text-primary border-primary/20",
-  Cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+  "PENDING": "bg-secondary text-secondary-foreground border-secondary",
+  "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
+  "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
+  "IN_TRANSIT": "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
+  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+  "COMPLETED": "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300",
+  "CANCELLED": "bg-destructive/20 text-destructive border-destructive",
 };
 
 const statusLabels: { [key: string]: string } = {
-  "In transit": "En Ruta",
-  Delivered: "Entregado",
-  Completed: "Completado",
-  Pending: "Pendiente",
-  Booked: "Reservado",
-  Cancelled: "Cancelado",
+  "PENDING": "Buscando Chofer",
+  "ACCEPTED": "Chofer Asignado",
+  "EN_ROUTE_TO_PICKUP": "Chofer en Camino al Origen",
+  "ARRIVED_AT_PICKUP": "Chofer en Origen",
+  "IN_TRANSIT": "En Tránsito a Destino",
+  "ARRIVED_AT_DROPOFF": "Chofer en Destino",
+  "COMPLETED": "Entregado",
+  "CANCELLED": "Cancelado",
 };
 
 export default function CustomerTrackingPage() {
   const { user } = useUser();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const filterShipments = useCallback(
-    (q: any) => {
-      if (!user) return q;
-      return q
-        .eq("customer_id", user.id)
-        .in("status", ["In transit", "Booked", "Pending"])
-        .order("createdAt", { ascending: false });
-    },
-    [user]
-  );
+  const filterShipments = useCallback((q: any) => {
+    if (!user) return q;
+    return q
+        .eq("clientId", user.id)
+        .in("status", ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF", "PENDING"])
+        .order("created_at", { ascending: false });
+  }, [user]);
 
   const { data: shipments, isLoading } = useSupabaseCollection(
     "shipments",

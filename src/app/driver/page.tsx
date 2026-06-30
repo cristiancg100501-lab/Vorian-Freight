@@ -37,14 +37,14 @@ export default function DriverPage() {
 
   // 1. Fetch active shipment for this driver
   const activeShipmentFilter = useCallback((q: any) => 
-    q.eq("driverId", user?.id).eq("status", "In transit").limit(1), 
+    q.eq("driverId", user?.id).in("status", ["EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"]).limit(1), 
   [user?.id]);
   const { data: activeShipments } = useSupabaseCollection("shipments", activeShipmentFilter);
   const activeJob = activeShipments?.[0];
 
   // 2. Fetch recommended backhauls (Pending loads near activeJob destination)
   const recommendedFilter = useCallback((q: any) => 
-    q.eq("status", "Pending").limit(5), 
+    q.eq("status", "PENDING").limit(5), 
   []);
   const { data: allPending } = useSupabaseCollection("shipments", isOnline ? recommendedFilter : undefined);
 

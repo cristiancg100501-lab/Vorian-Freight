@@ -11,16 +11,18 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Truck, MapPin } from "lucide-react";
+import { PlusCircle, Truck, MapPin, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { useCallback } from "react";
 
 const statusStyles: { [key: string]: string } = {
-  "In transit": "bg-muted text-muted-foreground",
-  "Delivered": "bg-foreground text-background",
-  "Pending": "bg-secondary text-secondary-foreground",
-  "Booked": "bg-accent text-accent-foreground",
-  "Cancelled": "bg-destructive text-destructive-foreground",
+  "PENDING": "bg-orange-500/10 text-orange-500",
+  "ACCEPTED": "bg-purple-500/10 text-purple-600",
+  "EN_ROUTE_TO_PICKUP": "bg-blue-500/10 text-blue-600",
+  "ARRIVED_AT_PICKUP": "bg-indigo-500/10 text-indigo-600",
+  "IN_TRANSIT": "bg-sky-500/10 text-sky-700",
+  "ARRIVED_AT_DROPOFF": "bg-teal-500/10 text-teal-700",
+  "CANCELLED": "bg-destructive text-destructive-foreground",
 };
 
 
@@ -62,20 +64,21 @@ export default function ClientShipmentsPage() {
                 <th scope="col" className="px-6 py-3">Fecha Recogida</th>
                 <th scope="col" className="px-6 py-3">Tipo de Reserva</th>
                 <th scope="col" className="px-6 py-3">Precio Est.</th>
+                <th scope="col" className="px-6 py-3">Código PIN</th>
                 <th scope="col" className="px-6 py-3">Estado</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
                     Cargando envíos...
                   </td>
                 </tr>
               )}
               {!isLoading && (!clientShipments || clientShipments.length === 0) ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
                     No tiene envíos de carga.
                   </td>
                 </tr>
@@ -106,12 +109,29 @@ export default function ClientShipmentsPage() {
                        {shipment.bookingMethod === 'quote' ? 'Por cotizar' : `$${shipment.estimated_price.toLocaleString('es-CL')}`}
                     </td>
                     <td className="px-6 py-4">
+                      {(() => {
+                        const st = shipment.status;
+                        const pickupStates = ['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'];
+                        const deliveryStates = ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'];
+                        const code = pickupStates.includes(st) ? shipment.pickup_code
+                                   : deliveryStates.includes(st) ? shipment.delivery_code
+                                   : null;
+                        if (!code) return <span className="text-muted-foreground text-xs">—</span>;
+                        return (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                            <Lock className="h-3.5 w-3.5 text-primary" />
+                            <span className="font-mono text-base font-black tracking-[0.2em] text-primary">{code}</span>
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
                           statusStyles[shipment.status] || "bg-muted text-muted-foreground"
                         }`}
                       >
-                         {shipment.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
+                         {shipment.status === 'PENDING' ? 'Pendiente' : shipment.status.replace(/_/g, ' ')}
                       </span>
                     </td>
                   </tr>
