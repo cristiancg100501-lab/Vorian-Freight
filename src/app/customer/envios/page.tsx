@@ -23,9 +23,11 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ShipmentChat } from "@/components/shipment-chat";
-
+import { PriorityBoostModal } from "@/components/priority-boost-modal";
+import { Navigation } from "lucide-react";
 const statusStyles: { [key: string]: { bg: string, text: string, label: string } } = {
   "PENDING":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
+  "Pending":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
   "ACCEPTED":          { bg: "bg-purple-500/10", text: "text-purple-500", label: "Aceptado" },
   "EN_ROUTE_TO_PICKUP":{ bg: "bg-blue-500/10", text: "text-blue-600", label: "En Camino a Origen" },
   "ARRIVED_AT_PICKUP": { bg: "bg-indigo-500/10", text: "text-indigo-500", label: "En Punto de Recogida" },
@@ -175,7 +177,7 @@ export default function CustomerMyShipmentsPage() {
                                                                         {status.label}
                                                                     </span>
                                                                     <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-bold">
-                                                                        PIN: {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
+                                                                        PIN: {['PENDING', 'Pending', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -223,6 +225,21 @@ export default function CustomerMyShipmentsPage() {
                                                                     </Button>
                                                                 }
                                                             />
+                                                            <Link href={`/customer/shipments/${shipment.id}`}>
+                                                                <Button size="sm" className="text-xs gap-1">
+                                                                    <Navigation className="h-3 w-3" /> Ver Mapa
+                                                                </Button>
+                                                            </Link>
+                                                            {(shipment.status === "Pending" || shipment.status === "PENDING") && (
+                                                                <PriorityBoostModal 
+                                                                    shipmentId={shipment.id}
+                                                                    basePrice={Number(shipment.estimatedPrice || shipment.client_price || 0)}
+                                                                    currentBoost={Number(shipment.priorityBoost || 0)}
+                                                                    onBoostApplied={() => {
+                                                                        window.location.reload();
+                                                                    }}
+                                                                />
+                                                            )}
                                                             {(shipment.pickup_photo || shipment.delivery_photo || shipment.delivery_signature) && (
                                                                 <Button 
                                                                     variant="outline" 
@@ -283,7 +300,7 @@ export default function CustomerMyShipmentsPage() {
                                                                 #{shipment.id}
                                                             </p>
                                                             <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20 font-bold">
-                                                                PIN: {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
+                                                                PIN: {['PENDING', 'Pending', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(shipment.status) ? shipment.pickup_code || '----' : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(shipment.status) ? shipment.delivery_code || '----' : '----'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -338,6 +355,23 @@ export default function CustomerMyShipmentsPage() {
                                                         </Button>
                                                     }
                                                 />
+                                                <div className="flex gap-2">
+                                                    <Link href={`/customer/shipments/${shipment.id}`} className="flex-1">
+                                                        <Button className="w-full gap-2">
+                                                            <Navigation className="h-4 w-4" /> Ver Mapa
+                                                        </Button>
+                                                    </Link>
+                                                    {(shipment.status === "Pending" || shipment.status === "PENDING") && (
+                                                        <PriorityBoostModal 
+                                                            shipmentId={shipment.id}
+                                                            basePrice={Number(shipment.estimatedPrice || shipment.client_price || 0)}
+                                                            currentBoost={Number(shipment.priorityBoost || 0)}
+                                                            onBoostApplied={() => {
+                                                                window.location.reload();
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
                                                 {(shipment.pickup_photo || shipment.delivery_photo || shipment.delivery_signature) && (
                                                     <Button 
                                                         variant="outline" 
