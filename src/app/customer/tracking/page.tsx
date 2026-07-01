@@ -48,9 +48,9 @@ export default function CustomerTrackingPage() {
   const filterShipments = useCallback((q: any) => {
     if (!user) return q;
     return q
-        .or(`customer_id.eq.${user.id},clientId.eq.${user.id}`)
-        .in("status", ["Pending", "ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF", "PENDING"])
-        .order("created_at", { ascending: false });
+        .eq("customer_id", user.id)
+        .in("status", ["Pending", "PENDING", "ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"])
+        .order("createdAt", { ascending: false });
   }, [user]);
 
   const { data: shipments, isLoading } = useSupabaseCollection(
