@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
