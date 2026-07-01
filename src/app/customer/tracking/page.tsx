@@ -270,7 +270,7 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     }
   }, [shipment]);
 
-  // Bouncing origin marker (box 📦)
+  // Bouncing origin marker (circular minimalist box 📦)
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !origin) return;
@@ -278,30 +278,71 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     const el = document.createElement("div");
     el.innerHTML = `
       <div style="
-        display:flex;flex-direction:column;align-items:center;
-        animation: bounceMarker 1s ease-in-out infinite alternate;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        animation: bounceOrigin 1.2s ease-in-out infinite alternate;
       ">
+        <!-- Ripple Radar Rings -->
         <div style="
-          width:40px;height:40px;background:#4f46e5;border-radius:12px;
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 4px 20px rgba(79,70,229,0.5);
-          font-size:22px;
-        ">📦</div>
-        <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #4f46e5;margin-top:-1px;"></div>
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(79, 70, 229, 0.2);
+          animation: radarRipple 2s infinite ease-out;
+        "></div>
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(79, 70, 229, 0.15);
+          animation: radarRipple 2s infinite ease-out 0.6s;
+        "></div>
+        
+        <!-- Main Circular Icon -->
+        <div style="
+          position: relative;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2px solid #4f46e5;
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4f46e5;
+        ">
+          <!-- Package SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
       </div>
       <style>
-        @keyframes bounceMarker {
+        @keyframes bounceOrigin {
           from { transform: translateY(0px); }
-          to   { transform: translateY(-10px); }
+          to   { transform: translateY(-8px); }
+        }
+        @keyframes radarRipple {
+          0% { transform: scale(0.6); opacity: 1; }
+          100% { transform: scale(1.6); opacity: 0; }
         }
       </style>`;
-    originMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+    originMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
       .setLngLat(origin)
       .addTo(m);
     return () => { originMarkerRef.current?.remove(); };
   }, [shipment?.id, origin]);
 
-  // Bouncing destination marker (crane 🏗️)
+  // Bouncing destination marker (circular minimalist forklift 🚜/🏗️)
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !destination) return;
@@ -309,28 +350,67 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     const el = document.createElement("div");
     el.innerHTML = `
       <div style="
-        display:flex;flex-direction:column;align-items:center;
-        animation: bounceMarker2 1.2s ease-in-out infinite alternate;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        animation: bounceDest 1.2s ease-in-out infinite alternate;
       ">
+        <!-- Ripple Radar Rings -->
         <div style="
-          width:40px;height:40px;background:#e11d48;border-radius:12px;
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 4px 20px rgba(225,29,72,0.5);
-          font-size:22px;
-        ">🏗️</div>
-        <div style="width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #e11d48;margin-top:-1px;"></div>
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(239, 68, 68, 0.2);
+          animation: radarRipple 2s infinite ease-out;
+        "></div>
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(239, 68, 68, 0.15);
+          animation: radarRipple 2s infinite ease-out 0.6s;
+        "></div>
+        
+        <!-- Main Circular Icon -->
+        <div style="
+          position: relative;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2px solid #ef4444;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ef4444;
+        ">
+          <!-- Forklift SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 12H5a2 2 0 0 0-2 2v5" />
+            <circle cx="5" cy="19" r="2" />
+            <circle cx="13" cy="19" r="2" />
+            <path d="M8 12V5h3m3 7v7M21 5v14h-3M16 19h2" />
+          </svg>
+        </div>
       </div>
       <style>
-        @keyframes bounceMarker2 {
+        @keyframes bounceDest {
           from { transform: translateY(0px); }
-          to   { transform: translateY(-10px); }
+          to   { transform: translateY(-8px); }
         }
       </style>`;
-    destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+    destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
       .setLngLat(destination)
       .addTo(m);
     return () => { destMarkerRef.current?.remove(); };
   }, [shipment?.id, destination]);
+
 
   return <div ref={mapContainer} className="w-full h-full" />;
 }
