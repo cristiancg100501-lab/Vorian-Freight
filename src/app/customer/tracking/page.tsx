@@ -215,6 +215,9 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
       if (src && coords.length) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
     });
   }, [resolvedTheme]);
+
+  // Update route when shipment changes
+  useEffect(() => {
     const m = mapRef.current;
     if (!m || !m.isStyleLoaded()) return;
     const coords = routeGeometry?.coordinates ?? 
@@ -231,6 +234,7 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
       m.fitBounds(bounds, { padding: 80, duration: 1000 });
     }
   }, [shipment?.id, routeGeometry, origin, destination]);
+
 
   // Clear route and markers when no shipment selected
   useEffect(() => {
