@@ -3,6 +3,7 @@
 import { useUser } from "@/components/providers/supabase-provider";
 import { useSupabaseCollection } from "@/hooks/supabase-hooks";
 import Link from "next/link";
+import { PriorityBoostModal } from "@/components/priority-boost-modal";
 import {
   Card,
   CardHeader,
@@ -64,6 +65,7 @@ export default function ClientShipmentsPage() {
                 <th scope="col" className="px-6 py-3">Tipo de Reserva</th>
                 <th scope="col" className="px-6 py-3">Precio Final</th>
                 <th scope="col" className="px-6 py-3">Estado</th>
+                <th scope="col" className="px-6 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -76,7 +78,7 @@ export default function ClientShipmentsPage() {
               )}
               {!isLoading && (!clientShipments || clientShipments.length === 0) ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
                     No tiene envíos de carga.
                   </td>
                 </tr>
@@ -118,6 +120,26 @@ export default function ClientShipmentsPage() {
                       >
                          {shipment.details?.bookingMethod === 'quote' && shipment.status === 'Pending' ? 'Esperando Ofertas' : shipment.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                      <Link href={`/client/shipments/${shipment.id}`}>
+                        <Button variant="outline" size="sm" className="h-8">
+                           Ver Mapa
+                        </Button>
+                      </Link>
+                      {(shipment.status === "Pending" || shipment.status === "PENDING") && (
+                        <PriorityBoostModal 
+                          shipmentId={shipment.id}
+                          basePrice={Number(shipment.estimatedPrice || 0)}
+                          currentBoost={Number(shipment.priorityBoost || 0)}
+                          onBoostApplied={() => {
+                            // En un escenario real, podríamos mutar los datos locales
+                            // o forzar un re-fetch. Dado que useSupabaseCollection usa realtime (idealmente),
+                            // se actualizará solo. Si no, podemos hacer window.location.reload() por ahora.
+                            window.location.reload();
+                          }}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))

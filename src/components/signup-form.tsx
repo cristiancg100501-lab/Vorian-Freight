@@ -85,7 +85,7 @@ export function SignUpForm() {
         // Wait a bit for the trigger to finish userProfiles creation
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        console.log("Intentando crear perfil de empresa...");
+        console.log("Intentando crear perfil de empresa (transportista)...");
         const { error: companyError } = await supabase.from("companyProfiles").insert({
           id: user.id, // Usually companies use the same ID as userId
           userId: user.id,
@@ -97,6 +97,24 @@ export function SignUpForm() {
 
         if (companyError) {
           console.error("Error al insertar perfil de empresa:", companyError);
+        }
+      }
+
+      if (role === "client") {
+        // Wait a bit for the trigger to finish userProfiles creation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        console.log("Intentando crear perfil de cliente B2B...");
+        const { error: clientError } = await supabase.from("clientProfiles").insert({
+          id: user.id, 
+          userId: user.id,
+          companyName: companyName,
+          rut: companyRut,
+          address: "Por completar" // Placeholder
+        });
+
+        if (clientError) {
+          console.error("Error al insertar perfil de cliente B2B:", clientError);
         }
       }
 
@@ -196,33 +214,11 @@ export function SignUpForm() {
             </SelectTrigger>
             <SelectContent className="bg-popover border text-popover-foreground">
               <SelectItem value="client">Cliente</SelectItem>
-              <SelectItem value="driver">Conductor</SelectItem>
               <SelectItem value="company">Empresa (Transportista)</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {role === 'driver' && (
-          <div>
-            <Label htmlFor="vehicleType" className="text-muted-foreground font-medium">
-              Tipo de Vehículo
-            </Label>
-            <Select onValueChange={setVehicleType} defaultValue={vehicleType}>
-              <SelectTrigger className="w-full mt-2 bg-background border h-12">
-                <SelectValue placeholder="Seleccione un tipo de vehículo" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border text-popover-foreground">
-                <SelectItem value="Auto">Auto</SelectItem>
-                <SelectItem value="Motocicleta">Motocicleta</SelectItem>
-                <SelectItem value="Van">Van</SelectItem>
-                <SelectItem value="Furgon">Furgón</SelectItem>
-                <SelectItem value="Camion Ligero">Camión Ligero</SelectItem>
-                <SelectItem value="Camion Pesado">Camión Pesado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {role === 'company' && (
+        {(role === 'company' || role === 'client') && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="companyName" className="text-muted-foreground font-medium">
@@ -233,7 +229,7 @@ export function SignUpForm() {
                 type="text"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="Transportes Vorian S.A."
+                placeholder={role === 'company' ? "Transportes Vorian S.A." : "Empresa Comercializadora S.A."}
                 required
                 className="mt-2 bg-background border h-12"
               />

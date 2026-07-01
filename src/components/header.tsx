@@ -22,13 +22,24 @@ export function Header() {
   const { theme, setTheme } = useTheme();
 
   const { data: userProfile } = useSupabaseDoc("userProfiles", user?.id);
+  const { data: companyProfile } = useSupabaseDoc("companyProfiles", user?.id);
+  const { data: clientProfile } = useSupabaseDoc("clientProfiles", user?.id);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
 
-  const displayName = userProfile ? ((userProfile as any).name || `${(userProfile as any).firstName || ''} ${(userProfile as any).lastName || ''}`.trim()) : "Cargando...";
-  const displayRole = userProfile ? (userProfile as any).role.charAt(0).toUpperCase() + (userProfile as any).role.slice(1) : "";
+  let displayName = userProfile ? ((userProfile as any).name || `${(userProfile as any).firstName || ''} ${(userProfile as any).lastName || ''}`.trim()) : "Cargando...";
+  
+  if (companyProfile && (companyProfile as any).companyName) {
+    displayName = (companyProfile as any).companyName;
+  } else if (clientProfile && (clientProfile as any).companyName) {
+    displayName = (clientProfile as any).companyName;
+  }
+
+  let displayRole = userProfile ? (userProfile as any).role.charAt(0).toUpperCase() + (userProfile as any).role.slice(1) : "";
+  if (displayRole === 'Company') displayRole = 'Transportista (Flota)';
+  if (displayRole === 'Client') displayRole = 'Generador de Carga (B2B)';
 
   const isDarkMode = theme === "dark";
 

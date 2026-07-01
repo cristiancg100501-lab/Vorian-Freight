@@ -24,7 +24,8 @@ import {
   Car,
   CreditCard,
   Zap,
-  MessageCircle
+  MessageCircle,
+  ShieldCheck
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -49,6 +50,7 @@ const adminNavItems: NavItem[] = [
   { group: "GENERAL", href: "/admin/shipments", icon: Package, label: "Envíos (Freight)" },
   { group: "GENERAL", href: "/admin/shipments/managed", icon: PlusCircle, label: "Nuevo Envío Gestionado" },
   { group: "GENERAL", href: "/admin/users", icon: Users, label: "Usuarios" },
+  { group: "GENERAL", href: "/admin/verificaciones", icon: ShieldCheck, label: "Verificaciones" },
   { group: "GENERAL", href: "/admin/soporte", icon: MessageCircle, label: "Soporte (Chat)" },
   { group: "OTROS", href: "/admin/rates/tolls-map", icon: Map, label: "Mapa de Pórticos" },
   { group: "OTROS", href: "/admin/rates/tolls", icon: Waypoints, label: "Gestión de Peajes (TAG)" },
@@ -61,7 +63,7 @@ const adminNavItems: NavItem[] = [
 const clientNavItems: NavItem[] = [
     { group: "GENERAL", href: "/client/shipments", icon: Package, label: "Mis Envíos" },
     { group: "GENERAL", href: "/client/shipments/new", icon: PlusCircle, label: "Crear Envío" },
-    { group: "OTROS", href: "#", icon: Users, label: "Mi Perfil" },
+    { group: "OTROS", href: "/client/perfil", icon: Building2, label: "Perfil Corporativo" },
 ];
 
 const driverNavItems: NavItem[] = [
