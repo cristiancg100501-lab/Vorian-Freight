@@ -156,16 +156,22 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
   const routeGeometry = parsedRoute;
 
 
+  // Keep theme in a ref to avoid stale closures in Mapbox callbacks
+  const themeRef = useRef(resolvedTheme);
+  useEffect(() => {
+    themeRef.current = resolvedTheme;
+  }, [resolvedTheme]);
+
   // Init map
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
-    const isDark = resolvedTheme === "dark";
+    const isDark = themeRef.current === "dark";
     const styleUrl = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
     currentStyleRef.current = isDark ? "dark" : "light";
     const center: [number, number] = origin ?? destination ?? [-70.6506, -33.4372];
     const m = new mapboxgl.Map({
       container: mapContainer.current,
-      style: isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
+      style: styleUrl,
       center,
       zoom: 11,
       attributionControl: false,
@@ -176,9 +182,10 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     const addLayers = () => {
       if (m.getSource("route-full")) return;
       
-      const mainColor = isDark ? "#ffffff" : "#db2777";
-      const glowColor = isDark ? "#ffffff" : "#ec4899";
-      const dashColor = isDark ? "#ffffff" : "#fbcfe8";
+      const currentDark = themeRef.current === "dark";
+      const mainColor = currentDark ? "#ffffff" : "#db2777";
+      const glowColor = currentDark ? "#ffffff" : "#ec4899";
+      const dashColor = currentDark ? "#ffffff" : "#fbcfe8";
 
       m.addSource("route-full", {
         type: "geojson",
@@ -186,11 +193,11 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
       });
       m.addLayer({ id: "route-glow", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": glowColor, "line-width": 18, "line-blur": 14, "line-opacity": isDark ? 0.25 : 0.35 }
+        paint: { "line-color": glowColor, "line-width": 18, "line-blur": 14, "line-opacity": currentDark ? 0.25 : 0.35 }
       });
       m.addLayer({ id: "route-dash-bg", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": dashColor, "line-width": 5, "line-opacity": isDark ? 0.3 : 0.5, "line-dasharray": [6, 4] }
+        paint: { "line-color": dashColor, "line-width": 5, "line-opacity": currentDark ? 0.3 : 0.5, "line-dasharray": [6, 4] }
       });
       m.addLayer({ id: "route-main", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
@@ -214,11 +221,13 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     currentStyleRef.current = targetStyle;
     const newStyle = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
     m.setStyle(newStyle);
-    // Re-add layers after style swap
+    
+    // Re-draw route layers on load
     m.once("style.load", () => {
-      const mainColor = isDark ? "#ffffff" : "#db2777";
-      const glowColor = isDark ? "#ffffff" : "#ec4899";
-      const dashColor = isDark ? "#ffffff" : "#fbcfe8";
+      const currentDark = themeRef.current === "dark";
+      const mainColor = currentDark ? "#ffffff" : "#db2777";
+      const glowColor = currentDark ? "#ffffff" : "#ec4899";
+      const dashColor = currentDark ? "#ffffff" : "#fbcfe8";
 
       if (!m.getSource("route-full")) {
         m.addSource("route-full", {
@@ -228,11 +237,11 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
       }
       if (!m.getLayer("route-glow")) m.addLayer({ id: "route-glow", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": glowColor, "line-width": 18, "line-blur": 14, "line-opacity": isDark ? 0.25 : 0.35 }
+        paint: { "line-color": glowColor, "line-width": 18, "line-blur": 14, "line-opacity": currentDark ? 0.25 : 0.35 }
       });
       if (!m.getLayer("route-dash-bg")) m.addLayer({ id: "route-dash-bg", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": dashColor, "line-width": 5, "line-opacity": isDark ? 0.3 : 0.5, "line-dasharray": [6, 4] }
+        paint: { "line-color": dashColor, "line-width": 5, "line-opacity": currentDark ? 0.3 : 0.5, "line-dasharray": [6, 4] }
       });
       if (!m.getLayer("route-main")) m.addLayer({ id: "route-main", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
@@ -246,6 +255,7 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
       if (src && coords.length) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
     });
   }, [resolvedTheme]);
+
 
 
   // Update route when shipment changes
