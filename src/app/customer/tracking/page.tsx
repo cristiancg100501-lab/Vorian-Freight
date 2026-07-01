@@ -122,21 +122,39 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const currentStyleRef = useRef<string>("light"); // track applied style without calling getStyle()
 
+  const parsedRoute = useMemo(() => {
+    if (!shipment) return null;
+    try {
+      const geom = shipment.routeGeometry || shipment.details?.route;
+      if (!geom) return null;
+      return typeof geom === 'string' ? JSON.parse(geom) : geom;
+    } catch (e) {
+      return null;
+    }
+  }, [shipment]);
+
   const origin: [number, number] | null = useMemo(() => {
+    if (parsedRoute?.coordinates?.length > 0) {
+      return parsedRoute.coordinates[0] as [number, number];
+    }
     const c = shipment?.originCoords ?? shipment?.details?.originCoords;
     if (!c) return null;
     const arr = Array.isArray(c) ? c : [c.lng ?? c.longitude, c.lat ?? c.latitude];
     return arr.length === 2 ? arr as [number, number] : null;
-  }, [shipment]);
+  }, [shipment, parsedRoute]);
 
   const destination: [number, number] | null = useMemo(() => {
+    if (parsedRoute?.coordinates?.length > 0) {
+      return parsedRoute.coordinates[parsedRoute.coordinates.length - 1] as [number, number];
+    }
     const c = shipment?.destinationCoords ?? shipment?.details?.destinationCoords;
     if (!c) return null;
     const arr = Array.isArray(c) ? c : [c.lng ?? c.longitude, c.lat ?? c.latitude];
     return arr.length === 2 ? arr as [number, number] : null;
-  }, [shipment]);
+  }, [shipment, parsedRoute]);
 
-  const routeGeometry = shipment?.details?.route ?? shipment?.routeGeometry ?? null;
+  const routeGeometry = parsedRoute;
+
 
   // Init map
   useEffect(() => {
