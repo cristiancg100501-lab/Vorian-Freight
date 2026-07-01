@@ -116,11 +116,15 @@ const getStatus = (s: string) => STATUS[s] ?? { label: s, color: "text-muted-for
 // ─── Tracking Map (Inline Mapbox — always visible) ──────────────────────────────────
 function TrackingMap({ shipment }: { shipment: any | null }) {
   const { resolvedTheme } = useTheme();
+  const { supabase } = useSupabase();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const [driverLocation, setDriverLocation] = useState<[number, number] | null>(null);
   const currentStyleRef = useRef<string>("light"); // track applied style without calling getStyle()
+
 
   const parsedRoute = useMemo(() => {
     if (!shipment) return null;
@@ -283,12 +287,105 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     if (!shipment) {
       originMarkerRef.current?.remove();
       destMarkerRef.current?.remove();
+      driverMarkerRef.current?.remove();
       const m = mapRef.current;
       if (!m || !m.isStyleLoaded()) return;
       const src = m.getSource("route-full") as mapboxgl.GeoJSONSource | undefined;
       if (src) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
     }
   }, [shipment]);
+
+  // Real-time driver location subscription
+  const driverId = shipment?.driverId ?? shipment?.driver_id;
+  useEffect(() => {
+    setDriverLocation(null);
+    if (!driverId || !supabase) return;
+
+    const fetchInitialLoc = async () => {
+      const { data } = await supabase
+        .from("driverProfiles")
+        .select("currentLatitude, currentLongitude")
+        .eq("id", driverId)
+        .single();
+      if (data?.currentLatitude && data?.currentLongitude) {
+        setDriverLocation([Number(data.currentLongitude), Number(data.currentLatitude)]);
+      }
+    };
+    fetchInitialLoc();
+
+    const channel = supabase
+      .channel(`driver-location-tracking-${driverId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "driverProfiles", filter: `id=eq.${driverId}` },
+        (payload) => {
+          if (payload.new.currentLatitude && payload.new.currentLongitude) {
+            setDriverLocation([Number(payload.new.currentLongitude), Number(payload.new.currentLatitude)]);
+          }
+        })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [driverId, supabase]);
+
+  // Render and update driver marker on map
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    driverMarkerRef.current?.remove();
+    if (!driverLocation) return;
+
+    const el = document.createElement("div");
+    el.innerHTML = `
+      <div style="
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+      ">
+        <!-- Ripple Radar Ring -->
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          background: rgba(16, 185, 129, 0.2);
+          animation: radarRipple 2s infinite ease-out;
+        "></div>
+        
+        <!-- Driver Vehicle Icon -->
+        <div style="
+          position: relative;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #10b981;
+          border: 2px solid #ffffff;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+        ">
+          <!-- Truck SVG -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h8" />
+            <path d="M14 9h5l4 4v5a2 2 0 0 1-2 2h-2" />
+            <circle cx="7.5" cy="18.5" r="2.5" />
+            <circle cx="17.5" cy="18.5" r="2.5" />
+          </svg>
+        </div>
+      </div>`;
+
+    driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
+      .setLngLat(driverLocation)
+      .addTo(m);
+
+    return () => { driverMarkerRef.current?.remove(); };
+  }, [driverLocation]);
+
 
   // Bouncing origin marker (circular minimalist box 📦)
   useEffect(() => {
