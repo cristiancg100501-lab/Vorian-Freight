@@ -26,9 +26,11 @@ import {
 } from "recharts";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { PriorityBoostModal } from "@/components/priority-boost-modal";
 
 const statusStyles: { [key: string]: string } = {
   "PENDING": "bg-secondary text-secondary-foreground border-secondary",
+  "Pending": "bg-secondary text-secondary-foreground border-secondary",
   "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
   "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
   "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
@@ -40,6 +42,7 @@ const statusStyles: { [key: string]: string } = {
 
 const statusLabels: { [key: string]: string } = {
   "PENDING": "Buscando Chofer",
+  "Pending": "Buscando Chofer",
   "ACCEPTED": "Chofer Asignado",
   "EN_ROUTE_TO_PICKUP": "Chofer en Camino",
   "ARRIVED_AT_PICKUP": "Chofer en Origen",
@@ -308,7 +311,7 @@ export default function CustomerDashboard() {
               <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
                 <span className="text-xs font-bold uppercase">PIN</span>
                 <span className="font-mono font-bold text-lg">
-                  {['PENDING', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(selectedShipment.status) 
+                  {['PENDING', 'Pending', 'ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP'].includes(selectedShipment.status) 
                     ? selectedShipment.pickup_code || '----'
                     : ['IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(selectedShipment.status)
                     ? selectedShipment.delivery_code || '----'
@@ -354,13 +357,23 @@ export default function CustomerDashboard() {
                 </div>
 
                 {/* CTA to tracking page */}
-                <div className="mt-auto pt-2">
-                  <Link href="/customer/tracking">
+                <div className="mt-auto pt-2 flex gap-2">
+                  <Link href={`/customer/shipments/${selectedShipment.id}`} className="flex-1">
                     <Button className="w-full gap-2 h-11">
                       <Navigation className="w-4 h-4" />
-                      Ver en Mapa en Tiempo Real
+                      Ver en Mapa
                     </Button>
                   </Link>
+                  {(selectedShipment.status === "Pending" || selectedShipment.status === "PENDING") && (
+                    <PriorityBoostModal 
+                      shipmentId={selectedShipment.id}
+                      basePrice={Number(selectedShipment.estimatedPrice || selectedShipment.client_price || 0)}
+                      currentBoost={Number(selectedShipment.priorityBoost || 0)}
+                      onBoostApplied={() => {
+                        window.location.reload();
+                      }}
+                    />
+                  )}
                 </div>
               </>
             ) : (
