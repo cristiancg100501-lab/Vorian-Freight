@@ -113,8 +113,8 @@ const STATUS: Record<string, { label: string; color: string; bg: string }> = {
 
 const getStatus = (s: string) => STATUS[s] ?? { label: s, color: "text-muted-foreground", bg: "bg-muted" };
 
-// ─── Tracking Map (Inline Mapbox) ─────────────────────────────────────────────
-function TrackingMap({ shipment }: { shipment: any }) {
+// ─── Tracking Map (Inline Mapbox — always visible) ──────────────────────────────────
+function TrackingMap({ shipment }: { shipment: any | null }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -193,6 +193,18 @@ function TrackingMap({ shipment }: { shipment: any }) {
       m.fitBounds(bounds, { padding: 80, duration: 1000 });
     }
   }, [shipment?.id, routeGeometry, origin, destination]);
+
+  // Clear route and markers when no shipment selected
+  useEffect(() => {
+    if (!shipment) {
+      originMarkerRef.current?.remove();
+      destMarkerRef.current?.remove();
+      const m = mapRef.current;
+      if (!m || !m.isStyleLoaded()) return;
+      const src = m.getSource("route-full") as mapboxgl.GeoJSONSource | undefined;
+      if (src) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
+    }
+  }, [shipment]);
 
   // Bouncing origin marker (box 📦)
   useEffect(() => {
@@ -307,19 +319,9 @@ export default function CustomerTrackingPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] -m-6 overflow-hidden relative">
-      {/* Full-screen map */}
+      {/* Full-screen map — always visible */}
       <div className="absolute inset-0 z-0">
-        {selected ? (
-          <TrackingMap shipment={selected} />
-        ) : (
-          // Default idle map
-          <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-            <div className="text-center space-y-3 opacity-40">
-              <Navigation className="w-12 h-12 mx-auto text-slate-400" />
-              <p className="text-sm font-medium text-slate-500">Selecciona un envío para ver la ruta</p>
-            </div>
-          </div>
-        )}
+        <TrackingMap shipment={selected} />
       </div>
 
       {/* Left floating panel */}
