@@ -24,20 +24,29 @@ export default function ShipmentTrackingPage({ params }: { params: Promise<{ id:
   // Cargar Envío
   useEffect(() => {
     const fetchShipment = async () => {
+      // Fetch shipment only
       const { data, error } = await supabase
         .from("shipments")
-        .select(`
-          *,
-          driver:userProfiles!shipments_driverId_fkey(
-            id, fullName, phone, fcmToken
-          )
-        `)
+        .select("*")
         .eq("id", shipmentId)
         .single();
 
       if (error) {
         console.error("Error fetching shipment:", error);
-      } else {
+      } else if (data) {
+        const driverId = data.driverId || data.driver_id;
+        if (driverId) {
+          // Fetch driver details manually to avoid join errors
+          const { data: driverData } = await supabase
+            .from("userProfiles")
+            .select("id, fullName:full_name, phone, fcmToken:fcm_token")
+            .eq("id", driverId)
+            .single();
+            
+          data.driver = driverData || null;
+        } else {
+          data.driver = null;
+        }
         setShipment(data);
       }
       setIsLoading(false);
