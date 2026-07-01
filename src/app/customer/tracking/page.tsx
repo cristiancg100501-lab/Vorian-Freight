@@ -115,11 +115,12 @@ const getStatus = (s: string) => STATUS[s] ?? { label: s, color: "text-muted-for
 
 // ─── Tracking Map (Inline Mapbox — always visible) ──────────────────────────────────
 function TrackingMap({ shipment }: { shipment: any | null }) {
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const currentStyleRef = useRef<string>("light"); // track applied style without calling getStyle()
 
   const origin: [number, number] | null = useMemo(() => {
     const c = shipment?.originCoords ?? shipment?.details?.originCoords;
@@ -141,6 +142,8 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
     const isDark = resolvedTheme === "dark";
+    const styleUrl = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
+    currentStyleRef.current = isDark ? "dark" : "light";
     const center: [number, number] = origin ?? destination ?? [-70.6506, -33.4372];
     const m = new mapboxgl.Map({
       container: mapContainer.current,
@@ -182,11 +185,11 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     const m = mapRef.current;
     if (!m) return;
     const isDark = resolvedTheme === "dark";
+    const targetStyle = isDark ? "dark" : "light";
+    // Use ref to compare — avoids calling getStyle() which throws while loading
+    if (currentStyleRef.current === targetStyle) return;
+    currentStyleRef.current = targetStyle;
     const newStyle = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
-    // Only swap if style actually changed
-    const currentStyle = m.getStyle()?.name;
-    const targetName = isDark ? "Mapbox Dark" : "Mapbox Light";
-    if (currentStyle === targetName) return;
     m.setStyle(newStyle);
     // Re-add layers after style swap
     m.once("style.load", () => {
@@ -209,12 +212,13 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
         paint: { "line-color": "#4f46e5", "line-width": 4, "line-opacity": 1 }
       });
       // Re-draw route if we have a shipment
-      const coords = shipment?.details?.route?.coordinates ?? 
+      const coords = shipment?.details?.route?.coordinates ??
         (origin && destination ? [origin, destination] : []);
       const src = m.getSource("route-full") as mapboxgl.GeoJSONSource | undefined;
       if (src && coords.length) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
     });
   }, [resolvedTheme]);
+
 
   // Update route when shipment changes
   useEffect(() => {
