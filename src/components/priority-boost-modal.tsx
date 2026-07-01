@@ -10,8 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Zap, Flame, Rocket, CheckCircle2, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Zap, Flame, Rocket, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 
 interface PriorityBoostModalProps {
   shipmentId: string;
@@ -24,6 +23,7 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Calcula los tiers (mínimo $5.000)
   const tier1 = Math.max(5000, Math.round(basePrice * 0.05));
@@ -32,6 +32,7 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
 
   const handleBoost = async (amount: number) => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/shipments/boost', {
         method: 'POST',
@@ -46,11 +47,10 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
         setIsOpen(false);
         setSuccess(false);
         onBoostApplied();
-        toast.success("¡Bono aplicado! Los conductores han sido notificados.");
       }, 2000);
-    } catch (error) {
-      console.error(error);
-      toast.error("Ocurrió un error al aplicar el bono.");
+    } catch (err) {
+      console.error(err);
+      setError("Ocurrió un error al aplicar el bono. Inténtalo de nuevo.");
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +137,13 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
             {isLoading && (
               <div className="flex items-center justify-center text-sm text-muted-foreground mt-2">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Procesando pago...
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
               </div>
             )}
 
