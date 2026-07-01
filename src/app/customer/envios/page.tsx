@@ -17,14 +17,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package, ImageIcon } from "lucide-react";
+import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package, ImageIcon, Eye, Zap, Clock, Navigation, ArrowRight, Phone } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ShipmentChat } from "@/components/shipment-chat";
 import { PriorityBoostModal } from "@/components/priority-boost-modal";
-import { Navigation } from "lucide-react";
 const statusStyles: { [key: string]: { bg: string, text: string, label: string } } = {
   "PENDING":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
   "Pending":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
@@ -61,6 +60,7 @@ export default function CustomerMyShipmentsPage() {
     const { supabase } = useSupabase();
     const [drivers, setDrivers] = useState<any[] | null>(null);
     const [selectedShipmentPOD, setSelectedShipmentPOD] = useState<any>(null);
+    const [selectedShipmentDetail, setSelectedShipmentDetail] = useState<any>(null);
     useEffect(() => {
         if (driverIds.length === 0) { setDrivers([]); return; }
         supabase
@@ -225,11 +225,13 @@ export default function CustomerMyShipmentsPage() {
                                                                     </Button>
                                                                 }
                                                             />
-                                                            <Link href={`/customer/shipments/${shipment.id}`}>
-                                                                <Button size="sm" className="text-xs gap-1">
-                                                                    <Navigation className="h-3 w-3" /> Ver Mapa
-                                                                </Button>
-                                                            </Link>
+                                                            <Button 
+                                                                size="sm" 
+                                                                className="text-xs gap-1"
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedShipmentDetail(shipment); }}
+                                                            >
+                                                                <Eye className="h-3 w-3" /> Ver Detalle
+                                                            </Button>
                                                             {(shipment.status === "Pending" || shipment.status === "PENDING") && (
                                                                 <PriorityBoostModal 
                                                                     shipmentId={shipment.id}
@@ -356,11 +358,12 @@ export default function CustomerMyShipmentsPage() {
                                                     }
                                                 />
                                                 <div className="flex gap-2">
-                                                    <Link href={`/customer/shipments/${shipment.id}`} className="flex-1">
-                                                        <Button className="w-full gap-2">
-                                                            <Navigation className="h-4 w-4" /> Ver Mapa
-                                                        </Button>
-                                                    </Link>
+                                                    <Button 
+                                                        className="flex-1 gap-2"
+                                                        onClick={() => setSelectedShipmentDetail(shipment)}
+                                                    >
+                                                        <Eye className="h-4 w-4" /> Ver Detalle
+                                                    </Button>
                                                     {(shipment.status === "Pending" || shipment.status === "PENDING") && (
                                                         <PriorityBoostModal 
                                                             shipmentId={shipment.id}
@@ -422,6 +425,122 @@ export default function CustomerMyShipmentsPage() {
                             )}
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Shipment Detail Dialog */}
+            <Dialog open={!!selectedShipmentDetail} onOpenChange={(open) => !open && setSelectedShipmentDetail(null)}>
+                <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-base">
+                            <Package className="h-5 w-5 text-primary" />
+                            Detalle del Envío
+                        </DialogTitle>
+                    </DialogHeader>
+                    {selectedShipmentDetail && (() => {
+                        const s = selectedShipmentDetail;
+                        const st = statusStyles[s.status] || { bg: "bg-muted", text: "text-muted-foreground", label: s.status };
+                        const dId = s.driverId || s.driver_id;
+                        const driverName = dId ? (driverNameMap.get(dId) || "Asignando...") : "Sin conductor aún";
+                        const price = s.client_price || s.clientPrice || s.estimatedPrice || s.price || 0;
+                        const activeStatuses = ["Pending", "PENDING", "ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"];
+                        const isActive = activeStatuses.includes(s.status);
+                        return (
+                            <div className="space-y-5 py-2">
+                                {/* ID + Status */}
+                                <div className="flex items-center justify-between">
+                                    <span className="font-mono text-xs text-muted-foreground">#{s.id}</span>
+                                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold", st.bg, st.text)}>{st.label}</span>
+                                </div>
+
+                                {/* Route */}
+                                <div className="rounded-xl border p-4 space-y-3 bg-muted/20">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 w-3 h-3 rounded-full bg-green-500 shrink-0 shadow shadow-green-400/40" />
+                                        <div>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Origen</p>
+                                            <p className="text-sm font-semibold">{s.originAddress || s.pickup_address || "—"}</p>
+                                        </div>
+                                    </div>
+                                    <div className="ml-[5px] h-6 border-l-2 border-dashed border-muted-foreground/30" />
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 w-3 h-3 rounded-full bg-red-500 shrink-0 shadow shadow-red-400/40" />
+                                        <div>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Destino</p>
+                                            <p className="text-sm font-semibold">{s.destinationAddress || s.delivery_address || "—"}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Grid info */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-xl border p-3 bg-muted/10">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Vehículo</p>
+                                        <p className="text-sm font-semibold flex items-center gap-1.5">
+                                            <Truck className="h-3.5 w-3.5 text-primary" />
+                                            {s.details?.vehicleType || s.details?.equipment || "Estándar"}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border p-3 bg-muted/10">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Conductor</p>
+                                        <p className="text-sm font-semibold flex items-center gap-1.5">
+                                            <User className="h-3.5 w-3.5 text-primary" />
+                                            {driverName}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border p-3 bg-muted/10">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">PIN de Recogida</p>
+                                        <p className="text-lg font-mono font-black text-primary">
+                                            {["Pending","PENDING","ACCEPTED","EN_ROUTE_TO_PICKUP","ARRIVED_AT_PICKUP"].includes(s.status) 
+                                                ? s.pickup_code || "----"
+                                                : ["IN_TRANSIT","ARRIVED_AT_DROPOFF"].includes(s.status) 
+                                                ? s.delivery_code || "----" 
+                                                : "----"}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border p-3 bg-muted/10">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Precio</p>
+                                        <p className="text-sm font-bold text-primary">
+                                            CLP {Number(price).toLocaleString("es-CL")}
+                                        </p>
+                                        {Number(s.priorityBoost) > 0 && (
+                                            <p className="text-[10px] text-orange-500 font-bold mt-0.5">
+                                                🔥 +{Number(s.priorityBoost).toLocaleString("es-CL")} bono
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex gap-2 pt-1">
+                                    {isActive && (
+                                        <Link href={`/customer/shipments/${s.id}`} className="flex-1">
+                                            <Button className="w-full gap-2">
+                                                <Navigation className="h-4 w-4" /> Ver en Mapa
+                                            </Button>
+                                        </Link>
+                                    )}
+                                    {(s.status === "Pending" || s.status === "PENDING") && (
+                                        <PriorityBoostModal
+                                            shipmentId={s.id}
+                                            basePrice={Number(s.estimatedPrice || s.client_price || 0)}
+                                            currentBoost={Number(s.priorityBoost || 0)}
+                                            onBoostApplied={() => { setSelectedShipmentDetail(null); window.location.reload(); }}
+                                        />
+                                    )}
+                                    <ShipmentChat
+                                        shipmentId={s.id}
+                                        isCompanyRole={false}
+                                        triggerButton={
+                                            <Button variant="outline" className="gap-2">
+                                                Chat 💬
+                                            </Button>
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </DialogContent>
             </Dialog>
         </div>

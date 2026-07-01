@@ -18,7 +18,8 @@ const VorianMap = dynamic(() => import("@/components/map"), {
 });
 
 const statusStyles: { [key: string]: string } = {
-  "PENDING": "bg-secondary text-secondary-foreground border-secondary",
+  "PENDING": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
+  "Pending": "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
   "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
   "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
   "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
@@ -30,6 +31,7 @@ const statusStyles: { [key: string]: string } = {
 
 const statusLabels: { [key: string]: string } = {
   "PENDING": "Buscando Chofer",
+  "Pending": "Buscando Chofer",
   "ACCEPTED": "Chofer Asignado",
   "EN_ROUTE_TO_PICKUP": "Chofer en Camino al Origen",
   "ARRIVED_AT_PICKUP": "Chofer en Origen",
@@ -46,8 +48,8 @@ export default function CustomerTrackingPage() {
   const filterShipments = useCallback((q: any) => {
     if (!user) return q;
     return q
-        .eq("clientId", user.id)
-        .in("status", ["ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF", "PENDING"])
+        .or(`customer_id.eq.${user.id},clientId.eq.${user.id}`)
+        .in("status", ["Pending", "ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF", "PENDING"])
         .order("created_at", { ascending: false });
   }, [user]);
 
