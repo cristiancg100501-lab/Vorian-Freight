@@ -3,7 +3,7 @@
 import { useUser, useSupabase } from "@/components/providers/supabase-provider";
 import { useSupabaseCollection } from "@/hooks/supabase-hooks";
 import { useCallback, useMemo, useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
+import { useTheme } from "next-themes";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { motion, AnimatePresence } from "motion/react";
@@ -115,6 +115,7 @@ const getStatus = (s: string) => STATUS[s] ?? { label: s, color: "text-muted-for
 
 // ─── Tracking Map (Inline Mapbox — always visible) ──────────────────────────────────
 function TrackingMap({ shipment }: { shipment: any | null }) {
+  const { theme, resolvedTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -139,44 +140,81 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
   // Init map
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
+    const isDark = resolvedTheme === "dark";
     const center: [number, number] = origin ?? destination ?? [-70.6506, -33.4372];
     const m = new mapboxgl.Map({
       container: mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v11",
+      style: isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
       center,
-      zoom: 12,
+      zoom: 11,
       attributionControl: false,
     });
     mapRef.current = m;
     m.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
 
-    m.on("style.load", () => {
-      // Route source + layers
+    const addLayers = () => {
+      if (m.getSource("route-full")) return;
       m.addSource("route-full", {
         type: "geojson",
         data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
       });
-      // Glow layer
       m.addLayer({ id: "route-glow", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": "#6366f1", "line-width": 18, "line-blur": 14, "line-opacity": 0.35 }
       });
-      // Dashed background
       m.addLayer({ id: "route-dash-bg", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": "#c7d2fe", "line-width": 5, "line-opacity": 0.5, "line-dasharray": [6, 4] }
       });
-      // Main line
       m.addLayer({ id: "route-main", type: "line", source: "route-full",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": "#4f46e5", "line-width": 4, "line-opacity": 1 }
       });
-    });
-    return () => { m.remove(); mapRef.current = null; };
-  }, []);
+    };
 
-  // Update route when shipment changes
+    m.on("style.load", addLayers);
+    return () => { m.remove(); mapRef.current = null; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // Only init once
+
+  // Swap map style when theme changes
   useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    const isDark = resolvedTheme === "dark";
+    const newStyle = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
+    // Only swap if style actually changed
+    const currentStyle = m.getStyle()?.name;
+    const targetName = isDark ? "Mapbox Dark" : "Mapbox Light";
+    if (currentStyle === targetName) return;
+    m.setStyle(newStyle);
+    // Re-add layers after style swap
+    m.once("style.load", () => {
+      if (!m.getSource("route-full")) {
+        m.addSource("route-full", {
+          type: "geojson",
+          data: { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } },
+        });
+      }
+      if (!m.getLayer("route-glow")) m.addLayer({ id: "route-glow", type: "line", source: "route-full",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#6366f1", "line-width": 18, "line-blur": 14, "line-opacity": 0.35 }
+      });
+      if (!m.getLayer("route-dash-bg")) m.addLayer({ id: "route-dash-bg", type: "line", source: "route-full",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#c7d2fe", "line-width": 5, "line-opacity": 0.5, "line-dasharray": [6, 4] }
+      });
+      if (!m.getLayer("route-main")) m.addLayer({ id: "route-main", type: "line", source: "route-full",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#4f46e5", "line-width": 4, "line-opacity": 1 }
+      });
+      // Re-draw route if we have a shipment
+      const coords = shipment?.details?.route?.coordinates ?? 
+        (origin && destination ? [origin, destination] : []);
+      const src = m.getSource("route-full") as mapboxgl.GeoJSONSource | undefined;
+      if (src && coords.length) src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: coords } });
+    });
+  }, [resolvedTheme]);
     const m = mapRef.current;
     if (!m || !m.isStyleLoaded()) return;
     const coords = routeGeometry?.coordinates ?? 
