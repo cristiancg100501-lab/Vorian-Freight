@@ -45,7 +45,7 @@ export function Header() {
       if (!profile || !isMounted) return;
       const role = profile.role;
 
-      if (role === "client") {
+      if (role === "client" || role === "customer") {
         const { count } = await supabase
           .from("shipments")
           .select("id", { count: "exact", head: true })
@@ -91,7 +91,7 @@ export function Header() {
 
   let displayRole = userProfile ? (userProfile as any).role.charAt(0).toUpperCase() + (userProfile as any).role.slice(1) : "";
   if (displayRole === 'Company') displayRole = 'Transportista (Flota)';
-  if (displayRole === 'Client') displayRole = 'Generador de Carga (B2B)';
+  if (displayRole === 'Client' || displayRole === 'Customer') displayRole = 'Generador de Carga (B2B)';
 
   const isDarkMode = theme === "dark";
 
@@ -102,8 +102,9 @@ export function Header() {
   // Determinar insignia activa
   const role = userProfile ? (userProfile as any).role : null;
   const badge = completedTrips !== null && role
-    ? (role === "client" ? getCustomerBadge(completedTrips) : role === "company" ? getCompanyBadge(completedTrips) : null)
+    ? ((role === "client" || role === "customer") ? getCustomerBadge(completedTrips) : role === "company" ? getCompanyBadge(completedTrips) : null)
     : null;
+
 
   return (
     <header className="flex h-14 items-center justify-end gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
