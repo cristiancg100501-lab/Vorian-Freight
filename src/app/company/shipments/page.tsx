@@ -67,35 +67,39 @@ const getThemeStylesForBadge = (badgeKey: string) => {
   switch (badgeKey) {
     case "BRONZE":
       return {
-        cardBorder: "border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_8px_rgba(217,119,6,0.02)]",
+        cardBorder: "border-amber-500/30 hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(245,158,11,0.12)]",
         badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20",
-        bgGradient: "bg-gradient-to-br from-card via-card to-amber-500/[0.03]",
-        textGlow: "text-amber-600 dark:text-amber-500",
+        bgGradient: "bg-gradient-to-br from-card via-card to-amber-500/[0.03] dark:to-amber-500/[0.015]",
+        textGlow: "text-amber-600 dark:text-amber-500 font-bold",
         label: "Socio Bronce",
+        shineColor: "from-transparent via-amber-500/10 to-transparent",
       };
     case "SILVER":
       return {
-        cardBorder: "border-slate-400/30 hover:border-slate-400/50 shadow-[0_0_8px_rgba(148,163,184,0.02)]",
+        cardBorder: "border-slate-400/30 hover:border-slate-400/50 hover:shadow-[0_0_20px_rgba(148,163,184,0.12)]",
         badgeBg: "bg-slate-400/10 text-slate-500 dark:text-slate-400 border-slate-400/20",
-        bgGradient: "bg-gradient-to-br from-card via-card to-slate-400/[0.03]",
-        textGlow: "text-slate-500 dark:text-slate-400",
+        bgGradient: "bg-gradient-to-br from-card via-card to-slate-400/[0.03] dark:to-slate-400/[0.015]",
+        textGlow: "text-slate-500 dark:text-slate-400 font-bold",
         label: "Socio Plata",
+        shineColor: "from-transparent via-slate-300/15 to-transparent",
       };
     case "GOLD":
       return {
-        cardBorder: "border-yellow-500/40 hover:border-yellow-500/60 shadow-[0_0_12px_rgba(234,179,8,0.06)]",
+        cardBorder: "border-yellow-500/40 hover:border-yellow-500/60 hover:shadow-[0_0_25px_rgba(234,179,8,0.22)]",
         badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse",
-        bgGradient: "bg-gradient-to-br from-card via-card to-yellow-500/[0.04]",
-        textGlow: "text-yellow-600 dark:text-yellow-400",
+        bgGradient: "bg-gradient-to-br from-card via-card to-yellow-500/[0.05] dark:to-yellow-500/[0.025]",
+        textGlow: "text-yellow-600 dark:text-yellow-400 font-black tracking-wide",
         label: "Socio Oro",
+        shineColor: "from-transparent via-yellow-400/20 to-transparent",
       };
     case "BLACK_DIAMOND":
       return {
-        cardBorder: "border-indigo-500/40 hover:border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.12)]",
+        cardBorder: "border-indigo-500/40 hover:border-indigo-500/60 hover:shadow-[0_0_30px_rgba(99,102,241,0.28)]",
         badgeBg: "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 font-bold",
-        bgGradient: "bg-gradient-to-br from-card via-card to-indigo-950/[0.06]",
-        textGlow: "text-indigo-500 dark:text-indigo-400",
+        bgGradient: "bg-gradient-to-br from-card via-card to-indigo-950/[0.08] dark:to-indigo-950/[0.04]",
+        textGlow: "text-indigo-500 dark:text-indigo-400 font-black tracking-wide",
         label: "Socio Diamante Negro",
+        shineColor: "from-transparent via-indigo-400/25 to-transparent",
       };
     default:
       return {
@@ -104,6 +108,7 @@ const getThemeStylesForBadge = (badgeKey: string) => {
         bgGradient: "bg-card",
         textGlow: "text-muted-foreground",
         label: "",
+        shineColor: "from-transparent via-white/5 to-transparent",
       };
   }
 };
@@ -151,7 +156,7 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                         const theme = getThemeStylesForBadge(customerBadge.key);
 
                         return (
-                            <motion.button
+                             <motion.button
                                 key={load.id}
                                 initial={{ x: 20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
@@ -164,6 +169,12 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                     theme.bgGradient
                                 )}
                             >
+                                {/* Shine Sweep Effect */}
+                                <div className={cn(
+                                    "absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out bg-gradient-to-r skew-x-12 pointer-events-none",
+                                    theme.shineColor
+                                )} />
+
                                 {isNew && (
                                     <div className="absolute top-0 right-0">
                                         <div className="bg-primary text-primary-foreground text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">
@@ -696,11 +707,17 @@ export default function CompanyShipmentsPage() {
                                 <Card 
                                     key={load.id} 
                                     className={cn(
-                                        "transition-all duration-300 border bg-card", 
+                                        "transition-all duration-300 border bg-card relative overflow-hidden group", 
                                         theme.cardBorder, 
                                         theme.bgGradient
                                     )}
                                 >
+                                    {/* Shine Sweep Effect */}
+                                    <div className={cn(
+                                        "absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out bg-gradient-to-r skew-x-12 pointer-events-none",
+                                        theme.shineColor
+                                    )} />
+
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div className="space-y-1.5">
