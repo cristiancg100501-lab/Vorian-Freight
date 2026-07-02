@@ -67,39 +67,39 @@ const getThemeStylesForBadge = (badgeKey: string) => {
   switch (badgeKey) {
     case "BRONZE":
       return {
-        cardBorder: "border-amber-500/80 hover:border-amber-500 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]",
+        cardBorder: "glow-card-bronze",
         badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20",
-        bgGradient: "bg-gradient-to-br from-card via-amber-500/[0.05] to-amber-500/[0.1] dark:from-card dark:via-amber-500/[0.02] dark:to-amber-500/[0.04]",
+        bgGradient: "bg-gradient-to-br from-card via-amber-500/[0.02] to-amber-500/[0.04]",
         textGlow: "text-amber-600 dark:text-amber-500 font-bold",
         label: "Socio Bronce",
-        shineColor: "from-transparent via-amber-300/40 to-transparent",
+        shineColor: "from-transparent via-amber-300/30 to-transparent",
       };
     case "SILVER":
       return {
-        cardBorder: "border-slate-400/80 hover:border-slate-400 hover:shadow-[0_0_20px_rgba(148,163,184,0.22)]",
+        cardBorder: "glow-card-silver",
         badgeBg: "bg-slate-400/10 text-slate-600 dark:text-slate-400 border-slate-400/20",
-        bgGradient: "bg-gradient-to-br from-card via-slate-400/[0.05] to-slate-400/[0.1] dark:from-card dark:via-slate-400/[0.02] dark:to-slate-400/[0.04]",
+        bgGradient: "bg-gradient-to-br from-card via-slate-400/[0.02] to-slate-400/[0.04]",
         textGlow: "text-slate-500 dark:text-slate-400 font-bold",
         label: "Socio Plata",
-        shineColor: "from-transparent via-white/70 to-transparent",
+        shineColor: "from-transparent via-white/40 to-transparent",
       };
     case "GOLD":
       return {
-        cardBorder: "border-yellow-500 hover:border-yellow-400 hover:shadow-[0_0_25px_rgba(234,179,8,0.35)]",
+        cardBorder: "glow-card-gold",
         badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse",
-        bgGradient: "bg-gradient-to-br from-card via-yellow-500/[0.08] to-yellow-500/[0.18] dark:from-card dark:via-yellow-500/[0.03] dark:to-yellow-500/[0.08]",
+        bgGradient: "bg-gradient-to-br from-card via-yellow-500/[0.03] to-yellow-500/[0.06]",
         textGlow: "text-yellow-600 dark:text-yellow-400 font-black tracking-wide",
         label: "Socio Oro",
-        shineColor: "from-transparent via-yellow-200/80 to-transparent",
+        shineColor: "from-transparent via-yellow-200/50 to-transparent",
       };
     case "BLACK_DIAMOND":
       return {
-        cardBorder: "border-indigo-500 hover:border-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.45)]",
+        cardBorder: "glow-card-diamond",
         badgeBg: "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 font-bold",
-        bgGradient: "bg-gradient-to-br from-card via-indigo-500/[0.1] to-indigo-500/[0.22] dark:from-card dark:via-indigo-950/[0.05] dark:to-indigo-950/[0.15]",
+        bgGradient: "bg-gradient-to-br from-card via-indigo-950/[0.03] to-indigo-950/[0.08]",
         textGlow: "text-indigo-500 dark:text-indigo-400 font-black tracking-wide",
         label: "Socio Diamante Negro",
-        shineColor: "from-transparent via-indigo-300/80 to-transparent",
+        shineColor: "from-transparent via-indigo-300/60 to-transparent",
       };
     default:
       return {
@@ -175,10 +175,6 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                     theme.shineColor
                                 )} />
 
-                                {/* Top Accent Bar */}
-                                {customerBadge.key !== "NONE" && (
-                                    <div className={cn("h-1 w-full absolute top-0 left-0 bg-gradient-to-r z-20", customerBadge.className)} />
-                                )}
 
                                 {isNew && (
                                     <div className="absolute top-0 right-0">
@@ -717,10 +713,6 @@ export default function CompanyShipmentsPage() {
                                         theme.shineColor
                                     )} />
 
-                                    {/* Top Accent Bar */}
-                                    {customerBadge.key !== "NONE" && (
-                                        <div className={cn("h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r z-20", customerBadge.className)} />
-                                    )}
 
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
@@ -800,6 +792,84 @@ export default function CompanyShipmentsPage() {
                 }
                 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
                     background: rgba(255,255,255,0.1);
+                }
+
+                /* Animated/breathing glows for customer badges */
+                @keyframes card-glow-bronze {
+                    0%, 100% {
+                        box-shadow: 0 0 6px rgba(245, 158, 11, 0.12), inset 0 0 2px rgba(245, 158, 11, 0.04);
+                        border-color: rgba(245, 158, 11, 0.25);
+                    }
+                    50% {
+                        box-shadow: 0 0 14px rgba(245, 158, 11, 0.35), inset 0 0 4px rgba(245, 158, 11, 0.12);
+                        border-color: rgba(245, 158, 11, 0.55);
+                    }
+                }
+                @keyframes card-glow-silver {
+                    0%, 100% {
+                        box-shadow: 0 0 6px rgba(148, 163, 184, 0.12), inset 0 0 2px rgba(148, 163, 184, 0.04);
+                        border-color: rgba(148, 163, 184, 0.25);
+                    }
+                    50% {
+                        box-shadow: 0 0 14px rgba(148, 163, 184, 0.35), inset 0 0 4px rgba(148, 163, 184, 0.12);
+                        border-color: rgba(148, 163, 184, 0.55);
+                    }
+                }
+                @keyframes card-glow-gold {
+                    0%, 100% {
+                        box-shadow: 0 0 8px rgba(234, 179, 8, 0.18), inset 0 0 3px rgba(234, 179, 8, 0.06);
+                        border-color: rgba(234, 179, 8, 0.35);
+                    }
+                    50% {
+                        box-shadow: 0 0 20px rgba(234, 179, 8, 0.5), inset 0 0 6px rgba(234, 179, 8, 0.2);
+                        border-color: rgba(234, 179, 8, 0.75);
+                    }
+                }
+                @keyframes card-glow-diamond {
+                    0%, 100% {
+                        box-shadow: 0 0 10px rgba(99, 102, 241, 0.22), inset 0 0 4px rgba(99, 102, 241, 0.08);
+                        border-color: rgba(99, 102, 241, 0.35);
+                    }
+                    50% {
+                        box-shadow: 0 0 26px rgba(99, 102, 241, 0.6), inset 0 0 8px rgba(99, 102, 241, 0.25);
+                        border-color: rgba(99, 102, 241, 0.85);
+                    }
+                }
+
+                .glow-card-bronze {
+                    animation: card-glow-bronze 3s ease-in-out infinite;
+                }
+                .glow-card-bronze:hover {
+                    box-shadow: 0 0 22px rgba(245, 158, 11, 0.6), inset 0 0 6px rgba(245, 158, 11, 0.2) !important;
+                    border-color: rgba(245, 158, 11, 0.85) !important;
+                    animation: none;
+                }
+
+                .glow-card-silver {
+                    animation: card-glow-silver 3s ease-in-out infinite;
+                }
+                .glow-card-silver:hover {
+                    box-shadow: 0 0 22px rgba(148, 163, 184, 0.6), inset 0 0 6px rgba(148, 163, 184, 0.2) !important;
+                    border-color: rgba(148, 163, 184, 0.85) !important;
+                    animation: none;
+                }
+
+                .glow-card-gold {
+                    animation: card-glow-gold 3s ease-in-out infinite;
+                }
+                .glow-card-gold:hover {
+                    box-shadow: 0 0 30px rgba(234, 179, 8, 0.8), inset 0 0 8px rgba(234, 179, 8, 0.35) !important;
+                    border-color: rgba(234, 179, 8, 0.95) !important;
+                    animation: none;
+                }
+
+                .glow-card-diamond {
+                    animation: card-glow-diamond 3s ease-in-out infinite;
+                }
+                .glow-card-diamond:hover {
+                    box-shadow: 0 0 36px rgba(99, 102, 241, 0.9), inset 0 0 10px rgba(99, 102, 241, 0.4) !important;
+                    border-color: rgba(99, 102, 241, 0.95) !important;
+                    animation: none;
                 }
             `}</style>
         </div>
