@@ -794,81 +794,85 @@ export default function CompanyShipmentsPage() {
                     background: rgba(255,255,255,0.1);
                 }
 
-                /* Animated/breathing glows for customer badges */
+                /* High-fidelity visible pulsing neon glows for client ranks */
                 @keyframes card-glow-bronze {
                     0%, 100% {
-                        box-shadow: 0 0 6px rgba(245, 158, 11, 0.12), inset 0 0 2px rgba(245, 158, 11, 0.04);
-                        border-color: rgba(245, 158, 11, 0.25);
+                        box-shadow: 0 0 10px rgba(245, 158, 11, 0.45), inset 0 0 4px rgba(245, 158, 11, 0.15);
+                        border-color: rgba(245, 158, 11, 0.6) !important;
                     }
                     50% {
-                        box-shadow: 0 0 14px rgba(245, 158, 11, 0.35), inset 0 0 4px rgba(245, 158, 11, 0.12);
-                        border-color: rgba(245, 158, 11, 0.55);
+                        box-shadow: 0 0 24px rgba(245, 158, 11, 0.85), inset 0 0 8px rgba(245, 158, 11, 0.35);
+                        border-color: rgba(251, 146, 60, 1) !important;
                     }
                 }
                 @keyframes card-glow-silver {
                     0%, 100% {
-                        box-shadow: 0 0 6px rgba(148, 163, 184, 0.12), inset 0 0 2px rgba(148, 163, 184, 0.04);
-                        border-color: rgba(148, 163, 184, 0.25);
+                        box-shadow: 0 0 10px rgba(100, 116, 139, 0.45), inset 0 0 4px rgba(148, 163, 184, 0.15);
+                        border-color: rgba(148, 163, 184, 0.65) !important;
                     }
                     50% {
-                        box-shadow: 0 0 14px rgba(148, 163, 184, 0.35), inset 0 0 4px rgba(148, 163, 184, 0.12);
-                        border-color: rgba(148, 163, 184, 0.55);
+                        box-shadow: 0 0 24px rgba(148, 163, 184, 0.85), inset 0 0 8px rgba(148, 163, 184, 0.35);
+                        border-color: rgba(241, 245, 249, 1) !important;
                     }
                 }
                 @keyframes card-glow-gold {
                     0%, 100% {
-                        box-shadow: 0 0 8px rgba(234, 179, 8, 0.18), inset 0 0 3px rgba(234, 179, 8, 0.06);
-                        border-color: rgba(234, 179, 8, 0.35);
+                        box-shadow: 0 0 12px rgba(234, 179, 8, 0.5), inset 0 0 5px rgba(234, 179, 8, 0.2);
+                        border-color: rgba(234, 179, 8, 0.7) !important;
                     }
                     50% {
-                        box-shadow: 0 0 20px rgba(234, 179, 8, 0.5), inset 0 0 6px rgba(234, 179, 8, 0.2);
-                        border-color: rgba(234, 179, 8, 0.75);
+                        box-shadow: 0 0 28px rgba(234, 179, 8, 0.95), inset 0 0 10px rgba(234, 179, 8, 0.45);
+                        border-color: rgba(254, 240, 138, 1) !important;
                     }
                 }
                 @keyframes card-glow-diamond {
                     0%, 100% {
-                        box-shadow: 0 0 10px rgba(99, 102, 241, 0.22), inset 0 0 4px rgba(99, 102, 241, 0.08);
-                        border-color: rgba(99, 102, 241, 0.35);
+                        box-shadow: 0 0 14px rgba(139, 92, 246, 0.6), inset 0 0 6px rgba(139, 92, 246, 0.25);
+                        border-color: rgba(139, 92, 246, 0.75) !important;
                     }
                     50% {
-                        box-shadow: 0 0 26px rgba(99, 102, 241, 0.6), inset 0 0 8px rgba(99, 102, 241, 0.25);
-                        border-color: rgba(99, 102, 241, 0.85);
+                        box-shadow: 0 0 32px rgba(139, 92, 246, 1), inset 0 0 12px rgba(139, 92, 246, 0.5);
+                        border-color: rgba(224, 204, 250, 1) !important;
                     }
                 }
 
                 .glow-card-bronze {
-                    animation: card-glow-bronze 3s ease-in-out infinite;
+                    border-width: 2.5px !important;
+                    animation: card-glow-bronze 2.5s ease-in-out infinite;
                 }
                 .glow-card-bronze:hover {
-                    box-shadow: 0 0 22px rgba(245, 158, 11, 0.6), inset 0 0 6px rgba(245, 158, 11, 0.2) !important;
-                    border-color: rgba(245, 158, 11, 0.85) !important;
+                    box-shadow: 0 0 30px rgba(245, 158, 11, 0.95), 0 0 10px rgba(245, 158, 11, 0.5) !important;
+                    border-color: rgba(251, 146, 60, 1) !important;
                     animation: none;
                 }
 
                 .glow-card-silver {
-                    animation: card-glow-silver 3s ease-in-out infinite;
+                    border-width: 2.5px !important;
+                    animation: card-glow-silver 2.5s ease-in-out infinite;
                 }
                 .glow-card-silver:hover {
-                    box-shadow: 0 0 22px rgba(148, 163, 184, 0.6), inset 0 0 6px rgba(148, 163, 184, 0.2) !important;
-                    border-color: rgba(148, 163, 184, 0.85) !important;
+                    box-shadow: 0 0 30px rgba(148, 163, 184, 0.95), 0 0 10px rgba(148, 163, 184, 0.5) !important;
+                    border-color: rgba(248, 250, 252, 1) !important;
                     animation: none;
                 }
 
                 .glow-card-gold {
-                    animation: card-glow-gold 3s ease-in-out infinite;
+                    border-width: 2.5px !important;
+                    animation: card-glow-gold 2.5s ease-in-out infinite;
                 }
                 .glow-card-gold:hover {
-                    box-shadow: 0 0 30px rgba(234, 179, 8, 0.8), inset 0 0 8px rgba(234, 179, 8, 0.35) !important;
-                    border-color: rgba(234, 179, 8, 0.95) !important;
+                    box-shadow: 0 0 36px rgba(234, 179, 8, 1), 0 0 12px rgba(234, 179, 8, 0.6) !important;
+                    border-color: rgba(254, 240, 138, 1) !important;
                     animation: none;
                 }
 
                 .glow-card-diamond {
-                    animation: card-glow-diamond 3s ease-in-out infinite;
+                    border-width: 2.5px !important;
+                    animation: card-glow-diamond 2.5s ease-in-out infinite;
                 }
                 .glow-card-diamond:hover {
-                    box-shadow: 0 0 36px rgba(99, 102, 241, 0.9), inset 0 0 10px rgba(99, 102, 241, 0.4) !important;
-                    border-color: rgba(99, 102, 241, 0.95) !important;
+                    box-shadow: 0 0 42px rgba(139, 92, 246, 1), 0 0 14px rgba(139, 92, 246, 0.7) !important;
+                    border-color: rgba(224, 204, 250, 1) !important;
                     animation: none;
                 }
             `}</style>
