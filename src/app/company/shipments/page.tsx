@@ -44,12 +44,13 @@ mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kza
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
-
-
+import { getCustomerBadge } from "@/lib/badges";
+import { BadgeIcon } from "@/components/badge-icon";
 
 interface ShipmentLoad {
     id: string;
     clientId: string;
+    customerId?: string;
     origin: string;
     destination: string;
     originCoords: { lat: number; lng: number };
@@ -62,7 +63,52 @@ interface ShipmentLoad {
     weight_lbs?: number;
 }
 
-const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelectLoad: (load: ShipmentLoad) => void }) => {
+const getThemeStylesForBadge = (badgeKey: string) => {
+  switch (badgeKey) {
+    case "BRONZE":
+      return {
+        cardBorder: "border-amber-500/30 hover:border-amber-500/50 shadow-[0_0_8px_rgba(217,119,6,0.02)]",
+        badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20",
+        bgGradient: "bg-gradient-to-br from-card via-card to-amber-500/[0.03]",
+        textGlow: "text-amber-600 dark:text-amber-500",
+        label: "Socio Bronce",
+      };
+    case "SILVER":
+      return {
+        cardBorder: "border-slate-400/30 hover:border-slate-400/50 shadow-[0_0_8px_rgba(148,163,184,0.02)]",
+        badgeBg: "bg-slate-400/10 text-slate-500 dark:text-slate-400 border-slate-400/20",
+        bgGradient: "bg-gradient-to-br from-card via-card to-slate-400/[0.03]",
+        textGlow: "text-slate-500 dark:text-slate-400",
+        label: "Socio Plata",
+      };
+    case "GOLD":
+      return {
+        cardBorder: "border-yellow-500/40 hover:border-yellow-500/60 shadow-[0_0_12px_rgba(234,179,8,0.06)]",
+        badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse",
+        bgGradient: "bg-gradient-to-br from-card via-card to-yellow-500/[0.04]",
+        textGlow: "text-yellow-600 dark:text-yellow-400",
+        label: "Socio Oro",
+      };
+    case "BLACK_DIAMOND":
+      return {
+        cardBorder: "border-indigo-500/40 hover:border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.12)]",
+        badgeBg: "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 font-bold",
+        bgGradient: "bg-gradient-to-br from-card via-card to-indigo-950/[0.06]",
+        textGlow: "text-indigo-500 dark:text-indigo-400",
+        label: "Socio Diamante Negro",
+      };
+    default:
+      return {
+        cardBorder: "border-border hover:border-primary/50",
+        badgeBg: "hidden",
+        bgGradient: "bg-card",
+        textGlow: "text-muted-foreground",
+        label: "",
+      };
+  }
+};
+
+const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: ShipmentLoad[], onSelectLoad: (load: ShipmentLoad) => void, customerTripsMap: Record<string, number> }) => {
     return (
         <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -100,6 +146,10 @@ const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelect
                 ) : (
                     loads.map((load) => {
                         const isNew = load.createdAt && (new Date().getTime() - new Date(load.createdAt).getTime()) < 300000; // 5 minutes
+                        const trips = customerTripsMap[load.customerId || ''] || 0;
+                        const customerBadge = getCustomerBadge(trips);
+                        const theme = getThemeStylesForBadge(customerBadge.key);
+
                         return (
                             <motion.button
                                 key={load.id}
@@ -108,7 +158,11 @@ const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelect
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => onSelectLoad(load)}
-                                className="w-full text-left p-3 rounded-lg border bg-card hover:border-primary/50 transition-colors group relative overflow-hidden"
+                                className={cn(
+                                    "w-full text-left p-3 rounded-lg border transition-all duration-300 group relative overflow-hidden",
+                                    theme.cardBorder,
+                                    theme.bgGradient
+                                )}
                             >
                                 {isNew && (
                                     <div className="absolute top-0 right-0">
@@ -118,8 +172,22 @@ const SearchWidget = ({ loads, onSelectLoad }: { loads: ShipmentLoad[], onSelect
                                     </div>
                                 )}
                                 <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-mono text-muted-foreground">#{load.id.substring(0, 8)}</span>
-                                    <span className="text-sm font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-mono text-muted-foreground">#{load.id.substring(0, 8)}</span>
+                                        {customerBadge.key !== "NONE" && (
+                                            <span className={cn("text-[8px] font-extrabold uppercase mt-0.5 tracking-wider", theme.textGlow)}>
+                                                {theme.label}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                        {customerBadge.key !== "NONE" && (
+                                            <div className={cn("w-5 h-5 rounded-full overflow-hidden border text-white shrink-0 shadow-sm", customerBadge.className, customerBadge.glowClass)}>
+                                                <BadgeIcon type={customerBadge.key} className="w-full h-full" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 text-xs">
@@ -180,6 +248,45 @@ export default function CompanyShipmentsPage() {
     // Query for available loads (shipments) from Supabase
     const queryFn = useCallback((query: any) => query.eq("status", "PENDING"), []);
     const { data: shipmentsData, isLoading } = useSupabaseCollection<any>("shipments", queryFn);
+
+    // Map de viajes completados por cliente
+    const [customerTripsMap, setCustomerTripsMap] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        if (!shipmentsData || shipmentsData.length === 0) return;
+        
+        const fetchCustomerTrips = async () => {
+            const customerIds = Array.from(new Set(
+                shipmentsData
+                    .map((s: any) => s.customer_id || s.clientId)
+                    .filter((id): id is string => !!id)
+            ));
+            
+            if (customerIds.length === 0) return;
+
+            const map: Record<string, number> = {};
+            
+            await Promise.all(
+                customerIds.map(async (cid) => {
+                    const { count, error } = await supabase
+                        .from("shipments")
+                        .select("id", { count: "exact", head: true })
+                        .eq("customer_id", cid)
+                        .eq("status", "COMPLETED");
+                    
+                    if (!error && count !== null) {
+                        map[cid] = count;
+                    } else {
+                        map[cid] = 0;
+                    }
+                })
+            );
+
+            setCustomerTripsMap(map);
+        };
+
+        fetchCustomerTrips();
+    }, [shipmentsData, supabase]);
     
     // Adapt shipments to the UI ShipmentLoad interface
     const availableLoads = useMemo(() => {
@@ -197,6 +304,7 @@ export default function CompanyShipmentsPage() {
             return {
                 id: s.id,
                 clientId: s.clientId,
+                customerId: s.customer_id || s.clientId,
                 origin: s.originAddress,
                 destination: s.destinationAddress,
                 originCoords,
@@ -477,6 +585,7 @@ export default function CompanyShipmentsPage() {
                     <SearchWidget 
                         loads={availableLoads} 
                         onSelectLoad={handleSelectLoad} 
+                        customerTripsMap={customerTripsMap}
                     />
                     
                     {/* Load Detail Overlay */}
@@ -578,48 +687,71 @@ export default function CompanyShipmentsPage() {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {availableLoads.map((load) => (
-                            <Card key={load.id} className="hover:shadow-md transition-shadow">
-                                <CardHeader>
-                                    <div className="flex justify-between items-start">
-                                        <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
-                                        <div className="text-right">
-                                            <span className="text-lg font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
-                                            <div className="flex items-center justify-end text-[10px] text-orange-500 font-bold gap-1 mt-0.5">
-                                                <Zap className="h-3 w-3 fill-orange-500" /> Tarifa Dinámica
+                        {availableLoads.map((load) => {
+                            const trips = customerTripsMap[load.customerId || ''] || 0;
+                            const customerBadge = getCustomerBadge(trips);
+                            const theme = getThemeStylesForBadge(customerBadge.key);
+
+                            return (
+                                <Card 
+                                    key={load.id} 
+                                    className={cn(
+                                        "transition-all duration-300 border bg-card", 
+                                        theme.cardBorder, 
+                                        theme.bgGradient
+                                    )}
+                                >
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <div className="space-y-1.5">
+                                                <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
+                                                {customerBadge.key !== "NONE" && (
+                                                    <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] border font-black uppercase tracking-wider shadow-sm", theme.badgeBg)}>
+                                                        <div className={cn("w-3.5 h-3.5 rounded-full overflow-hidden text-white border shrink-0", customerBadge.className)}>
+                                                            <BadgeIcon type={customerBadge.key} className="w-full h-full" />
+                                                        </div>
+                                                        {theme.label}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-lg font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                                <div className="flex items-center justify-end text-[10px] text-orange-500 font-bold gap-1 mt-0.5">
+                                                    <Zap className="h-3 w-3 fill-orange-500" /> Tarifa Dinámica
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-start gap-2 text-sm">
-                                            <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
-                                            <span className="text-muted-foreground">{load.origin}</span>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <div className="flex items-start gap-2 text-sm">
+                                                <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
+                                                <span className="text-muted-foreground">{load.origin}</span>
+                                            </div>
+                                            <div className="flex items-start gap-2 text-sm">
+                                                <MapPin className="h-4 w-4 text-red-500 mt-0.5" />
+                                                <span className="text-muted-foreground">{load.destination}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-start gap-2 text-sm">
-                                            <MapPin className="h-4 w-4 text-red-500 mt-0.5" />
-                                            <span className="text-muted-foreground">{load.destination}</span>
+                                        <div className="flex justify-between text-xs pt-4 border-t">
+                                            <div className="flex items-center gap-1">
+                                                <Truck className="h-3 w-3" />
+                                                <span>{load.equipment || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Weight className="h-3 w-3" />
+                                                <span>{load.weight_lbs?.toLocaleString() || 'N/A'} lbs</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex justify-between text-xs pt-4 border-t">
-                                        <div className="flex items-center gap-1">
-                                            <Truck className="h-3 w-3" />
-                                            <span>{load.equipment || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Weight className="h-3 w-3" />
-                                            <span>{load.weight_lbs?.toLocaleString() || 'N/A'} lbs</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button className="w-full" onClick={() => handleSelectLoad(load)}>
-                                        Ver en Mapa
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button className="w-full" onClick={() => handleSelectLoad(load)}>
+                                            Ver en Mapa
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            );
+                        })}
 
                         {availableLoads.length === 0 && !isLoading && (
                             <div className="col-span-full py-20 text-center">
