@@ -108,9 +108,11 @@ export function Header() {
   };
 
   // Determinar insignia activa
+  const role = userProfile ? (userProfile as any).role : null;
   const badge = completedTrips !== null && role
     ? ((role === "client" || role === "customer") ? getCustomerBadge(completedTrips) : role === "company" ? getCompanyBadge(completedTrips) : null)
     : null;
+
 
   // Lista de insignias con sus rangos
   const tripsCount = completedTrips || 0;
