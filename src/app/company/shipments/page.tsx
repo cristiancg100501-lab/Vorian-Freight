@@ -275,29 +275,23 @@ export default function CompanyShipmentsPage() {
             
             if (customerIds.length === 0) return;
 
-            const map: Record<string, number> = {};
-            
-            await Promise.all(
-                customerIds.map(async (cid) => {
-                    const { count, error } = await supabase
-                        .from("shipments")
-                        .select("id", { count: "exact", head: true })
-                        .eq("customer_id", cid)
-                        .eq("status", "COMPLETED");
-                    
-                    if (!error && count !== null) {
-                        map[cid] = count;
-                    } else {
-                        map[cid] = 0;
-                    }
-                })
-            );
-
-            setCustomerTripsMap(map);
+            try {
+                const res = await fetch("/api/users/resolve-badges", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids: customerIds })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setCustomerTripsMap(data);
+                }
+            } catch (e) {
+                console.error("Error resolving customer badges:", e);
+            }
         };
 
         fetchCustomerTrips();
-    }, [shipmentsData, supabase]);
+    }, [shipmentsData]);
     
     // Adapt shipments to the UI ShipmentLoad interface
     const availableLoads = useMemo(() => {
