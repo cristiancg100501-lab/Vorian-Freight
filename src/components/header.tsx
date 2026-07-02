@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { getCustomerBadge, getCompanyBadge, CUSTOMER_BADGES, COMPANY_BADGES } from "@/lib/badges";
+import { BadgeIcon } from "@/components/badge-icon";
 
 export function Header() {
   const { supabase } = useSupabase();
@@ -153,12 +154,12 @@ export function Header() {
           <DialogTrigger asChild>
             <button className="relative flex items-center justify-center w-8 h-8 rounded-full border bg-muted/10 hover:bg-muted transition-all duration-300 group shrink-0">
               <div className={cn(
-                "flex items-center justify-center w-6 h-6 rounded-full border text-white transition-all duration-300 group-hover:scale-110",
+                "flex items-center justify-center w-6 h-6 rounded-full border text-white overflow-hidden transition-all duration-300 group-hover:scale-110",
                 badge.className,
                 badge.glowClass
               )}>
                 {role === "client" || role === "customer" ? (
-                  <Package className="h-3 w-3" />
+                  <BadgeIcon type={badge.key} className="w-full h-full" />
                 ) : (
                   <Truck className="h-3 w-3" />
                 )}
@@ -167,8 +168,12 @@ export function Header() {
               {/* Floating interactive tooltip on hover */}
               <div className="absolute right-0 top-9 w-60 p-3 bg-card border rounded-xl shadow-2xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none transition-all duration-200 z-50 text-left">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className={cn("w-5 h-5 rounded-full flex items-center justify-center text-white", badge.className)}>
-                    {role === "client" || role === "customer" ? <Package className="h-2.5 w-2.5" /> : <Truck className="h-2.5 w-2.5" />}
+                  <div className={cn("w-5 h-5 rounded-full flex items-center justify-center overflow-hidden text-white", badge.className)}>
+                    {role === "client" || role === "customer" ? (
+                      <BadgeIcon type={badge.key} className="w-full h-full" />
+                    ) : (
+                      <Truck className="h-2.5 w-2.5" />
+                    )}
                   </div>
                   <p className="text-xs font-black text-foreground">{badge.name}</p>
                 </div>
@@ -225,13 +230,13 @@ export function Header() {
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
-                          "flex items-center justify-center w-8 h-8 rounded-full text-white shrink-0",
+                          "flex items-center justify-center w-8 h-8 rounded-full border text-white overflow-hidden shrink-0",
                           item.className,
                           item.glowClass,
                           isLocked && "grayscale"
                         )}>
                           {role === "client" || role === "customer" ? (
-                            <Package className="h-4 w-4" />
+                            <BadgeIcon type={item.key} className="w-full h-full" />
                           ) : (
                             <Truck className="h-4 w-4" />
                           )}
