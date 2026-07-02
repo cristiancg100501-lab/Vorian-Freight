@@ -67,39 +67,39 @@ const getThemeStylesForBadge = (badgeKey: string) => {
   switch (badgeKey) {
     case "BRONZE":
       return {
-        cardBorder: "border-amber-500/30 hover:border-amber-500/80 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]",
+        cardBorder: "border-amber-500/80 hover:border-amber-500 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]",
         badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20",
-        bgGradient: "bg-gradient-to-br from-card via-card to-amber-500/[0.06] dark:to-amber-500/[0.03]",
+        bgGradient: "bg-gradient-to-br from-card via-amber-500/[0.05] to-amber-500/[0.1] dark:from-card dark:via-amber-500/[0.02] dark:to-amber-500/[0.04]",
         textGlow: "text-amber-600 dark:text-amber-500 font-bold",
         label: "Socio Bronce",
-        shineColor: "from-transparent via-amber-400/25 to-transparent",
+        shineColor: "from-transparent via-amber-300/40 to-transparent",
       };
     case "SILVER":
       return {
-        cardBorder: "border-slate-400/40 hover:border-slate-300/80 hover:shadow-[0_0_20px_rgba(148,163,184,0.22)]",
-        badgeBg: "bg-slate-400/10 text-slate-500 dark:text-slate-400 border-slate-400/20",
-        bgGradient: "bg-gradient-to-br from-card via-card to-slate-400/[0.06] dark:to-slate-400/[0.03]",
+        cardBorder: "border-slate-400/80 hover:border-slate-400 hover:shadow-[0_0_20px_rgba(148,163,184,0.22)]",
+        badgeBg: "bg-slate-400/10 text-slate-600 dark:text-slate-400 border-slate-400/20",
+        bgGradient: "bg-gradient-to-br from-card via-slate-400/[0.05] to-slate-400/[0.1] dark:from-card dark:via-slate-400/[0.02] dark:to-slate-400/[0.04]",
         textGlow: "text-slate-500 dark:text-slate-400 font-bold",
         label: "Socio Plata",
-        shineColor: "from-transparent via-slate-200/35 to-transparent",
+        shineColor: "from-transparent via-white/70 to-transparent",
       };
     case "GOLD":
       return {
-        cardBorder: "border-yellow-500/40 hover:border-yellow-400/90 hover:shadow-[0_0_25px_rgba(234,179,8,0.35)]",
+        cardBorder: "border-yellow-500 hover:border-yellow-400 hover:shadow-[0_0_25px_rgba(234,179,8,0.35)]",
         badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse",
-        bgGradient: "bg-gradient-to-br from-card via-card to-yellow-500/[0.1] dark:to-yellow-500/[0.05]",
+        bgGradient: "bg-gradient-to-br from-card via-yellow-500/[0.08] to-yellow-500/[0.18] dark:from-card dark:via-yellow-500/[0.03] dark:to-yellow-500/[0.08]",
         textGlow: "text-yellow-600 dark:text-yellow-400 font-black tracking-wide",
         label: "Socio Oro",
-        shineColor: "from-transparent via-yellow-300/40 to-transparent",
+        shineColor: "from-transparent via-yellow-200/80 to-transparent",
       };
     case "BLACK_DIAMOND":
       return {
-        cardBorder: "border-indigo-500/40 hover:border-indigo-400/90 hover:shadow-[0_0_30px_rgba(99,102,241,0.45)]",
+        cardBorder: "border-indigo-500 hover:border-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.45)]",
         badgeBg: "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 font-bold",
-        bgGradient: "bg-gradient-to-br from-card via-card to-indigo-950/[0.15] dark:to-indigo-950/[0.08]",
+        bgGradient: "bg-gradient-to-br from-card via-indigo-500/[0.1] to-indigo-500/[0.22] dark:from-card dark:via-indigo-950/[0.05] dark:to-indigo-950/[0.15]",
         textGlow: "text-indigo-500 dark:text-indigo-400 font-black tracking-wide",
         label: "Socio Diamante Negro",
-        shineColor: "from-transparent via-indigo-300/45 to-transparent",
+        shineColor: "from-transparent via-indigo-300/80 to-transparent",
       };
     default:
       return {
@@ -174,6 +174,11 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                     "absolute inset-0 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out bg-gradient-to-r skew-x-12 pointer-events-none z-20",
                                     theme.shineColor
                                 )} />
+
+                                {/* Top Accent Bar */}
+                                {customerBadge.key !== "NONE" && (
+                                    <div className={cn("h-1 w-full absolute top-0 left-0 bg-gradient-to-r z-20", customerBadge.className)} />
+                                )}
 
                                 {isNew && (
                                     <div className="absolute top-0 right-0">
@@ -701,7 +706,7 @@ export default function CompanyShipmentsPage() {
                                 <Card 
                                     key={load.id} 
                                     className={cn(
-                                        "transition-all duration-300 border bg-card relative overflow-hidden group", 
+                                        "transition-all duration-300 border bg-card relative overflow-hidden group transform hover:scale-[1.02]", 
                                         theme.cardBorder, 
                                         theme.bgGradient
                                     )}
@@ -711,6 +716,11 @@ export default function CompanyShipmentsPage() {
                                         "absolute inset-0 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out bg-gradient-to-r skew-x-12 pointer-events-none z-20",
                                         theme.shineColor
                                     )} />
+
+                                    {/* Top Accent Bar */}
+                                    {customerBadge.key !== "NONE" && (
+                                        <div className={cn("h-1.5 w-full absolute top-0 left-0 bg-gradient-to-r z-20", customerBadge.className)} />
+                                    )}
 
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
