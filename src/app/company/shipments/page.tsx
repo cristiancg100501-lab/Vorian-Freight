@@ -337,7 +337,7 @@ export default function CompanyShipmentsPage() {
                 destinationCoords,
                 routeGeometry: route,
                 status: s.status,
-                price: s.carrier_payment || s.estimatedPrice || 0,
+                price: s.estimatedPrice || 0,
                 createdAt: s.createdAt,
                 equipment: s.details?.equipment,
                 weight_lbs: s.details?.weightLbs
