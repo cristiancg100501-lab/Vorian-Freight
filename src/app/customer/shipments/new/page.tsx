@@ -535,6 +535,7 @@ export default function NewClientShipmentPage() {
             destinationAddress: delivery.address,
             estimatedPrice: finalBookingMethod === 'instant' ? estimatedPrice : 0,
             carrier_payment: finalBookingMethod === 'instant' ? carrierPayment : 0,
+            vorian_commission: finalBookingMethod === 'instant' ? platformFee : 0,
             status: isInternalShipment ? 'Booked' : 'Pending',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

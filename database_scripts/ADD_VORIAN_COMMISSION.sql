@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE "shipments"
+ADD COLUMN IF NOT EXISTS "vorian_commission" NUMERIC DEFAULT 0;
+
+COMMIT;
