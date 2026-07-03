@@ -212,7 +212,7 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <span className={cn("text-sm font-bold", theme.priceColor)}>CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                        <span className={cn("text-sm font-bold", theme.priceColor)}>CLP {(load.price || 0).toLocaleString('es-CL')} <span className="text-[10px] font-normal opacity-80">+ IVA</span></span>
                                         {customerBadge.key !== "NONE" && (
                                             <div className={cn("w-5 h-5 rounded-full overflow-hidden border text-white shrink-0 shadow-sm", customerBadge.className, customerBadge.glowClass)}>
                                                 <BadgeIcon type={customerBadge.key} className="w-full h-full" />
@@ -681,7 +681,7 @@ export default function CompanyShipmentsPage() {
                                                 <CardDescription className="text-xs">ID: {selectedLoad.id.substring(0, 8)}</CardDescription>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-lg font-bold text-primary">CLP {(selectedLoad.price || 0).toLocaleString('es-CL')}</p>
+                                                <p className="text-lg font-bold text-primary">CLP {(selectedLoad.price || 0).toLocaleString('es-CL')} <span className="text-xs font-normal opacity-80">+ IVA</span></p>
                                             </div>
                                         </div>
                                     </CardHeader>
