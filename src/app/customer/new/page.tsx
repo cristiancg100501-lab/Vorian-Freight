@@ -473,7 +473,7 @@ export default function NewShipmentPage() {
             estimatedPrice: finalBookingMethod === 'instant' ? estimatedPrice : 0,
             carrier_payment: finalBookingMethod === 'instant' ? carrierPayment : 0,
             vorian_commission: finalBookingMethod === 'instant' ? platformFee : 0,
-            status: isInternalShipment ? 'Booked' : 'Pending',
+            status: isInternalShipment ? 'BOOKED' : 'PENDING',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             // Todos los detalles técnicos en JSONB
