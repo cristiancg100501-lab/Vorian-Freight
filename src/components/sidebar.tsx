@@ -51,6 +51,7 @@ const adminNavItems: NavItem[] = [
   { group: "GENERAL", href: "/admin/shipments/managed", icon: PlusCircle, label: "Nuevo Envío Gestionado" },
   { group: "GENERAL", href: "/admin/users", icon: Users, label: "Usuarios" },
   { group: "GENERAL", href: "/admin/verificaciones", icon: ShieldCheck, label: "Verificaciones" },
+  { group: "GENERAL", href: "/admin/finances", icon: CreditCard, label: "Finanzas" },
   { group: "GENERAL", href: "/admin/soporte", icon: MessageCircle, label: "Soporte (Chat)" },
   { group: "OTROS", href: "/admin/rates/tolls-map", icon: Map, label: "Mapa de Pórticos" },
   { group: "OTROS", href: "/admin/rates/tolls", icon: Waypoints, label: "Gestión de Peajes (TAG)" },

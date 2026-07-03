@@ -187,6 +187,21 @@ export default function ShipmentDetailPage() {
                 updatedAt: new Date().toISOString()
             }).eq("id", shipmentId);
             if (error) throw error;
+
+            // Enviar notificación Push al conductor asignado
+            if (selectedDriverId && selectedDriverId !== "none") {
+                fetch('/api/notifications/notify-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: selectedDriverId,
+                        title: '🚚 Nueva Carga Asignada',
+                        body: 'Tu empresa te ha asignado una nueva carga. Abre la app para ver los detalles.',
+                        data: { shipmentId }
+                    })
+                }).catch(err => console.error("Error trigger push:", err));
+            }
+
             setIsAssignDialogOpen(false);
         } catch (error) {
             console.error("Error assigning driver:", error);

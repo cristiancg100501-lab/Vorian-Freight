@@ -119,10 +119,10 @@ export function Header() {
   const tripsCount = completedTrips || 0;
   const badgesList = (role === "client" || role === "customer")
     ? [
-        { ...CUSTOMER_BADGES.BRONZE, range: "1 a 5 viajes", active: tripsCount >= 1 && tripsCount <= 5 },
-        { ...CUSTOMER_BADGES.SILVER, range: "6 a 20 viajes", active: tripsCount >= 6 && tripsCount <= 20 },
-        { ...CUSTOMER_BADGES.GOLD, range: "21 a 100 viajes", active: tripsCount >= 21 && tripsCount <= 100 },
-        { ...CUSTOMER_BADGES.BLACK_DIAMOND, range: "+101 viajes", active: tripsCount >= 101 },
+        { ...CUSTOMER_BADGES.BRONZE, range: "1 a 2 viajes", active: tripsCount >= 1 && tripsCount <= 2 },
+        { ...CUSTOMER_BADGES.SILVER, range: "3 a 4 viajes", active: tripsCount >= 3 && tripsCount <= 4 },
+        { ...CUSTOMER_BADGES.GOLD, range: "5 a 6 viajes", active: tripsCount >= 5 && tripsCount <= 6 },
+        { ...CUSTOMER_BADGES.BLACK_DIAMOND, range: "+7 viajes", active: tripsCount >= 7 },
       ]
     : [
         { ...COMPANY_BADGES.BRONZE, range: "1 a 10 viajes", active: tripsCount >= 1 && tripsCount <= 10 },

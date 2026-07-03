@@ -18,8 +18,12 @@ import {
     Truck,
     DollarSign,
     MapPin,
-    ArrowRight
+    ArrowRight,
+    TrendingUp,
+    TrendingDown,
+    Activity
 } from "lucide-react";
+import { RevenueChart } from "@/components/revenue-chart";
 
 const statusStyles: { [key: string]: string } = {
   "PENDING": "bg-secondary text-secondary-foreground border-secondary",
@@ -39,10 +43,10 @@ const driverStatusStyles: { [key: string]: string } = {
 };
 
 const KPI_CARDS = [
-    { title: "Conductores Totales", icon: Users, key: "totalDrivers" },
+    { title: "Ingresos (Mes)", icon: DollarSign, key: "monthlyRevenue", isCurrency: true },
+    { title: "Viajes Completados", icon: Activity, key: "completedTripsThisMonth" },
     { title: "Conductores Activos", icon: Power, key: "activeDrivers" },
     { title: "Envíos en Curso", icon: Truck, key: "activeJobs" },
-    { title: "Ingresos (Mes)", icon: DollarSign, key: "monthlyRevenue" },
 ];
 
 export default function CompanyDashboardPage() {
@@ -72,24 +76,25 @@ export default function CompanyDashboardPage() {
     }, [driverIds]);
     const { data: activeShipments, isLoading: isLoadingShipments } = useSupabaseCollection<any>("shipments", filterActiveJobs);
 
-    // 4. Get completed shipments for revenue
+    // 4. Get completed shipments for revenue (Last 6 Months)
     const filterCompletedShipments = useCallback((q: any) => {
         if (!user) return q.limit(0);
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0,0,0,0);
+        const startOf6MonthsAgo = new Date();
+        startOf6MonthsAgo.setMonth(startOf6MonthsAgo.getMonth() - 5);
+        startOf6MonthsAgo.setDate(1);
+        startOf6MonthsAgo.setHours(0,0,0,0);
         return q.eq("carrierId", user.id)
                 .in("status", ["Delivered", "completed"])
-                .gte("createdAt", startOfMonth.toISOString());
+                .gte("createdAt", startOf6MonthsAgo.toISOString());
     }, [user]);
     const { data: completedShipments } = useSupabaseCollection<any>("shipments", filterCompletedShipments);
 
     const isLoading = isLoadingDrivers || isLoadingUsers || isLoadingShipments;
 
     // 5. Process and merge data
-    const { kpiData, driverData, jobData } = useMemo(() => {
+    const { kpiData, driverData, jobData, chartData } = useMemo(() => {
         if (isLoading || !companyDrivers || !companyUsers) {
-            return { kpiData: {}, driverData: [], jobData: [] };
+            return { kpiData: {}, driverData: [], jobData: [], chartData: [] };
         }
 
         const userMap = new Map(companyUsers.map(u => [u.id, u]));
@@ -120,21 +125,77 @@ export default function CompanyDashboardPage() {
             status: s.status,
         })).sort((a,b) => a.driverName.localeCompare(b.driverName));
 
-        // Calculate Revenue
-        const totalRevenue = (completedShipments || []).reduce((acc: number, s: any) => {
-            return acc + (s.carrier_cost || s.client_price || s.estimatedPrice || 0);
-        }, 0);
+        // Aggregate completed shipments into monthly buckets
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const currentDate = new Date();
+        const currentMonthIdx = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        // Initialize last 6 months buckets
+        const chartDataMap = new Map();
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(currentYear, currentMonthIdx - i, 1);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            const label = `${months[d.getMonth()]} ${d.getFullYear().toString().substring(2)}`;
+            chartDataMap.set(key, { month: label, revenue: 0, trips: 0 });
+        }
+
+        let totalRevenueThisMonth = 0;
+        let totalRevenueLastMonth = 0;
+        let totalTripsThisMonth = 0;
+        let totalTripsLastMonth = 0;
+
+        (completedShipments || []).forEach((s: any) => {
+            const date = new Date(s.createdAt);
+            const m = date.getMonth();
+            const y = date.getFullYear();
+            const key = `${y}-${m}`;
+            const revenue = s.carrier_cost || s.client_price || s.estimatedPrice || 0;
+
+            if (chartDataMap.has(key)) {
+                const bucket = chartDataMap.get(key);
+                bucket.revenue += revenue;
+                bucket.trips += 1;
+            }
+
+            // Trend calculations
+            if (m === currentMonthIdx && y === currentYear) {
+                totalRevenueThisMonth += revenue;
+                totalTripsThisMonth += 1;
+            } else if (
+                (currentMonthIdx === 0 && m === 11 && y === currentYear - 1) || 
+                (m === currentMonthIdx - 1 && y === currentYear)
+            ) {
+                totalRevenueLastMonth += revenue;
+                totalTripsLastMonth += 1;
+            }
+        });
+
+        const chartData = Array.from(chartDataMap.values());
+
+        // Calculate trends %
+        const calcTrend = (current: number, last: number) => {
+            if (last === 0 && current === 0) return 0;
+            if (last === 0) return 100;
+            return Math.round(((current - last) / last) * 100);
+        };
+
+        const revenueTrend = calcTrend(totalRevenueThisMonth, totalRevenueLastMonth);
+        const tripsTrend = calcTrend(totalTripsThisMonth, totalTripsLastMonth);
 
         // Process KPIs
         const kpis = {
             totalDrivers: companyDrivers.length,
             activeDrivers: companyDrivers.filter((d: any) => d.isAvailable).length,
             activeJobs: jobs.length,
-            monthlyRevenue: `$${totalRevenue.toLocaleString('es-CL')}`,
+            monthlyRevenue: `$${totalRevenueThisMonth.toLocaleString('es-CL')}`,
+            monthlyRevenueTrend: revenueTrend,
+            completedTripsThisMonth: totalTripsThisMonth,
+            completedTripsTrend: tripsTrend
         };
         
-        return { kpiData: kpis, driverData: drivers, jobData: jobs };
-    }, [isLoading, companyDrivers, companyUsers, activeShipments]);
+        return { kpiData: kpis, driverData: drivers, jobData: jobs, chartData };
+    }, [isLoading, companyDrivers, companyUsers, activeShipments, completedShipments]);
 
     const driverStatusLabels: { [key: string]: string } = {
         available_free: "Disponible",
@@ -154,17 +215,56 @@ export default function CompanyDashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {KPI_CARDS.map((kpi) => (
-                <Card key={kpi.key}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-                    <kpi.icon className="h-4 w-4 text-muted-foreground" />
+                {KPI_CARDS.map((kpi) => {
+                    const value = isLoading ? '...' : (kpiData as any)[kpi.key] ?? '0';
+                    const trendKey = `${kpi.key}Trend`;
+                    const trendValue = (kpiData as any)[trendKey];
+                    const hasTrend = trendValue !== undefined;
+                    const isPositive = trendValue >= 0;
+                    
+                    return (
+                        <Card key={kpi.key}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
+                                <kpi.icon className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{value}</div>
+                                {hasTrend && !isLoading && (
+                                    <p className={`text-xs mt-1 flex items-center font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                        {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                                        {isPositive ? '+' : ''}{trendValue}% vs mes anterior
+                                    </p>
+                                )}
+                                {!hasTrend && !isLoading && (
+                                    <p className="text-xs text-muted-foreground mt-1">Activos en plataforma</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Evolución de Ingresos</CardTitle>
+                        <CardDescription>Resumen de los últimos 6 meses (Viajes Completados).</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                    <div className="text-2xl font-bold">{isLoading ? '...' : (kpiData as any)[kpi.key] ?? '0'}</div>
+                    <CardContent className="pt-2">
+                        {isLoading ? (
+                            <div className="h-[350px] w-full flex items-center justify-center text-muted-foreground">
+                                Cargando gráfico...
+                            </div>
+                        ) : chartData.length === 0 ? (
+                            <div className="h-[350px] w-full flex items-center justify-center text-muted-foreground">
+                                No hay datos de ingresos aún.
+                            </div>
+                        ) : (
+                            <RevenueChart data={chartData} />
+                        )}
                     </CardContent>
                 </Card>
-                ))}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

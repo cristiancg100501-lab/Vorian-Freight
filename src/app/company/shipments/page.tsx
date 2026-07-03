@@ -67,39 +67,55 @@ const getThemeStylesForBadge = (badgeKey: string) => {
   switch (badgeKey) {
     case "BRONZE":
       return {
-        cardBorder: "glow-card-bronze",
+        cardBorder: "border-amber-500/40 hover:border-amber-500/80 hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]",
         badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20",
-        bgGradient: "bg-gradient-to-br from-card via-amber-500/[0.02] to-amber-500/[0.04]",
+        bgGradient: "bg-gradient-to-br from-card via-amber-500/[0.02] to-amber-500/[0.06] dark:via-amber-500/[0.01] dark:to-amber-500/[0.03]",
         textGlow: "text-amber-600 dark:text-amber-500 font-bold",
+        priceColor: "text-amber-600 dark:text-amber-400 font-extrabold",
+        idColor: "text-amber-700/80 dark:text-amber-500/80 font-bold",
+        iconColor: "text-amber-600 dark:text-amber-500",
+        textColor: "text-amber-900/80 dark:text-amber-100/70",
         label: "Socio Bronce",
-        shineColor: "from-transparent via-amber-300/30 to-transparent",
+        shineColor: "from-transparent via-amber-400/20 to-transparent",
       };
     case "SILVER":
       return {
-        cardBorder: "glow-card-silver",
+        cardBorder: "border-slate-400/40 hover:border-slate-400/80 hover:shadow-[0_0_15px_rgba(148,163,184,0.15)]",
         badgeBg: "bg-slate-400/10 text-slate-600 dark:text-slate-400 border-slate-400/20",
-        bgGradient: "bg-gradient-to-br from-card via-slate-400/[0.02] to-slate-400/[0.04]",
-        textGlow: "text-slate-500 dark:text-slate-400 font-bold",
+        bgGradient: "bg-gradient-to-br from-card via-slate-400/[0.02] to-slate-400/[0.06] dark:via-slate-400/[0.01] dark:to-slate-400/[0.03]",
+        textGlow: "text-slate-600 dark:text-slate-400 font-bold",
+        priceColor: "text-slate-600 dark:text-slate-300 font-extrabold",
+        idColor: "text-slate-700/80 dark:text-slate-400/80 font-bold",
+        iconColor: "text-slate-500 dark:text-slate-400",
+        textColor: "text-slate-800/80 dark:text-slate-200/70",
         label: "Socio Plata",
-        shineColor: "from-transparent via-white/40 to-transparent",
+        shineColor: "from-transparent via-white/20 to-transparent",
       };
     case "GOLD":
       return {
-        cardBorder: "glow-card-gold",
-        badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 animate-pulse",
-        bgGradient: "bg-gradient-to-br from-card via-yellow-500/[0.03] to-yellow-500/[0.06]",
-        textGlow: "text-yellow-600 dark:text-yellow-400 font-black tracking-wide",
+        cardBorder: "border-yellow-500/50 hover:border-yellow-500 hover:shadow-[0_0_20px_rgba(234,179,8,0.2)]",
+        badgeBg: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
+        bgGradient: "bg-gradient-to-br from-card via-yellow-500/[0.04] to-yellow-500/[0.1] dark:via-yellow-500/[0.02] dark:to-yellow-500/[0.05]",
+        textGlow: "text-yellow-600 dark:text-yellow-400 font-extrabold tracking-wide",
+        priceColor: "text-yellow-600 dark:text-yellow-400 font-black",
+        idColor: "text-yellow-700 dark:text-yellow-500 font-bold",
+        iconColor: "text-yellow-500 dark:text-yellow-400",
+        textColor: "text-yellow-900/80 dark:text-yellow-100/70",
         label: "Socio Oro",
-        shineColor: "from-transparent via-yellow-200/50 to-transparent",
+        shineColor: "from-transparent via-yellow-200/30 to-transparent",
       };
     case "BLACK_DIAMOND":
       return {
-        cardBorder: "glow-card-diamond",
+        cardBorder: "border-indigo-500/50 hover:border-indigo-500 hover:shadow-[0_0_25px_rgba(99,102,241,0.25)]",
         badgeBg: "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 font-bold",
-        bgGradient: "bg-gradient-to-br from-card via-indigo-950/[0.03] to-indigo-950/[0.08]",
+        bgGradient: "bg-gradient-to-br from-card via-indigo-950/[0.06] to-indigo-950/[0.14] dark:via-indigo-950/[0.03] dark:to-indigo-950/[0.08]",
         textGlow: "text-indigo-500 dark:text-indigo-400 font-black tracking-wide",
-        label: "Socio Diamante Negro",
-        shineColor: "from-transparent via-indigo-300/60 to-transparent",
+        priceColor: "text-indigo-500 dark:text-indigo-400 font-black",
+        idColor: "text-indigo-700 dark:text-indigo-500 font-bold",
+        iconColor: "text-indigo-500 dark:text-indigo-400",
+        textColor: "text-indigo-900/80 dark:text-indigo-100/70",
+        label: "Socio Obsidiana",
+        shineColor: "from-transparent via-indigo-300/35 to-transparent",
       };
     default:
       return {
@@ -107,8 +123,12 @@ const getThemeStylesForBadge = (badgeKey: string) => {
         badgeBg: "hidden",
         bgGradient: "bg-card",
         textGlow: "text-muted-foreground",
+        priceColor: "text-primary font-bold",
+        idColor: "text-muted-foreground font-mono",
+        iconColor: "text-muted-foreground",
+        textColor: "text-muted-foreground",
         label: "",
-        shineColor: "from-transparent via-white/10 to-transparent",
+        shineColor: "from-transparent via-white/5 to-transparent",
       };
   }
 };
@@ -185,7 +205,6 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                 )}
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-mono text-muted-foreground">#{load.id.substring(0, 8)}</span>
                                         {customerBadge.key !== "NONE" && (
                                             <span className={cn("text-[8px] font-extrabold uppercase mt-0.5 tracking-wider", theme.textGlow)}>
                                                 {theme.label}
@@ -193,7 +212,7 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <span className="text-sm font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                        <span className={cn("text-sm font-bold", theme.priceColor)}>CLP {(load.price || 0).toLocaleString('es-CL')}</span>
                                         {customerBadge.key !== "NONE" && (
                                             <div className={cn("w-5 h-5 rounded-full overflow-hidden border text-white shrink-0 shadow-sm", customerBadge.className, customerBadge.glowClass)}>
                                                 <BadgeIcon type={customerBadge.key} className="w-full h-full" />
@@ -204,19 +223,19 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 text-xs">
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                        <span className="truncate text-muted-foreground">{(load.origin || '').split(',')[0]}</span>
+                                        <span className={cn("truncate", theme.textColor)}>{(load.origin || '').split(',')[0]}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-xs">
                                         <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                        <span className="truncate text-muted-foreground">{(load.destination || '').split(',')[0]}</span>
+                                        <span className={cn("truncate", theme.textColor)}>{(load.destination || '').split(',')[0]}</span>
                                     </div>
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground border-t pt-2">
-                                    <div className="flex items-center gap-1">
-                                        <Truck className="h-3 w-3" />
+                                <div className="mt-2 flex items-center justify-between text-[10px] border-t pt-2" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                                    <div className={cn("flex items-center gap-1", theme.textColor)}>
+                                        <Truck className={cn("h-3 w-3", theme.iconColor)} />
                                         <span>{load.equipment || 'Estándar'}</span>
                                     </div>
-                                    <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <ChevronRight className={cn("h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity", theme.iconColor)} />
                                 </div>
                             </motion.button>
                         );
@@ -256,6 +275,7 @@ export default function CompanyShipmentsPage() {
     const mapContainer = useRef<HTMLDivElement>(null);
     const map = useRef<mapboxgl.Map | null>(null);
     const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+    const destinationMarker = useRef<mapboxgl.Marker | null>(null);
 
     // Query for available loads (shipments) from Supabase
     const queryFn = useCallback((query: any) => query.eq("status", "PENDING"), []);
@@ -415,64 +435,86 @@ export default function CompanyShipmentsPage() {
         }
     }, [viewMode]);
 
-    // Update Markers
+    // Keep a ref to the latest availableLoads so the effect can read fresh data
+    // without needing it as a reactive dependency (prevents infinite re-creation)
+    const availableLoadsRef = useRef(availableLoads);
+    availableLoadsRef.current = availableLoads;
+
+    // A stable sorted key — won't change if Supabase returns same loads in different order
+    const loadsKey = [...availableLoads.map((l: any) => l.id)].sort().join(',');
+
+    // Update Markers — only re-runs when the set of load IDs changes
     useEffect(() => {
         if (!map.current) return;
 
-        try {
-            const currentIds = new Set(availableLoads.map(l => l.id));
-            Object.keys(markers.current).forEach(id => {
-                if (!currentIds.has(id)) {
-                    markers.current[id].remove();
-                    delete markers.current[id];
-                }
-            });
+        const loads = availableLoadsRef.current;
 
-            availableLoads.forEach((load: any) => {
-                let lng: number | undefined = load.originCoords?.lng;
-                let lat: number | undefined = load.originCoords?.lat;
+        try {
+            loads.forEach((load: any, index: number) => {
+                const lng: number | undefined = load.originCoords?.lng;
+                const lat: number | undefined = load.originCoords?.lat;
+
+                if (selectedLoad && load.id !== selectedLoad.id) {
+                    return;
+                }
 
                 if (lng === undefined || lat === undefined || (lng === 0 && lat === 0)) {
                     return;
                 }
 
-                if (!markers.current[load.id]) {
-                    const el = document.createElement('div');
-                    el.className = 'load-marker';
-                    el.innerHTML = `
-                        <div class="relative group cursor-pointer">
-                            <div class="absolute -inset-2 bg-primary/20 rounded-full animate-ping"></div>
-                            <div class="relative bg-primary text-primary-foreground p-2 rounded-full shadow-lg border-2 border-background transition-transform hover:scale-110">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                            </div>
-                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded px-2 py-1 text-[10px] font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                CLP {(load.price || 0).toLocaleString('es-CL')}
-                            </div>
+                // Exact coordinates (stacking perfectly if multiple loads share the same origin)
+                const exactLng = lng;
+                const exactLat = lat;
+
+                const price = (load.price || 0).toLocaleString('es-CL');
+
+                const el = document.createElement('div');
+                el.className = 'load-marker';
+                el.innerHTML = `
+                    <div class="relative group cursor-pointer">
+                        <div class="relative bg-primary text-primary-foreground p-2 rounded-full shadow-lg border-2 border-background transition-transform hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                         </div>
-                    `;
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded px-2 py-1 text-[10px] font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            CLP ${price}
+                        </div>
+                    </div>
+                `;
 
-                    el.onclick = () => setSelectedLoad(load);
+                el.onclick = () => setSelectedLoad(load);
 
-                    markers.current[load.id] = new mapboxgl.Marker(el)
-                        .setLngLat([lng, lat])
-                        .addTo(map.current!);
-                } else {
-                    markers.current[load.id].setLngLat([lng, lat]);
-                }
+                markers.current[load.id] = new mapboxgl.Marker(el)
+                    .setLngLat([exactLng, exactLat])
+                    .addTo(map.current!);
             });
         } catch (error) {
             // Silently handle mapbox marker errors
         }
-    }, [availableLoads]);
+
+        // Cleanup: called by React before re-running — removes all markers from map
+        return () => {
+            Object.keys(markers.current).forEach(id => {
+                try { markers.current[id].remove(); } catch (_) {}
+                delete markers.current[id];
+            });
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loadsKey, selectedLoad?.id]); // Re-run when load IDs change OR selection changes
 
     const handleSelectLoad = (load: any) => {
         setSelectedLoad(load);
     };
 
-    // Draw route when load is selected
+    // Draw route and markers when load is selected
     useEffect(() => {
         if (!map.current) return;
         const mapInstance = map.current;
+
+        // Clean up previous destination marker if any
+        if (destinationMarker.current) {
+            destinationMarker.current.remove();
+            destinationMarker.current = null;
+        }
 
         if (!selectedLoad) {
             if (mapInstance.getSource('route')) {
@@ -485,6 +527,26 @@ export default function CompanyShipmentsPage() {
             return;
         }
 
+        // Draw destination pin using same primary icon style as origin pins
+        let destLng = selectedLoad.destinationCoords?.lng;
+        let destLat = selectedLoad.destinationCoords?.lat;
+        if (destLng !== undefined && destLat !== undefined && destLng !== 0 && destLat !== 0) {
+            const el = document.createElement('div');
+            el.className = 'load-marker';
+            el.innerHTML = `
+                <div class="relative group cursor-pointer">
+                    <div class="relative bg-primary text-primary-foreground p-2 rounded-full shadow-lg border-2 border-background transition-transform hover:scale-110">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </div>
+                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-background border rounded px-2 py-1 text-[10px] font-bold shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        Destino: ${selectedLoad.destination.split(',')[0]}
+                    </div>
+                </div>
+            `;
+            destinationMarker.current = new mapboxgl.Marker(el)
+                .setLngLat([destLng, destLat])
+                .addTo(mapInstance);
+        }
         if (selectedLoad.routeGeometry) {
             const geojson = {
                 type: 'Feature',
@@ -717,7 +779,6 @@ export default function CompanyShipmentsPage() {
                                     <CardHeader>
                                         <div className="flex justify-between items-start">
                                             <div className="space-y-1.5">
-                                                <CardTitle className="text-lg">#{load.id.substring(0, 8)}</CardTitle>
                                                 {customerBadge.key !== "NONE" && (
                                                     <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] border font-black uppercase tracking-wider shadow-sm", theme.badgeBg)}>
                                                         <div className={cn("w-3.5 h-3.5 rounded-full overflow-hidden text-white border shrink-0", customerBadge.className)}>
@@ -728,9 +789,9 @@ export default function CompanyShipmentsPage() {
                                                 )}
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-lg font-bold text-primary">CLP {(load.price || 0).toLocaleString('es-CL')}</span>
-                                                <div className="flex items-center justify-end text-[10px] text-orange-500 font-bold gap-1 mt-0.5">
-                                                    <Zap className="h-3 w-3 fill-orange-500" /> Tarifa Dinámica
+                                                <span className={cn("text-lg font-bold", theme.priceColor)}>CLP {(load.price || 0).toLocaleString('es-CL')}</span>
+                                                <div className={cn("flex items-center justify-end text-[10px] font-bold gap-1 mt-0.5", theme.textGlow)}>
+                                                    <Zap className="h-3 w-3 fill-current animate-pulse" /> Tarifa Dinámica
                                                 </div>
                                             </div>
                                         </div>
@@ -738,21 +799,21 @@ export default function CompanyShipmentsPage() {
                                     <CardContent className="space-y-4">
                                         <div className="space-y-2">
                                             <div className="flex items-start gap-2 text-sm">
-                                                <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
-                                                <span className="text-muted-foreground">{load.origin}</span>
+                                                <MapPin className={cn("h-4 w-4 mt-0.5", theme.iconColor)} />
+                                                <span className={cn("", theme.textColor)}>{load.origin}</span>
                                             </div>
                                             <div className="flex items-start gap-2 text-sm">
-                                                <MapPin className="h-4 w-4 text-red-500 mt-0.5" />
-                                                <span className="text-muted-foreground">{load.destination}</span>
+                                                <MapPin className={cn("h-4 w-4 mt-0.5", theme.iconColor)} />
+                                                <span className={cn("", theme.textColor)}>{load.destination}</span>
                                             </div>
                                         </div>
-                                        <div className="flex justify-between text-xs pt-4 border-t">
-                                            <div className="flex items-center gap-1">
-                                                <Truck className="h-3 w-3" />
+                                        <div className="flex justify-between text-xs pt-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                                            <div className={cn("flex items-center gap-1", theme.textColor)}>
+                                                <Truck className={cn("h-3 w-3", theme.iconColor)} />
                                                 <span>{load.equipment || 'N/A'}</span>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <Weight className="h-3 w-3" />
+                                            <div className={cn("flex items-center gap-1", theme.textColor)}>
+                                                <Weight className={cn("h-3 w-3", theme.iconColor)} />
                                                 <span>{load.weight_lbs?.toLocaleString() || 'N/A'} lbs</span>
                                             </div>
                                         </div>
@@ -792,88 +853,6 @@ export default function CompanyShipmentsPage() {
                 }
                 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
                     background: rgba(255,255,255,0.1);
-                }
-
-                /* High-fidelity visible pulsing neon glows for client ranks */
-                @keyframes card-glow-bronze {
-                    0%, 100% {
-                        box-shadow: 0 0 10px rgba(245, 158, 11, 0.45), inset 0 0 4px rgba(245, 158, 11, 0.15);
-                        border-color: rgba(245, 158, 11, 0.6) !important;
-                    }
-                    50% {
-                        box-shadow: 0 0 24px rgba(245, 158, 11, 0.85), inset 0 0 8px rgba(245, 158, 11, 0.35);
-                        border-color: rgba(251, 146, 60, 1) !important;
-                    }
-                }
-                @keyframes card-glow-silver {
-                    0%, 100% {
-                        box-shadow: 0 0 10px rgba(100, 116, 139, 0.45), inset 0 0 4px rgba(148, 163, 184, 0.15);
-                        border-color: rgba(148, 163, 184, 0.65) !important;
-                    }
-                    50% {
-                        box-shadow: 0 0 24px rgba(148, 163, 184, 0.85), inset 0 0 8px rgba(148, 163, 184, 0.35);
-                        border-color: rgba(241, 245, 249, 1) !important;
-                    }
-                }
-                @keyframes card-glow-gold {
-                    0%, 100% {
-                        box-shadow: 0 0 12px rgba(234, 179, 8, 0.5), inset 0 0 5px rgba(234, 179, 8, 0.2);
-                        border-color: rgba(234, 179, 8, 0.7) !important;
-                    }
-                    50% {
-                        box-shadow: 0 0 28px rgba(234, 179, 8, 0.95), inset 0 0 10px rgba(234, 179, 8, 0.45);
-                        border-color: rgba(254, 240, 138, 1) !important;
-                    }
-                }
-                @keyframes card-glow-diamond {
-                    0%, 100% {
-                        box-shadow: 0 0 14px rgba(139, 92, 246, 0.6), inset 0 0 6px rgba(139, 92, 246, 0.25);
-                        border-color: rgba(139, 92, 246, 0.75) !important;
-                    }
-                    50% {
-                        box-shadow: 0 0 32px rgba(139, 92, 246, 1), inset 0 0 12px rgba(139, 92, 246, 0.5);
-                        border-color: rgba(224, 204, 250, 1) !important;
-                    }
-                }
-
-                .glow-card-bronze {
-                    border-width: 2.5px !important;
-                    animation: card-glow-bronze 2.5s ease-in-out infinite;
-                }
-                .glow-card-bronze:hover {
-                    box-shadow: 0 0 30px rgba(245, 158, 11, 0.95), 0 0 10px rgba(245, 158, 11, 0.5) !important;
-                    border-color: rgba(251, 146, 60, 1) !important;
-                    animation: none;
-                }
-
-                .glow-card-silver {
-                    border-width: 2.5px !important;
-                    animation: card-glow-silver 2.5s ease-in-out infinite;
-                }
-                .glow-card-silver:hover {
-                    box-shadow: 0 0 30px rgba(148, 163, 184, 0.95), 0 0 10px rgba(148, 163, 184, 0.5) !important;
-                    border-color: rgba(248, 250, 252, 1) !important;
-                    animation: none;
-                }
-
-                .glow-card-gold {
-                    border-width: 2.5px !important;
-                    animation: card-glow-gold 2.5s ease-in-out infinite;
-                }
-                .glow-card-gold:hover {
-                    box-shadow: 0 0 36px rgba(234, 179, 8, 1), 0 0 12px rgba(234, 179, 8, 0.6) !important;
-                    border-color: rgba(254, 240, 138, 1) !important;
-                    animation: none;
-                }
-
-                .glow-card-diamond {
-                    border-width: 2.5px !important;
-                    animation: card-glow-diamond 2.5s ease-in-out infinite;
-                }
-                .glow-card-diamond:hover {
-                    box-shadow: 0 0 42px rgba(139, 92, 246, 1), 0 0 14px rgba(139, 92, 246, 0.7) !important;
-                    border-color: rgba(224, 204, 250, 1) !important;
-                    animation: none;
                 }
             `}</style>
         </div>
