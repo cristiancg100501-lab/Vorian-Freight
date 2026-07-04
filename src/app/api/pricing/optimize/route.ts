@@ -18,6 +18,31 @@ export async function POST(request: Request) {
         customer_id, is_asap
     } = body;
 
+    // 0. Fetch regional diesel price from 'combustibles' table
+    let dynamicDieselPrice: number | null = null;
+    if (pickup_region) {
+        try {
+            const { data: fuelData } = await supabaseAdmin
+                .from('combustibles')
+                .select('precio_por_litro')
+                .eq('tipo_combustible', 'petroleo_diesel')
+                .eq('region_nombre', pickup_region)
+                .order('anio', { ascending: false })
+                .order('mes', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (fuelData && fuelData.precio_por_litro) {
+                // Parse it just in case it's stored as string or float
+                const rawPrice = fuelData.precio_por_litro;
+                dynamicDieselPrice = typeof rawPrice === 'number' ? rawPrice : parseFloat((rawPrice || "0").toString().replace(',', '.'));
+                console.log(`⛽ Precio Diésel Dinámico para ${pickup_region}: $${dynamicDieselPrice}`);
+            }
+        } catch (e) {
+            console.warn(`No se pudo obtener precio del diésel para ${pickup_region}`, e);
+        }
+    }
+
     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
     const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('get_vorian_price', {
         params: {
@@ -26,7 +51,8 @@ export async function POST(request: Request) {
             p_vehicle_type: vehicle_type || 'camion_3_4',
             p_service_mode: service_mode || 'exclusive',
             p_cargo_units: cargo_units || 1,
-            p_route_geometry: route_geometry
+            p_route_geometry: route_geometry,
+            p_diesel_price: dynamicDieselPrice
         }
     });
 
@@ -422,7 +448,7 @@ export async function POST(request: Request) {
 
     // 6. Retornar al Cliente
     const priceWithoutTolls = finalPrice - tollsCost;
-    const platformFee = priceWithoutTolls * 0.10; // 10% de comisión Vorian
+    const platformFee = priceWithoutTolls * 0.15; // 15% de comisión Vorian
     const carrierPayment = priceWithoutTolls - platformFee;
     
     // The base factorMarket starts at 1.0. We want to isolate the purely "market" (peak hours / hot zones) markup.
