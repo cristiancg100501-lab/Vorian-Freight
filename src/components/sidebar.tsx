@@ -233,20 +233,11 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
             {isCollapsed ? (
                 <>
                   <Image
-                    src={PinkVorianIcon}
-                    alt="Vorian Freight Light"
+                    src={VorianNewLogo}
+                    alt="Vorian Freight Logo"
                     width={80}
                     height={80}
-                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] block dark:hidden"
-                    priority
-                    unoptimized
-                  />
-                  <Image
-                    src={VorianFreightIcon}
-                    alt="Vorian Freight Dark"
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5] hidden dark:block"
+                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5]"
                     priority
                     unoptimized
                   />
