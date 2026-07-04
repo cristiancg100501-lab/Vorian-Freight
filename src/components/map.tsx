@@ -264,7 +264,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'source': 'route-snake',
                 'layout': { 'line-join': 'round', 'line-cap': 'round' },
                 'paint': { 
-                    'line-color': 'hsl(350, 93%, 73%)',
+                    'line-color': 'hsl(212, 100%, 48%)',
                     'line-width': 12,
                     'line-blur': 10,
                     'line-opacity': 0.5
@@ -280,7 +280,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'source': 'route-snake',
                 'layout': { 'line-join': 'round', 'line-cap': 'round' },
                 'paint': { 
-                    'line-color': 'hsl(350, 93%, 73%)',
+                    'line-color': 'hsl(212, 100%, 48%)',
                     'line-width': 4, 
                     'line-opacity': 1
                 }

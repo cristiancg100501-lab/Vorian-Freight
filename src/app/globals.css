@@ -12,7 +12,7 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 350 93% 73%;
+    --primary: 212 100% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;
@@ -24,7 +24,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 350 93% 73%;
+    --ring: 212 100% 48%;
     --radius: 1rem;
   }
  
@@ -35,7 +35,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 98%;
-    --primary: 350 93% 73%;
+    --primary: 212 100% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 16%;
     --secondary-foreground: 0 0% 98%;
@@ -47,7 +47,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 350 93% 73%;
+    --ring: 212 100% 48%;
   }
 
   .dark .light-theme-override {
@@ -57,7 +57,7 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 350 93% 73%;
+    --primary: 212 100% 48%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;
@@ -69,7 +69,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 350 93% 73%;
+    --ring: 212 100% 48%;
   }
 
   * {
