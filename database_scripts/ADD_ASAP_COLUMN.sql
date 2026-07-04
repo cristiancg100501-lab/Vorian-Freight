@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE "shipments"
+ADD COLUMN IF NOT EXISTS "is_asap" BOOLEAN DEFAULT false;
+
+COMMIT;

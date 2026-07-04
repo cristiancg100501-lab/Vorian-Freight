@@ -61,6 +61,7 @@ interface ShipmentLoad {
     createdAt: any;
     equipment?: string;
     weight_lbs?: number;
+    is_asap?: boolean;
 }
 
 const getThemeStylesForBadge = (badgeKey: string) => {
@@ -185,8 +186,7 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                 onClick={() => onSelectLoad(load)}
                                 className={cn(
                                     "w-full text-left p-3 rounded-lg border transition-all duration-300 group relative overflow-hidden",
-                                    theme.cardBorder,
-                                    theme.bgGradient
+                                    load.is_asap ? "border-red-500/50 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : [theme.cardBorder, theme.bgGradient]
                                 )}
                             >
                                 {/* Shine Sweep Effect */}
@@ -195,13 +195,20 @@ const SearchWidget = ({ loads, onSelectLoad, customerTripsMap }: { loads: Shipme
                                     theme.shineColor
                                 )} />
 
-
-                                {isNew && (
-                                    <div className="absolute top-0 right-0">
-                                        <div className="bg-primary text-primary-foreground text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">
-                                            NUEVO
+                                {load.is_asap ? (
+                                    <div className="absolute top-0 right-0 z-10">
+                                        <div className="bg-red-500 text-white text-[8px] font-bold px-3 py-1 rounded-bl-lg shadow-[0_0_10px_rgba(239,68,68,0.5)] flex items-center gap-1 uppercase tracking-wider">
+                                            <Zap className="w-3 h-3 fill-white animate-pulse" /> URGENTE: INCENTIVO
                                         </div>
                                     </div>
+                                ) : (
+                                    isNew && (
+                                        <div className="absolute top-0 right-0 z-10">
+                                            <div className="bg-primary text-primary-foreground text-[8px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                                NUEVO
+                                            </div>
+                                        </div>
+                                    )
                                 )}
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
@@ -337,10 +344,11 @@ export default function CompanyShipmentsPage() {
                 destinationCoords,
                 routeGeometry: route,
                 status: s.status,
+                is_asap: s.is_asap,
                 price: s.carrier_payment || s.estimatedPrice || 0,
-                createdAt: s.createdAt,
-                equipment: s.details?.equipment,
-                weight_lbs: s.details?.weightLbs
+                equipment: s.details?.vehicleType || 'Generico',
+                pickupDate: s.details?.pickupDate || new Date().toISOString(),
+                createdAt: s.createdAt
             };
         });
     }, [shipmentsData, rejectedLoads]);

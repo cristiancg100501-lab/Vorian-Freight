@@ -85,6 +85,7 @@ export default function NewShipmentPage() {
     const [pickup, setPickup] = useState({ address: '', coords: null as any });
     const [delivery, setDelivery] = useState({ address: '', coords: null as any });
     const [pickupDate, setPickupDate] = useState<Date | undefined>(new Date());
+    const [isAsap, setIsAsap] = useState(false);
     const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
     const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
     const [operationType, setOperationType] = useState('Nacional'); // 'Nacional', 'Exportación', 'Importación'
@@ -311,7 +312,8 @@ export default function NewShipmentPage() {
                     pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
                     pickup_window: pickupWindow,
                     operation_type: operationType,
-                    customer_id: user?.id
+                    customer_id: user?.id,
+                    is_asap: isAsap
                 })
             });
 
@@ -484,6 +486,7 @@ export default function NewShipmentPage() {
             vorian_total: finalBookingMethod === 'instant' ? Math.round(platformFee * 1.19) : 0,
             
             status: isInternalShipment ? 'BOOKED' : 'PENDING',
+            is_asap: isAsap,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             // Todos los detalles técnicos en JSONB
@@ -603,7 +606,26 @@ export default function NewShipmentPage() {
 
                                 {/* Pickup */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-foreground">Recogida</label>
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-semibold text-foreground">Recogida</label>
+                                        <Button
+                                            type="button"
+                                            variant={isAsap ? "default" : "outline"}
+                                            size="sm"
+                                            className={cn("h-7 px-2 text-[10px] uppercase font-bold tracking-wider transition-all", isAsap ? "bg-red-500 hover:bg-red-600 text-white border-transparent shadow-[0_0_10px_rgba(239,68,68,0.5)]" : "text-muted-foreground")}
+                                            onClick={() => {
+                                                setIsAsap(!isAsap);
+                                                if (!isAsap) {
+                                                    setPickupDate(new Date());
+                                                    setPickupWindow("Lo antes posible");
+                                                } else {
+                                                    setPickupWindow("8:00 AM - 12:00 PM");
+                                                }
+                                            }}
+                                        >
+                                            🚀 Inmediato
+                                        </Button>
+                                    </div>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <Input value={pickup.address} onChange={(e) => handleAddressChange(e.target.value, 'pickup')} placeholder="Ubicación" className="pl-10 h-12 bg-muted/50 border-0 focus-visible:ring-primary" autoComplete="off" />

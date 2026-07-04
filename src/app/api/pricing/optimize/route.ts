@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         service_mode, cargo_units, weather_condition,
         special_handling, accessorials,
         pickup_date, pickup_window,
-        customer_id
+        customer_id, is_asap
     } = body;
 
     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
@@ -98,7 +98,9 @@ export async function POST(request: Request) {
 
     // a) Recargo por Urgencia (Lead Time Surge)
     let leadTimeSurge = 0;
-    if (pickup_date) {
+    if (is_asap) {
+        leadTimeSurge = 0.20; // +20% for ASAP
+    } else if (pickup_date) {
         const pd = new Date(pickup_date);
         const nowMs = Date.now();
         const diffHrs = (pd.getTime() - nowMs) / (1000 * 60 * 60);
