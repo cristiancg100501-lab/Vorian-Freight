@@ -36,6 +36,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 import { useTheme } from "next-themes";
 import VorianFreightIcon from "@/assets/vorianfreight.png";
 import PinkVorianIcon from "@/assets/pinkvorian.png";
+import VorianNewLogo from "@/assets/vorian_new.png";
 
 type NavItem = {
   href: string;
@@ -252,12 +253,12 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                 </>
             ) : (
                 <Image
-                src="/vorian.svg"
+                src={VorianNewLogo}
                 width={120}
                 height={50}
                 alt="Vorian Logistics Logo"
                 className={cn(
-                  "transition-all duration-300", 
+                  "transition-all duration-300 object-contain", 
                   !mounted && "opacity-0"
                 )}
                 priority
