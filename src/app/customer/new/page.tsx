@@ -978,8 +978,8 @@ export default function NewShipmentPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col mt-2">
-                                                            <p className="text-xs font-medium text-muted-foreground">Subtotal (Neto): ${estimatedPrice.toLocaleString()}</p>
-                                                            <p className="text-2xl font-bold text-foreground">Total: ${Math.round(estimatedPrice * 1.19).toLocaleString()}</p>
+                                                            <p className="text-2xl font-bold text-foreground">Subtotal: ${estimatedPrice.toLocaleString()}</p>
+                                                            <p className="text-xs font-medium text-muted-foreground">Total: ${Math.round(estimatedPrice * 1.19).toLocaleString()}</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -1027,8 +1027,8 @@ export default function NewShipmentPage() {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col w-full">
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Subtotal (Neto): ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
-                                        <p className="text-4xl font-bold tracking-tight text-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
+                                        <p className="text-4xl font-bold tracking-tight text-foreground mb-1">Subtotal: ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
+                                        <p className="text-sm font-medium text-muted-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
                                     </div>
                                 )}
                             </div>

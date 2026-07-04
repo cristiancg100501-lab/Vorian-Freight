@@ -10,11 +10,11 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
     try {
-        const { firstName, lastName, email, password, rut, phone, companyId } = await req.json();
+        const { firstName, lastName, email, password, rut, phone, companyId, license_url, license_expiration_date, criminal_record_url, resume_url } = await req.json();
 
         // --- Basic validation ---
-        if (!firstName || !lastName || !email || !password || !rut || !companyId) {
-            return NextResponse.json({ error: "Faltan campos obligatorios." }, { status: 400 });
+        if (!firstName || !lastName || !email || !password || !rut || !companyId || !license_url || !license_expiration_date || !criminal_record_url || !resume_url) {
+            return NextResponse.json({ error: "Faltan campos obligatorios o documentos." }, { status: 400 });
         }
 
         // 1. Create the user in Supabase Auth using admin API
@@ -72,7 +72,11 @@ export async function POST(req: NextRequest) {
             documents: {},
             bankDetails: {},
             rating: 5.0,
-            totalTrips: 0
+            totalTrips: 0,
+            license_url,
+            license_expiration_date,
+            criminal_record_url,
+            resume_url
         }, { onConflict: "id" });
 
         if (driverError) {

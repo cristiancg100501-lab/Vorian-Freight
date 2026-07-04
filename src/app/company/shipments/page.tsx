@@ -26,7 +26,9 @@ import {
     Maximize2,
     Map as MapIcon,
     List as ListIcon,
-    Zap
+    ArrowRight,
+    Zap,
+    FileText
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
@@ -720,6 +722,19 @@ export default function CompanyShipmentsPage() {
                                                 <p className="text-[10px] font-bold">{selectedLoad.weight_lbs?.toLocaleString() || 'N/A'} lbs</p>
                                             </div>
                                         </div>
+                                        
+                                        {selectedLoad.guia_despacho_url && (
+                                            <div className="mt-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="w-full h-8 text-xs font-bold border-primary/50 hover:bg-primary/10"
+                                                    onClick={() => window.open(selectedLoad.guia_despacho_url, '_blank')}
+                                                >
+                                                    <FileText className="w-3 h-3 mr-2" />
+                                                    Ver Guía de Despacho (e-POD)
+                                                </Button>
+                                            </div>
+                                        )}
                                         
                                         {/* Chat Integration */}
                                         <div className="mt-4 border-t pt-4">

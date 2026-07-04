@@ -43,6 +43,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { FileUpload } from "@/components/file-upload";
 
 export default function GestionFlotaPage() {
     const { user } = useUser();
@@ -55,7 +56,9 @@ export default function GestionFlotaPage() {
         licensePlate: "",
         type: "Camion Ligero",
         status: "active",
-        driverId: "none"
+        driverId: "none",
+        document_url: "",
+        document_expiration_date: ""
     });
 
     // 1. Get all vehicles belonging to this company
@@ -115,7 +118,9 @@ export default function GestionFlotaPage() {
                 licensePlate: "",
                 type: "Camion Ligero",
                 status: "active",
-                driverId: "none"
+                driverId: "none",
+                document_url: "",
+                document_expiration_date: ""
             });
         } catch (err) {
             console.error(err);
@@ -247,10 +252,10 @@ export default function GestionFlotaPage() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="driver">Asignar Conductor (Opcional)</Label>
-                                <Select onValueChange={(v) => setNewVehicle({...newVehicle, driverId: v})} defaultValue={newVehicle.driverId}>
+                                <Label>Conductor Asignado</Label>
+                                <Select onValueChange={(v) => setNewVehicle({ ...newVehicle, driverId: v })} value={newVehicle.driverId}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Seleccione un conductor" />
+                                        <SelectValue placeholder="Asignar conductor" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">Sin asignar</SelectItem>
@@ -261,6 +266,26 @@ export default function GestionFlotaPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Documento de Vehículo</Label>
+                                    <FileUpload 
+                                        bucket="documents" 
+                                        folder={`vehicles/${user?.id || 'temp'}`}
+                                        label="Subir Permiso/Padrón"
+                                        onUploadComplete={(url) => setNewVehicle({ ...newVehicle, document_url: url })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Fecha Vencimiento (Revisión/Permiso)</Label>
+                                    <Input 
+                                        type="date" 
+                                        value={newVehicle.document_expiration_date}
+                                        onChange={(e) => setNewVehicle({ ...newVehicle, document_expiration_date: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>
@@ -323,16 +348,21 @@ function VehicleCard({ vehicle, drivers, onDelete, onUpdate }: { vehicle: any, d
         return drivers.find(d => d.id === vehicle.driverId);
     }, [vehicle.driverId, drivers]);
 
+    const isExpired = vehicle.document_expiration_date && new Date(vehicle.document_expiration_date) < new Date();
+    const effectiveStatus = isExpired ? "blocked" : vehicle.status;
+
     const statusColors: { [key: string]: string } = {
         active: "bg-green-500/10 text-green-500",
         maintenance: "bg-yellow-500/10 text-yellow-500",
-        inactive: "bg-red-500/10 text-red-500"
+        inactive: "bg-red-500/10 text-red-500",
+        blocked: "bg-red-600 text-white font-black animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]"
     };
 
     const statusLabels: { [key: string]: string } = {
         active: "Activo",
         maintenance: "Mantenimiento",
-        inactive: "Inactivo"
+        inactive: "Inactivo",
+        blocked: "VENCIDO"
     };
 
     return (
@@ -348,8 +378,8 @@ function VehicleCard({ vehicle, drivers, onDelete, onUpdate }: { vehicle: any, d
                     </div>
                 </div>
                 {!isEditing && (
-                    <div className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${statusColors[vehicle.status]}`}>
-                        {statusLabels[vehicle.status]}
+                    <div className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${statusColors[effectiveStatus]}`}>
+                        {statusLabels[effectiveStatus]}
                     </div>
                 )}
             </CardHeader>
@@ -391,6 +421,27 @@ function VehicleCard({ vehicle, drivers, onDelete, onUpdate }: { vehicle: any, d
                             ) : (
                                 <p className="font-medium">{vehicle.type}</p>
                             )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground flex items-center gap-1 text-[10px] uppercase font-bold">
+                                Permiso / Docs
+                            </p>
+                            {vehicle.document_url ? (
+                                <a href={vehicle.document_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">Ver Documento</a>
+                            ) : (
+                                <p className="text-xs text-muted-foreground font-medium">Sin documento</p>
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-muted-foreground flex items-center gap-1 text-[10px] uppercase font-bold">
+                                Vencimiento
+                            </p>
+                            <p className={cn("text-xs font-bold", isExpired ? "text-destructive" : "")}>
+                                {vehicle.document_expiration_date || "No definido"}
+                            </p>
                         </div>
                     </div>
 

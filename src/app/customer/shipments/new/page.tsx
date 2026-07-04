@@ -1033,8 +1033,8 @@ Broadway: 1
                                                 <p className="text-sm text-muted-foreground">Reservar con una Tarifa Garantizada</p>
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex flex-col mt-2">
-                                                        <p className="text-xs font-medium text-muted-foreground">Subtotal (Neto): ${(estimatedPrice || 0).toLocaleString()}</p>
-                                                        <p className="text-2xl font-bold text-foreground">Total: ${Math.round((estimatedPrice || 0) * 1.19).toLocaleString()}</p>
+                                                            <p className="text-2xl font-bold text-foreground">Subtotal: ${(estimatedPrice || 0).toLocaleString()}</p>
+                                                            <p className="text-xs font-medium text-muted-foreground">Total: ${Math.round((estimatedPrice || 0) * 1.19).toLocaleString()}</p>
                                                     </div>
                                                     {tollsNames.length > 0 && (
                                                         <p className="text-[10px] text-primary font-medium mt-1">
@@ -1124,8 +1124,8 @@ Broadway: 1
                             )}
                             <p className="text-sm text-muted-foreground">Tarifa Garantizada</p>
                             <div className="flex flex-col w-full">
-                                        <p className="text-sm font-medium text-muted-foreground mb-1">Subtotal (Neto): ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
-                                        <p className="text-4xl font-bold tracking-tight text-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
+                                        <p className="text-4xl font-bold tracking-tight text-foreground mb-1">Subtotal: ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
+                                        <p className="text-sm font-medium text-muted-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
                                     </div>
 
                             {estimatedPrice > 0 && priceValidSeconds > 0 && (

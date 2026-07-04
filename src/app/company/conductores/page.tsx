@@ -42,10 +42,10 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FileUpload } from "@/components/file-upload";
 
 const driverStatusStyles: { [key: string]: { color: string; label: string; icon: any } } = {
     available_free: { color: "text-green-500 bg-green-500/10", label: "Disponible", icon: CheckCircle2 },
@@ -67,6 +67,10 @@ export default function MisConductoresPage() {
         password: "",
         rut: "",
         phone: "",
+        license_url: "",
+        license_expiration_date: "",
+        criminal_record_url: "",
+        resume_url: "",
     });
     const [createError, setCreateError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,9 +141,9 @@ export default function MisConductoresPage() {
     const handleCreateDriver = async () => {
         if (!user) return;
         
-        const { firstName, lastName, email, password, rut, phone } = newDriver;
-        if (!firstName || !lastName || !email || !password || !rut) {
-            setCreateError("Por favor, completa todos los campos obligatorios.");
+        const { firstName, lastName, email, password, rut, phone, license_url, license_expiration_date, criminal_record_url, resume_url } = newDriver;
+        if (!firstName || !lastName || !email || !password || !rut || !license_url || !license_expiration_date || !criminal_record_url || !resume_url) {
+            setCreateError("Faltan documentos obligatorios o campos personales. Todos los documentos son obligatorios.");
             return;
         }
 
@@ -158,6 +162,10 @@ export default function MisConductoresPage() {
                     rut,
                     phone,
                     companyId: user.id,
+                    license_url,
+                    license_expiration_date,
+                    criminal_record_url,
+                    resume_url
                 }),
             });
 
@@ -168,7 +176,7 @@ export default function MisConductoresPage() {
             }
 
             setIsCreateOpen(false);
-            setNewDriver({ firstName: "", lastName: "", email: "", password: "", rut: "", phone: "" });
+            setNewDriver({ firstName: "", lastName: "", email: "", password: "", rut: "", phone: "", license_url: "", license_expiration_date: "", criminal_record_url: "", resume_url: "" });
         } catch (err: any) {
             console.error("Error creating driver:", err);
             setCreateError(err.message || "Error al crear el conductor.");
@@ -212,7 +220,7 @@ export default function MisConductoresPage() {
             </div>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Crear Nuevo Conductor</DialogTitle>
                         <DialogDescription>
@@ -275,14 +283,55 @@ export default function MisConductoresPage() {
                             </div>
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="phone">Teléfono</Label>
-                            <Input
-                                id="phone"
-                                placeholder="+56 9 1234 5678"
-                                value={newDriver.phone}
-                                onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })}
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="phone">Teléfono</Label>
+                                <Input
+                                    id="phone"
+                                    placeholder="+56 9 1234 5678"
+                                    value={newDriver.phone}
+                                    onChange={(e) => setNewDriver({ ...newDriver, phone: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="license_exp">Vencimiento Licencia *</Label>
+                                <Input
+                                    id="license_exp"
+                                    type="date"
+                                    value={newDriver.license_expiration_date}
+                                    onChange={(e) => setNewDriver({ ...newDriver, license_expiration_date: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                            <div className="space-y-2">
+                                <Label className="text-xs">Licencia *</Label>
+                                <FileUpload 
+                                    bucket="documents" 
+                                    folder={`drivers/${user?.id || 'temp'}`}
+                                    label="Licencia"
+                                    onUploadComplete={(url) => setNewDriver({ ...newDriver, license_url: url })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">Antecedentes *</Label>
+                                <FileUpload 
+                                    bucket="documents" 
+                                    folder={`drivers/${user?.id || 'temp'}`}
+                                    label="Certificado"
+                                    onUploadComplete={(url) => setNewDriver({ ...newDriver, criminal_record_url: url })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">Hoja de Vida *</Label>
+                                <FileUpload 
+                                    bucket="documents" 
+                                    folder={`drivers/${user?.id || 'temp'}`}
+                                    label="Hoja Vida"
+                                    onUploadComplete={(url) => setNewDriver({ ...newDriver, resume_url: url })}
+                                />
+                            </div>
                         </div>
 
                         {createError && (
