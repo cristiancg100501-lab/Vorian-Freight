@@ -534,8 +534,17 @@ export default function NewClientShipmentPage() {
             originAddress: pickup.address,
             destinationAddress: delivery.address,
             estimatedPrice: finalBookingMethod === 'instant' ? estimatedPrice : 0,
+            client_iva: finalBookingMethod === 'instant' ? Math.round(estimatedPrice * 0.19) : 0,
+            client_total: finalBookingMethod === 'instant' ? Math.round(estimatedPrice * 1.19) : 0,
+            
             carrier_payment: finalBookingMethod === 'instant' ? carrierPayment : 0,
+            carrier_iva: finalBookingMethod === 'instant' ? Math.round(carrierPayment * 0.19) : 0,
+            carrier_total: finalBookingMethod === 'instant' ? Math.round(carrierPayment * 1.19) : 0,
+            
             vorian_commission: finalBookingMethod === 'instant' ? platformFee : 0,
+            vorian_iva: finalBookingMethod === 'instant' ? Math.round(platformFee * 0.19) : 0,
+            vorian_total: finalBookingMethod === 'instant' ? Math.round(platformFee * 1.19) : 0,
+            
             status: isInternalShipment ? 'BOOKED' : 'PENDING',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
