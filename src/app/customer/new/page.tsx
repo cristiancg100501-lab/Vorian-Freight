@@ -567,19 +567,19 @@ export default function NewShipmentPage() {
                             <RadioGroup defaultValue="Nacional" value={operationType} onValueChange={setOperationType} className="grid grid-cols-3 gap-4 mb-6">
                                 <div>
                                     <RadioGroupItem value="Nacional" id="nacional" className="peer sr-only" />
-                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
+                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
                                         Nacional
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="Exportación" id="exportacion" className="peer sr-only" />
-                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
+                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
                                         Exportación
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="Importación" id="importacion" className="peer sr-only" />
-                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
+                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
                                         Importación
                                     </Label>
                                 </div>
@@ -681,14 +681,14 @@ export default function NewShipmentPage() {
                             <RadioGroup defaultValue="FTL" value={serviceType} onValueChange={setServiceType} className="grid grid-cols-2 gap-4">
                                 <div>
                                     <RadioGroupItem value="FTL" id="ftl" className="peer sr-only" />
-                                    <Label htmlFor="ftl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
+                                    <Label htmlFor="ftl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
                                         <Truck className="mb-3 h-6 w-6" />
                                         FTL (Carga Completa)
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="LTL" id="ltl" className="peer sr-only" />
-                                    <Label htmlFor="ltl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
+                                    <Label htmlFor="ltl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
                                         <Package className="mb-3 h-6 w-6" />
                                         LTL (Carga Parcial)
                                     </Label>
