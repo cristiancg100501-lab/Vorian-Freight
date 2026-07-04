@@ -310,7 +310,8 @@ export default function NewShipmentPage() {
                     accessorials: accessorials,
                     pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
                     pickup_window: pickupWindow,
-                    operation_type: operationType
+                    operation_type: operationType,
+                    customer_id: user?.id
                 })
             });
 

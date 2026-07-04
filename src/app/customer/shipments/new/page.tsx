@@ -311,7 +311,9 @@ export default function NewClientShipmentPage() {
                     cargo_units: serviceType === 'LTL' ? cargoUnits : 1,
                     weather_condition: weatherCondition,
                     special_handling: specialHandling,
-                    accessorials: accessorials
+                    accessorials: accessorials,
+                    pickup_date: pickupDate?.toISOString() || new Date().toISOString(),
+                    customer_id: user?.id
                 })
             });
 

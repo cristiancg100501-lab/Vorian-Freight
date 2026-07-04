@@ -14,7 +14,8 @@ export async function POST(request: Request) {
         container_status, weight_kgs, route_geometry,
         service_mode, cargo_units, weather_condition,
         special_handling, accessorials,
-        pickup_date, pickup_window
+        pickup_date, pickup_window,
+        customer_id
     } = body;
 
     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
@@ -95,7 +96,29 @@ export async function POST(request: Request) {
         } catch (e) {}
     }
 
-    // a) (Anteriormente Hora Peak) - Eliminado a petición del usuario.
+    // a) Recargo por Urgencia (Lead Time Surge)
+    let leadTimeSurge = 0;
+    if (pickup_date) {
+        const pd = new Date(pickup_date);
+        const nowMs = Date.now();
+        const diffHrs = (pd.getTime() - nowMs) / (1000 * 60 * 60);
+        if (diffHrs < 12 && diffHrs > 0) {
+            leadTimeSurge = 0.15; // +15%
+        } else if (diffHrs > 72) {
+            leadTimeSurge = -0.05; // -5%
+        }
+    }
+    factorMarket += leadTimeSurge;
+
+    // a.2) Recargo por Horario (Night/Weekend)
+    let timeSurge = 0;
+    if (currentDay === 0 || currentDay === 6) {
+        timeSurge += 0.10; // Fines de semana
+    }
+    if (currentHour >= 22 || currentHour < 5) {
+        timeSurge += 0.15; // Nocturno
+    }
+    factorMarket += timeSurge;
     
     // b) Zonas de Alta Demanda Dinámicas (Geocerca H3 - Últimos 45 min)
     let pickup_lat = null;
@@ -175,6 +198,51 @@ export async function POST(request: Request) {
             
             console.log(`🔥 AUTO-CALIBRACIÓN ZONAL: ${highDemandShipmentsCount}/${totalPlatformShipments} fletes (${(concentration*100).toFixed(0)}% del país). Score: ${dynamicScore.toFixed(1)}. Factor +${(zonalSurge * 100).toFixed(1)}%`);
         }
+
+        // c.2) Penalización por Retorno Vacío (Deadhead)
+        let deadheadPenalty = 0;
+        if (route_geometry && route_geometry.coordinates && route_geometry.coordinates.length > 0) {
+            const coords = route_geometry.coordinates;
+            const dest_lng = coords[coords.length - 1][0];
+            const dest_lat = coords[coords.length - 1][1];
+            const destHex = latLngToCell(dest_lat, dest_lng, 7);
+            const destHexes = gridDisk(destHex, 1);
+            
+            if (recentShipments) {
+                const outboundFromDest = recentShipments.filter((s: any) => {
+                    let lat = s.pickup_latitude;
+                    let lng = s.pickup_longitude;
+                    if (!lat && !lng && s.origin && typeof s.origin === 'string' && !s.origin.startsWith('POINT')) {
+                        try {
+                            const buf = Buffer.from(s.origin, 'hex');
+                            const isLittleEndian = buf[0] === 1;
+                            let offset = 1;
+                            const type = isLittleEndian ? buf.readUInt32LE(offset) : buf.readUInt32BE(offset);
+                            offset += 4;
+                            if (type & 0x20000000) offset += 4; // skip SRID
+                            lng = isLittleEndian ? buf.readDoubleLE(offset) : buf.readDoubleBE(offset);
+                            offset += 8;
+                            lat = isLittleEndian ? buf.readDoubleLE(offset) : buf.readDoubleBE(offset);
+                        } catch(e) {}
+                    }
+                    if (!lat && s.origin && s.origin.includes('POINT')) {
+                        const match = s.origin.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+                        if (match) { lng = parseFloat(match[1]); lat = parseFloat(match[2]); }
+                    }
+                    if (lat && lng) {
+                        const hex = latLngToCell(lat, lng, 7);
+                        return destHexes.includes(hex);
+                    }
+                    return false;
+                }).length;
+                
+                if (outboundFromDest === 0) {
+                    deadheadPenalty = 0.15; // +15% penalty if no outbound traffic
+                    console.log(`⚠️ DEADHEAD DETECTADO en destino. Recargo +15%.`);
+                }
+            }
+        }
+        factorMarket += deadheadPenalty;
     } catch (e) {
         console.warn('Error calculando zonas de alta demanda dinámicas', e);
     }
@@ -276,6 +344,28 @@ export async function POST(request: Request) {
     // e) Riesgo Adicional (Materiales Peligrosos / Sobrepeso explícito)
     if (special_handling?.hazardous) factorMarket += 0.20;
     if (special_handling?.overweight) factorMarket += 0.30;
+
+    // f) Programa de Lealtad (Customer Tier Discount)
+    let loyaltyDiscount = 0;
+    if (customer_id) {
+        try {
+            const { count } = await supabaseAdmin
+                .from('shipments')
+                .select('id', { count: 'exact', head: true })
+                .eq('client_id', customer_id);
+                
+            const trips = count || 0;
+            if (trips >= 50) loyaltyDiscount = -0.08; // Gold (-8%)
+            else if (trips >= 20) loyaltyDiscount = -0.04; // Silver (-4%)
+            else if (trips >= 5) loyaltyDiscount = -0.02; // Bronze (-2%)
+        } catch(e) { console.warn('Error fetching customer trips', e) }
+    }
+    factorMarket += loyaltyDiscount;
+
+    // g) Límite de Seguridad (Surge Cap)
+    // Para evitar espantar clientes, la tarifa base (1.0) nunca puede subir más de 45% ni bajar más de 10%
+    if (factorMarket > 1.45) factorMarket = 1.45;
+    if (factorMarket < 0.90) factorMarket = 0.90;
 
     // 3. Consultar al Modelo ML (FastAPI)
     let factorML = 1.0;
