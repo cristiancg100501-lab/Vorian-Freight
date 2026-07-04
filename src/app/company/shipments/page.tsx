@@ -43,9 +43,9 @@ import {
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
 import { getCustomerBadge } from "@/lib/badges";
 import { BadgeIcon } from "@/components/badge-icon";
+import { ChatWidget } from "@/components/chat-widget";
 
 interface ShipmentLoad {
     id: string;
@@ -719,6 +719,11 @@ export default function CompanyShipmentsPage() {
                                                 <Weight className="h-3 w-3 mx-auto mb-1 text-primary" />
                                                 <p className="text-[10px] font-bold">{selectedLoad.weight_lbs?.toLocaleString() || 'N/A'} lbs</p>
                                             </div>
+                                        </div>
+                                        
+                                        {/* Chat Integration */}
+                                        <div className="mt-4 border-t pt-4">
+                                            <ChatWidget shipmentId={selectedLoad.id} currentUserType="company" className="h-[300px]" />
                                         </div>
                                     </CardContent>
                                     <CardFooter className="px-4 pb-4 flex gap-3">

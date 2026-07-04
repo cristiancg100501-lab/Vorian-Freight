@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
+import { ChatWidget } from "@/components/chat-widget";
 
 export default function DriverPage() {
   const { user, isUserLoading } = useUser();
@@ -199,6 +199,22 @@ export default function DriverPage() {
       <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(0,0,0,0.5)]" />
 
       {/* No Search Widget needed for Express removal */}
+
+      {/* Side Chat Panel for Active Job */}
+      <AnimatePresence>
+        {activeJob && (
+          <motion.div
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 100, opacity: 0 }}
+            className="absolute top-8 right-8 z-10 w-[350px]"
+          >
+            <Card className="bg-background/90 backdrop-blur-xl border-primary/20 shadow-2xl overflow-hidden">
+              <ChatWidget shipmentId={activeJob.id} currentUserType="driver" />
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Bottom Controls */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-4">

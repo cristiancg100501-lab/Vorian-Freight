@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { PriorityBoostModal } from "@/components/priority-boost-modal";
+import { ChatWidget } from "@/components/chat-widget";
 
 const statusStyles: { [key: string]: string } = {
   "PENDING": "bg-secondary text-secondary-foreground border-secondary",
@@ -374,6 +375,12 @@ export default function CustomerDashboard() {
                       }}
                     />
                   )}
+                </div>
+
+                {/* Chat Integration */}
+                <div className="mt-6 pt-4 border-t">
+                  <h3 className="text-sm font-semibold mb-3">Mensajes (Conductor / Soporte)</h3>
+                  <ChatWidget shipmentId={selectedShipment.id} currentUserType="customer" />
                 </div>
               </>
             ) : (
