@@ -173,11 +173,12 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                             href={item.href}
                             prefetch={false}
                             className={cn(
-                                "group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 hover:scale-110 hover:shadow-lg",
-                                isActive ? "bg-blue-100" : "hover:bg-slate-100"
+                                "group relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg",
+                                hoverColorClass,
+                                isActive && activeColorClass
                             )}
                         >
-                            <item.icon className={cn("h-5 w-5 transition-all duration-300 group-hover:scale-110", isActive ? "text-blue-600" : "text-blue-500")} />
+                            <item.icon className={cn("h-5 w-5 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
                             {item.label === "Soporte (Chat)" && unreadSupport && (
                                 <span className="absolute right-2 top-2 flex h-2 w-2">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -198,12 +199,12 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
             href={item.href}
             prefetch={false}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-all group relative",
-                isActive ? "text-blue-600 bg-blue-50 font-semibold shadow-sm" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground group relative",
+                isActive && cn("shadow-[0_0_20px_rgba(0,0,0,0.2)] font-semibold", "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]")
             )}
         >
-            <item.icon className={cn("h-4 w-4 transition-all duration-300 group-hover:scale-110", isActive ? "text-blue-600" : "text-blue-500")} />
-            <span className={isActive ? "text-black" : "text-slate-600"}>{item.label}</span>
+            <item.icon className={cn("h-4 w-4 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
+            {item.label}
             {item.label === "Soporte (Chat)" && unreadSupport && (
                 <span className="ml-auto flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
@@ -219,11 +220,14 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
       <TooltipProvider>
       <div 
         className={cn(
-          "sticky top-4 flex h-full max-h-[calc(100vh-2rem)] flex-col gap-2 rounded-xl border shadow-lg overflow-hidden transition-all duration-300",
-          "bg-white border-slate-200"
+          "sticky top-4 flex h-full max-h-[calc(100vh-2rem)] flex-col gap-2 rounded-xl border shadow-2xl overflow-hidden transition-all duration-300",
+          "bg-card/98 border-border"
         )}
+        style={{ 
+          borderColor: 'rgba(255,255,255,0.05)',
+        } as any}
       >
-        <div className={cn("flex h-14 items-center justify-center border-b border-slate-100 px-4 lg:h-[60px] lg:px-6", "bg-white")}>
+        <div className={cn("flex h-14 items-center justify-center border-b border-white/5 px-4 lg:h-[60px] lg:px-6", "bg-white/5")}>
           <Link href={getBrandLink(role)} className="flex items-center justify-center w-full h-full group">
             {isCollapsed ? (
                 <>

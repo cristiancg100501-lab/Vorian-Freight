@@ -537,8 +537,8 @@ export default function NewShipmentPage() {
     };
     
     return (
-        <div className="max-w-screen-xl mx-auto bg-white p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 text-slate-900 min-h-screen">
-            <h1 className="text-3xl font-bold tracking-tight mb-6 text-black">Crear Nuevo Envío - {step === 1 ? 'Ruta y Horario' : step === 2 ? 'Detalles de Carga' : 'Opciones y Reserva'}</h1>
+        <div className="max-w-screen-xl mx-auto">
+            <h1 className="text-3xl font-bold tracking-tight mb-6">Crear Nuevo Envío - {step === 1 ? 'Ruta y Horario' : step === 2 ? 'Detalles de Carga' : 'Opciones y Reserva'}</h1>
             
             {/* Mapa siempre visible - se actualiza a medida que el usuario ingresa direcciones */}
             <div className="h-80 w-full rounded-lg overflow-hidden border mb-8">
