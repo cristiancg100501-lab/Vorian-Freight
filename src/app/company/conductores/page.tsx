@@ -42,7 +42,8 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
-import { DialogTitle } from "@/components/ui/dialog";
+    DialogTitle
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUpload } from "@/components/file-upload";

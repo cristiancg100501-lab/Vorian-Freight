@@ -45,6 +45,7 @@ import {
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 import { getCustomerBadge } from "@/lib/badges";
 import { BadgeIcon } from "@/components/badge-icon";
 import { ChatWidget } from "@/components/chat-widget";
