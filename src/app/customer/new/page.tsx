@@ -712,7 +712,12 @@ export default function NewShipmentPage() {
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <Truck className={cn("w-7 h-7 transition-colors", vehicleType === 'camion_3_4' ? "text-primary" : "text-muted-foreground")} />
+                                        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'camion_3_4' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                            <path d="M15 35h40v40H15z" strokeWidth="6" strokeLinejoin="round" />
+                                            <path d="M55 45h20l10 10v20H55V45z" strokeWidth="6" strokeLinejoin="round" />
+                                            <circle cx="30" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="75" cy="75" r="8" strokeWidth="6" />
+                                        </svg>
                                     </div>
                                     <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(3.5T - 5T)</span></span>
                                 </Button>
@@ -730,7 +735,13 @@ export default function NewShipmentPage() {
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <Truck className={cn("w-9 h-9 transition-colors", vehicleType === 'Camion Ligero' ? "text-primary" : "text-muted-foreground")} />
+                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Ligero' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                            <path d="M10 25h55v50H10z" strokeWidth="6" strokeLinejoin="round" />
+                                            <path d="M65 35h15l10 15v25H65V35z" strokeWidth="6" strokeLinejoin="round" />
+                                            <circle cx="25" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="45" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="75" cy="75" r="8" strokeWidth="6" />
+                                        </svg>
                                     </div>
                                     <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Ligero' ? "text-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
                                 </Button>
@@ -748,7 +759,15 @@ export default function NewShipmentPage() {
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <Truck className={cn("w-12 h-12 transition-colors", vehicleType === 'Camion Pesado' ? "text-primary" : "text-muted-foreground")} />
+                                        <svg width="56" height="56" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Pesado' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                            <path d="M5 20h65v55H5z" strokeWidth="6" strokeLinejoin="round" />
+                                            <path d="M75 40h15l10 15v20H75V40z" strokeWidth="6" strokeLinejoin="round" />
+                                            <circle cx="20" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="40" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="60" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="95" cy="75" r="8" strokeWidth="6" />
+                                            <path d="M70 65h5" strokeWidth="4" />
+                                        </svg>
                                     </div>
                                     <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Pesado' ? "text-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
                                 </Button>
