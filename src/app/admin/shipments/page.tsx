@@ -177,7 +177,12 @@ export default function AdminShipmentsPage() {
                         {shipment.bookingMethod === 'quote' ? 'Cotización' : 'Instantáneo'}
                       </td>
                       <td className="px-6 py-4 font-semibold text-xs">
-                        {shipment.bookingMethod === 'quote' ? 'Por cotizar' : `$${(shipment.client_price || shipment.estimatedPrice || shipment.estimated_price || 0).toLocaleString('es-CL')}`}
+                        {shipment.bookingMethod === 'quote' ? 'Por cotizar' : (
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-muted-foreground font-medium">Subtotal: ${(shipment.client_price || shipment.estimatedPrice || shipment.estimated_price || 0).toLocaleString('es-CL')}</span>
+                            <span className="text-sm font-bold text-foreground">Total: ${Math.round((shipment.client_price || shipment.estimatedPrice || shipment.estimated_price || 0) * 1.19).toLocaleString('es-CL')}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <span

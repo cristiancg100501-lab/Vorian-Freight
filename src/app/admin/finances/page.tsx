@@ -195,14 +195,23 @@ export default function AdminFinancesPage() {
                         <br />
                         <span className="text-xs text-muted-foreground">{s.status}</span>
                       </td>
-                      <td className="px-4 py-3 font-bold text-emerald-600 dark:text-emerald-400">
-                        ${clientPrice.toLocaleString('es-CL')}
+                      <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] opacity-70">Subtotal: ${clientPrice.toLocaleString('es-CL')}</span>
+                          <span className="font-bold">Total: ${Math.round(clientPrice * 1.19).toLocaleString('es-CL')}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 font-bold text-amber-600 dark:text-amber-400">
-                        ${carrierPay.toLocaleString('es-CL')}
+                      <td className="px-4 py-3 text-amber-600 dark:text-amber-400">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] opacity-70">Subtotal: ${carrierPay.toLocaleString('es-CL')}</span>
+                          <span className="font-bold">Total: ${Math.round(carrierPay * 1.19).toLocaleString('es-CL')}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-bold">
-                        ${margin.toLocaleString('es-CL')}
+                        <div className="flex flex-col">
+                          <span className="text-[10px] opacity-70 font-normal">Subtotal: ${margin.toLocaleString('es-CL')}</span>
+                          <span className="font-bold">Total: ${Math.round(margin * 1.19).toLocaleString('es-CL')}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         {s.client_charged ? (

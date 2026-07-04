@@ -926,10 +926,10 @@ export default function NewShipmentPage() {
                                                             <span className="text-sm font-bold animate-pulse">Calculando...</span>
                                                         </div>
                                                     ) : (
-                                                        <>
-                                                            <p className="text-2xl font-bold mt-2">${estimatedPrice.toLocaleString()}</p>
-                                                            {estimatedPrice > 0 && <span className="text-base font-medium text-muted-foreground">+ IVA</span>}
-                                                        </>
+                                                        <div className="flex flex-col mt-2">
+                                                            <p className="text-xs font-medium text-muted-foreground">Subtotal (Neto): ${estimatedPrice.toLocaleString()}</p>
+                                                            <p className="text-2xl font-bold text-foreground">Total: ${Math.round(estimatedPrice * 1.19).toLocaleString()}</p>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </CardContent>
@@ -975,10 +975,10 @@ export default function NewShipmentPage() {
                                         <span className="text-base font-bold animate-pulse">Calculando tarifa dinámica...</span>
                                     </div>
                                 ) : (
-                                    <>
-                                        <p className="text-4xl font-bold tracking-tight">${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
-                                        {estimatedPrice > 0 && <span className="text-lg font-medium text-muted-foreground">+ IVA</span>}
-                                    </>
+                                    <div className="flex flex-col w-full">
+                                        <p className="text-sm font-medium text-muted-foreground mb-1">Subtotal (Neto): ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
+                                        <p className="text-4xl font-bold tracking-tight text-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
+                                    </div>
                                 )}
                             </div>
                             

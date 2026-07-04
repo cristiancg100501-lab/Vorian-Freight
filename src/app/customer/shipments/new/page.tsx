@@ -999,9 +999,9 @@ Broadway: 1
                                             <CardContent>
                                                 <p className="text-sm text-muted-foreground">Reservar con una Tarifa Garantizada</p>
                                                 <div className="flex flex-col gap-1">
-                                                    <div className="flex items-baseline gap-2">
-                                                        <p className="text-2xl font-bold mt-2">${(estimatedPrice || 0).toLocaleString()}</p>
-                                                        {estimatedPrice > 0 && <span className="text-base font-medium text-muted-foreground">+ IVA</span>}
+                                                    <div className="flex flex-col mt-2">
+                                                        <p className="text-xs font-medium text-muted-foreground">Subtotal (Neto): ${(estimatedPrice || 0).toLocaleString()}</p>
+                                                        <p className="text-2xl font-bold text-foreground">Total: ${Math.round((estimatedPrice || 0) * 1.19).toLocaleString()}</p>
                                                     </div>
                                                     {tollsNames.length > 0 && (
                                                         <p className="text-[10px] text-primary font-medium mt-1">
@@ -1090,10 +1090,10 @@ Broadway: 1
                                 </div>
                             )}
                             <p className="text-sm text-muted-foreground">Tarifa Garantizada</p>
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-4xl font-bold tracking-tight">${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
-                                {estimatedPrice > 0 && <span className="text-lg font-medium text-muted-foreground">+ IVA</span>}
-                            </div>
+                            <div className="flex flex-col w-full">
+                                        <p className="text-sm font-medium text-muted-foreground mb-1">Subtotal (Neto): ${estimatedPrice > 0 ? estimatedPrice.toLocaleString() : '----'}</p>
+                                        <p className="text-4xl font-bold tracking-tight text-foreground">Total: ${estimatedPrice > 0 ? Math.round(estimatedPrice * 1.19).toLocaleString() : '----'}</p>
+                                    </div>
 
                             {estimatedPrice > 0 && priceValidSeconds > 0 && (
                                 <div className="mt-4 mb-2">
