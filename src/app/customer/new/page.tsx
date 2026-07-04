@@ -567,19 +567,19 @@ export default function NewShipmentPage() {
                             <RadioGroup defaultValue="Nacional" value={operationType} onValueChange={setOperationType} className="grid grid-cols-3 gap-4 mb-6">
                                 <div>
                                     <RadioGroupItem value="Nacional" id="nacional" className="peer sr-only" />
-                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
                                         Nacional
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="Exportación" id="exportacion" className="peer sr-only" />
-                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
                                         Exportación
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="Importación" id="importacion" className="peer sr-only" />
-                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
                                         Importación
                                     </Label>
                                 </div>
@@ -681,14 +681,14 @@ export default function NewShipmentPage() {
                             <RadioGroup defaultValue="FTL" value={serviceType} onValueChange={setServiceType} className="grid grid-cols-2 gap-4">
                                 <div>
                                     <RadioGroupItem value="FTL" id="ftl" className="peer sr-only" />
-                                    <Label htmlFor="ftl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label htmlFor="ftl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
                                         <Truck className="mb-3 h-6 w-6" />
                                         FTL (Carga Completa)
                                     </Label>
                                 </div>
                                 <div>
                                     <RadioGroupItem value="LTL" id="ltl" className="peer sr-only" />
-                                    <Label htmlFor="ltl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                                    <Label htmlFor="ltl" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary [&:has([data-state=checked])]:text-primary-foreground transition-all">
                                         <Package className="mb-3 h-6 w-6" />
                                         LTL (Carga Parcial)
                                     </Label>
@@ -707,19 +707,19 @@ export default function NewShipmentPage() {
                                     className={cn(
                                         "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
                                         vehicleType === 'camion_3_4' 
-                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            ? "border-primary bg-primary text-primary-foreground shadow-sm" 
                                             : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'camion_3_4' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'camion_3_4' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
                                             <path d="M15 35h40v40H15z" strokeWidth="6" strokeLinejoin="round" />
                                             <path d="M55 45h20l10 10v20H55V45z" strokeWidth="6" strokeLinejoin="round" />
                                             <circle cx="30" cy="75" r="8" strokeWidth="6" />
                                             <circle cx="75" cy="75" r="8" strokeWidth="6" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(3.5T - 5T)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-primary-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(3.5T - 5T)</span></span>
                                 </Button>
 
                                 {/* Camion Ligero */}
@@ -730,12 +730,12 @@ export default function NewShipmentPage() {
                                     className={cn(
                                         "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
                                         vehicleType === 'Camion Ligero' 
-                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            ? "border-primary bg-primary text-primary-foreground shadow-sm" 
                                             : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Ligero' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Ligero' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
                                             <path d="M10 25h55v50H10z" strokeWidth="6" strokeLinejoin="round" />
                                             <path d="M65 35h15l10 15v25H65V35z" strokeWidth="6" strokeLinejoin="round" />
                                             <circle cx="25" cy="75" r="8" strokeWidth="6" />
@@ -743,7 +743,7 @@ export default function NewShipmentPage() {
                                             <circle cx="75" cy="75" r="8" strokeWidth="6" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Ligero' ? "text-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Ligero' ? "text-primary-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
                                 </Button>
 
                                 {/* Camion Pesado */}
@@ -754,12 +754,12 @@ export default function NewShipmentPage() {
                                     className={cn(
                                         "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
                                         vehicleType === 'Camion Pesado' 
-                                            ? "border-primary bg-primary/5 text-primary shadow-sm" 
+                                            ? "border-primary bg-primary text-primary-foreground shadow-sm" 
                                             : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <svg width="56" height="56" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Pesado' ? "stroke-primary" : "stroke-muted-foreground")}>
+                                        <svg width="56" height="56" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Pesado' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
                                             <path d="M5 20h65v55H5z" strokeWidth="6" strokeLinejoin="round" />
                                             <path d="M75 40h15l10 15v20H75V40z" strokeWidth="6" strokeLinejoin="round" />
                                             <circle cx="20" cy="75" r="8" strokeWidth="6" />
@@ -769,7 +769,7 @@ export default function NewShipmentPage() {
                                             <path d="M70 65h5" strokeWidth="4" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Pesado' ? "text-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Pesado' ? "text-primary-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
                                 </Button>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">La selección del vehículo se utiliza para estimar la tarifa y no se guarda con el envío.</p>
