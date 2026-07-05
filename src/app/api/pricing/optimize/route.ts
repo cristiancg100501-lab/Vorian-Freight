@@ -67,8 +67,26 @@ export async function POST(request: Request) {
     let basePrice = rpcSubtotal + rpcCommission; // Precio base antes de peajes
     const distanceKm = rpcData.factors?.distance_total ?? ((distance_meters || 0) / 1000) * 2;
     const durationHrs = (duration_mins || 0) / 60;
-    const terrainFactor = rpcData.factors?.terrain_factor ?? 1.0;
-    const weightFactor = rpcData.factors?.weight_factor ?? 1.0;
+    
+    let terrainFactor = rpcData.factors?.terrain_factor ?? 1.0;
+    let weightFactor = rpcData.factors?.weight_factor ?? 1.0;
+
+    // Calcular factor de terreno real basado en elevación si el RPC devuelve 1.0
+    if (terrainFactor === 1.0 && typeof elevation_diff === 'number') {
+        if (elevation_diff > 0) {
+            // Por cada 100m de subida = +1% al costo
+            const extra = (elevation_diff / 100) * 0.01;
+            terrainFactor = 1.0 + Math.min(extra, 0.30); // Tope de +30%
+            console.log(`⛰️ Factor Topográfico: +${(extra*100).toFixed(1)}% (Ascenso: ${elevation_diff}m)`);
+        } else if (elevation_diff < -500) {
+            // Bajada muy pronunciada (menor gasto de diésel, pero mayor uso de freno de motor)
+            terrainFactor = 0.98; 
+            console.log(`⛰️ Factor Topográfico: -2% (Descenso pronunciado: ${elevation_diff}m)`);
+        }
+    }
+
+    // Aplicar multiplicadores físicos al precio base
+    basePrice = basePrice * terrainFactor * weightFactor;
 
     // --- LTL Discount & Accessorials Cost ---
     if (service_mode === 'LTL') {
@@ -458,6 +476,12 @@ export async function POST(request: Request) {
     const marketAdjustmentCost = basePrice * factorML * pureMarketMarkup;
     const weatherAdjustmentCost = basePrice * factorML * factorWeather;
     const supplyDemandAdjustmentCost = basePrice * factorML * factorSupplyDemand;
+
+    // Override the terrain factor so the frontend receives the updated value
+    if (rpcData.factors) {
+        rpcData.factors.terrain_factor = terrainFactor;
+        rpcData.factors.weight_factor = weightFactor;
+    }
 
     return NextResponse.json({
         success: true,
