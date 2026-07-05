@@ -656,8 +656,15 @@ export default function NewShipmentPage() {
                                     </div>
                                 </div>
                                 {/* Delivery */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-foreground">Entrega</label>
+                                <div className="space-y-2 mt-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-semibold text-foreground">Entrega</label>
+                                        {routeDetails.distance > 0 && (
+                                            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                                🛣️ {(routeDetails.distance / 1000).toFixed(1)} km
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                         <Input value={delivery.address} onChange={(e) => handleAddressChange(e.target.value, 'delivery')} placeholder="Ubicación" className="pl-10 h-12 bg-muted/50 border-0 focus-visible:ring-primary" autoComplete="off" />
