@@ -452,7 +452,9 @@ export async function POST(request: Request) {
 
     // 6. Retornar al Cliente
     const priceWithoutTolls = finalPrice - tollsCost;
-    const platformFee = priceWithoutTolls * 0.15; // 15% de comisión Vorian
+    // Calcular porcentaje dinámico en base a lo que devolvió la DB (settings global)
+    const commPct = rpcSubtotal > 0 ? (rpcCommission / rpcSubtotal) : 0.10;
+    const platformFee = priceWithoutTolls * commPct; 
     const carrierPayment = priceWithoutTolls - platformFee;
     
     // The base factorMarket starts at 1.0. We want to isolate the purely "market" (peak hours / hot zones) markup.

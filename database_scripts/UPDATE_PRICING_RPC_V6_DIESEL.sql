@@ -46,7 +46,7 @@ BEGIN
     -- 1. CARGAR CONFIGURACIÓN GLOBAL
     SELECT 
         COALESCE("dieselCostPerLiter", 1050.0),
-        COALESCE(vorian_commission, 15) / 100.0,
+        COALESCE(vorian_commission, 10) / 100.0,
         COALESCE(costo_chofer_hr, 7000)
     INTO v_diesel_cost, v_vorian_commission_pct, v_costo_hora_chofer
     FROM public.settings WHERE id = 'global';
