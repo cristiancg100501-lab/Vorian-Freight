@@ -84,7 +84,11 @@ export default function NewShipmentPage() {
     const [equipment, setEquipment] = useState('Dry van');
     const [pickup, setPickup] = useState({ address: '', coords: null as any });
     const [delivery, setDelivery] = useState({ address: '', coords: null as any });
-    const [pickupDate, setPickupDate] = useState<Date | undefined>(new Date());
+    const [pickupDate, setPickupDate] = useState<Date | undefined>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 2);
+        return d;
+    });
     const [isAsap, setIsAsap] = useState(false);
     const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
     const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
@@ -619,6 +623,9 @@ export default function NewShipmentPage() {
                                                     setPickupDate(new Date());
                                                     setPickupWindow("Lo antes posible");
                                                 } else {
+                                                    const d = new Date();
+                                                    d.setDate(d.getDate() + 2);
+                                                    setPickupDate(d);
                                                     setPickupWindow("8:00 AM - 12:00 PM");
                                                 }
                                             }}
