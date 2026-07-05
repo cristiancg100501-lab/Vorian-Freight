@@ -288,6 +288,29 @@ export default function NewShipmentPage() {
         setIsRefreshingPrice(true);
         
         try {
+            // --- CALCULAR ELEVACIÓN (TOPOGRAFÍA) ---
+            let calculatedElevationDiff = 0;
+            if (pickup.coords && delivery.coords) {
+                try {
+                    // Mapbox coords are [lng, lat]. Open-Meteo uses lat,lng
+                    const pLat = pickup.coords[1];
+                    const pLng = pickup.coords[0];
+                    const dLat = delivery.coords[1];
+                    const dLng = delivery.coords[0];
+                    
+                    const elevResponse = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${pLat},${dLat}&longitude=${pLng},${dLng}`);
+                    if (elevResponse.ok) {
+                        const elevData = await elevResponse.json();
+                        if (elevData && elevData.elevation && elevData.elevation.length === 2) {
+                            calculatedElevationDiff = elevData.elevation[1] - elevData.elevation[0];
+                            console.log(`Topografía calculada: Origen ${elevData.elevation[0]}m -> Destino ${elevData.elevation[1]}m (Diferencia: ${calculatedElevationDiff}m)`);
+                        }
+                    }
+                } catch(err) {
+                    console.warn("No se pudo obtener la elevación topográfica:", err);
+                }
+            }
+
             // --- VORIAN HYBRID ML OPTIMIZER ---
             const response = await fetch('/api/pricing/optimize', {
                 method: 'POST',
@@ -297,7 +320,7 @@ export default function NewShipmentPage() {
                     delivery_region: delivery.address.split(',').slice(-2, -1)[0]?.trim() || 'RM',
                     pickup_address: pickup.address,
                     delivery_address: delivery.address,
-                    elevation_diff: 0,
+                    elevation_diff: calculatedElevationDiff,
                     distance_meters: routeDetails.distance,
                     duration_mins: routeDetails.duration / 60,
                     vehicle_type: vehicleType,
