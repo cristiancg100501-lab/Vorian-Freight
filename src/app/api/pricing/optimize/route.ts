@@ -79,9 +79,10 @@ export async function POST(request: Request) {
             terrainFactor = 1.0 + Math.min(extra, 0.30); // Tope de +30%
             console.log(`⛰️ Factor Topográfico: +${(extra*100).toFixed(1)}% (Ascenso: ${elevation_diff}m)`);
         } else if (elevation_diff < -500) {
-            // Bajada muy pronunciada (menor gasto de diésel, pero mayor uso de freno de motor)
-            terrainFactor = 0.98; 
-            console.log(`⛰️ Factor Topográfico: -2% (Descenso pronunciado: ${elevation_diff}m)`);
+            // Bajada muy pronunciada (menor gasto de diésel, pero gran desgaste de freno de motor/balatas)
+            // En el mercado de carga, bajar a la costa a veces es levemente más caro por la ruta.
+            terrainFactor = 1.02; 
+            console.log(`⛰️ Factor Topográfico: +2% (Descenso pronunciado/desgaste frenos: ${elevation_diff}m)`);
         }
     }
 
