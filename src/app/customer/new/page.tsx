@@ -105,7 +105,9 @@ export default function NewShipmentPage() {
     const [weightLbs, setWeightLbs] = useState('');
     const [cargoDetailsType, setCargoDetailsType] = useState('Dimensions');
     const [pallets, setPallets] = useState('');
-    const [dimensions, setDimensions] = useState('');
+    const [dimLength, setDimLength] = useState('');
+    const [dimWidth, setDimWidth] = useState('');
+    const [dimHeight, setDimHeight] = useState('');
     const [itemDescription, setItemDescription] = useState('Pallet - General Goods');
     const [quantity, setQuantity] = useState('1');
     const [dimensionsPerItem, setDimensionsPerItem] = useState('');
@@ -313,7 +315,7 @@ export default function NewShipmentPage() {
                     cargo_units: serviceType === 'FTL' ? 1 : (Number(quantity) || Number(pallets) || 1),
                     ltl_details: {
                         quantity: Number(quantity) || Number(pallets) || 1,
-                        dimensions: dimensions || dimensionsPerItem || '100x100x100',
+                        dimensions: (dimLength && dimWidth && dimHeight) ? `${dimLength}x${dimWidth}x${dimHeight}` : dimensionsPerItem || '100x100x100',
                         weight: Number(weightLbs) || 0,
                         stackable: stackable
                     },
@@ -360,7 +362,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType, dimLength, dimWidth, dimHeight, weightLbs, stackable, quantity, pallets]);
 
     useEffect(() => {
         calculatePrice();
@@ -823,7 +825,11 @@ export default function NewShipmentPage() {
                                 </div>
                                  <div className="grid grid-cols-2 gap-4">
                                   <Input value={pallets} onChange={e => setPallets(e.target.value)} placeholder="Pallets" className="h-12 bg-muted/50 border-0"/>
-                                  <Input value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="Dimensiones (ej. 100x100x100 cm)" className="h-12 bg-muted/50 border-0"/>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 pt-2">
+                                  <Input value={dimLength} onChange={e => setDimLength(e.target.value)} type="number" placeholder="Largo (cm)" className="h-12 bg-muted/50 border-0"/>
+                                  <Input value={dimWidth} onChange={e => setDimWidth(e.target.value)} type="number" placeholder="Ancho (cm)" className="h-12 bg-muted/50 border-0"/>
+                                  <Input value={dimHeight} onChange={e => setDimHeight(e.target.value)} type="number" placeholder="Alto (cm)" className="h-12 bg-muted/50 border-0"/>
                                 </div>
                                  <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso Total (kg)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
                                  <div className="flex items-center space-x-2 pt-2">
