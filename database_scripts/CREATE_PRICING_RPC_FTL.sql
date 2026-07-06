@@ -1,0 +1,114 @@
+-- 🛡️ VORIAN PRICING ENGINE v6.0 - FTL (Full Truckload)
+-- Función optimizada para cobro de camión completo.
+
+CREATE OR REPLACE FUNCTION public.get_vorian_price_ftl(params jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    -- 📥 Entradas
+    v_km NUMERIC := COALESCE((params->>'p_km')::NUMERIC, 0);
+    v_minutes NUMERIC := COALESCE((params->>'p_minutes')::NUMERIC, 0);
+    v_vehicle_type TEXT := COALESCE(params->>'p_vehicle_type', 'camion_3_4');
+    v_route_geometry TEXT := params->>'p_route_geometry';
+    
+    -- ⚙️ Variables de Calibración
+    v_costo_fijo NUMERIC;
+    v_desgaste_km NUMERIC;
+    v_rendimiento NUMERIC;
+    v_costo_hora_chofer NUMERIC;
+    v_diesel_cost NUMERIC;
+    v_category_key TEXT;
+    
+    -- 📈 Componentes del Costo
+    v_costo_diesel NUMERIC;
+    v_costo_tiempo NUMERIC;
+    v_costo_desgaste NUMERIC;
+    v_costo_base_operativo NUMERIC;
+    
+    -- 🚧 Peajes y Ajustes
+    v_standard_tolls_cost NUMERIC := 0;
+    v_market_factor NUMERIC := 1.0;
+    
+    v_route_line GEOMETRY;
+    v_subtotal NUMERIC;
+    v_commission NUMERIC;
+    v_total NUMERIC;
+    v_vorian_commission_pct NUMERIC;
+BEGIN
+    -- 1. CARGAR CONFIGURACIÓN GLOBAL
+    SELECT 
+        COALESCE("dieselCostPerLiter", 1050.0),
+        COALESCE(vorian_commission, 10) / 100.0,
+        COALESCE(costo_chofer_hr, 7000)
+    INTO v_diesel_cost, v_vorian_commission_pct, v_costo_hora_chofer
+    FROM public.settings WHERE id = 'global';
+    
+    -- OVERRIDE DIESEL COST IF PARAMETER IS PASSED (API)
+    IF (params->>'p_diesel_price') IS NOT NULL THEN
+        v_diesel_cost := (params->>'p_diesel_price')::NUMERIC;
+    END IF;
+
+    -- 2. CARGAR PARÁMETROS DEL VEHÍCULO
+    SELECT 
+        COALESCE(vr."baseFare", 65000),
+        COALESCE(vr."costPerKm", 200),
+        COALESCE(vr."fuelEfficiency", 9.0),
+        COALESCE(vs.category, 'cat2')
+    INTO v_costo_fijo, v_desgaste_km, v_rendimiento, v_category_key
+    FROM public.vehicle_specs vs
+    LEFT JOIN public."vehicleRates" vr ON vr.id = vs.id
+    WHERE vs.id = v_vehicle_type;
+
+    IF v_costo_fijo IS NULL THEN
+        v_costo_fijo := 120000; v_desgaste_km := 850; v_rendimiento := 2.2; v_category_key := 'cat3';
+    END IF;
+
+    -- 3. CÁLCULO DE PEAJES (Dinamizado por categoría de DB)
+    IF v_route_geometry IS NOT NULL AND v_route_geometry != '' THEN
+        v_route_line := ST_SetSRID(ST_GeomFromGeoJSON(v_route_geometry), 4326);
+        
+        SELECT COALESCE(SUM((tariffs_json->v_category_key->>'price_tbfp')::NUMERIC), 0)
+        INTO v_standard_tolls_cost
+        FROM public.porticos
+        WHERE ST_DWithin(location::geometry, v_route_line, 0.0005)
+          AND (concession_name IS NULL OR concession_name != 'AVO');
+    END IF;
+
+    -- 4. ECUACIÓN DE COSTO FTL
+    v_costo_diesel := (v_km / v_rendimiento) * v_diesel_cost;
+    v_costo_tiempo := (v_minutes / 60.0) * v_costo_hora_chofer;
+    v_costo_desgaste := v_km * v_desgaste_km;
+    
+    v_costo_base_operativo := v_costo_fijo + v_costo_diesel + v_costo_tiempo + v_costo_desgaste + v_standard_tolls_cost;
+
+    v_subtotal := v_costo_base_operativo;
+
+    -- 5. TOTAL Y COMISIÓN
+    v_commission := v_subtotal * v_vorian_commission_pct;
+    v_total := (v_subtotal + v_commission) * v_market_factor;
+
+    RETURN jsonb_build_object(
+        'total', ROUND(v_total),
+        'subtotal', ROUND(v_subtotal),
+        'commission', ROUND(v_commission),
+        'tolls_cost', ROUND(v_standard_tolls_cost),
+        'currency', 'CLP',
+        'metadata', jsonb_build_object(
+            'engine', 'v6.0-FTL',
+            'category', v_category_key,
+            'diesel_price', v_diesel_cost
+        ),
+        'factors', jsonb_build_object(
+            'base_cost_diesel', ROUND(v_costo_diesel),
+            'base_cost_driver', ROUND(v_costo_tiempo),
+            'base_cost_maintenance', ROUND(v_costo_desgaste),
+            'base_margin', ROUND(v_costo_fijo + v_commission),
+            'terrain_factor', 1.0,
+            'weight_factor', 1.0,
+            'distance_total', ROUND(v_km)
+        )
+    );
+END;
+$$;

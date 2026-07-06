@@ -44,7 +44,9 @@ export async function POST(request: Request) {
     }
 
     // 1. Llamar al Supabase RPC (Precio Real/Operativo)
-    const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('get_vorian_price', {
+    const rpcName = service_mode === 'consolidated' ? 'get_vorian_price_ltl' : 'get_vorian_price_ftl';
+    
+    const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc(rpcName, {
         params: {
             p_km: (distance_meters || 0) / 1000,
             p_minutes: duration_mins || 0,
