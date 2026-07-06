@@ -97,8 +97,52 @@ BEGIN
 
     -- 6. LTL DINÁMICA
     IF v_service_mode = 'consolidated' THEN
-        v_ltl_factor := 1.2 + (v_cargo_units / v_truck_capacity);
-        v_subtotal := v_subtotal * v_ltl_factor;
+        DECLARE
+            v_ltl_details JSONB := COALESCE(params->'p_ltl_details', '{}'::jsonb);
+            v_ltl_quantity NUMERIC := COALESCE((v_ltl_details->>'quantity')::NUMERIC, v_cargo_units);
+            v_ltl_weight NUMERIC := COALESCE((v_ltl_details->>'weight')::NUMERIC, 0);
+            v_ltl_stackable BOOLEAN := COALESCE((v_ltl_details->>'stackable')::BOOLEAN, true);
+            v_ltl_dim_arr text[];
+            v_ltl_length NUMERIC := 1;
+            v_ltl_width NUMERIC := 1;
+            v_ltl_height NUMERIC := 1;
+            v_ltl_volume_m3 NUMERIC := 0;
+            v_ltl_truck_fraction NUMERIC := 0;
+        BEGIN
+            IF (v_ltl_details->>'dimensions') IS NOT NULL AND (v_ltl_details->>'dimensions') != '' THEN
+                BEGIN
+                    v_ltl_dim_arr := string_to_array(lower(v_ltl_details->>'dimensions'), 'x');
+                    IF array_length(v_ltl_dim_arr, 1) = 3 THEN
+                        v_ltl_length := (v_ltl_dim_arr[1])::NUMERIC / 100.0;
+                        v_ltl_width := (v_ltl_dim_arr[2])::NUMERIC / 100.0;
+                        v_ltl_height := (v_ltl_dim_arr[3])::NUMERIC / 100.0;
+                    END IF;
+                EXCEPTION WHEN OTHERS THEN
+                    v_ltl_length := 1; v_ltl_width := 1; v_ltl_height := 1;
+                END;
+            END IF;
+
+            IF NOT v_ltl_stackable THEN
+                v_ltl_height := 2.5; -- Asume altura de camión al no ser apilable
+            END IF;
+
+            v_ltl_volume_m3 := v_ltl_length * v_ltl_width * v_ltl_height * v_ltl_quantity;
+            
+            -- v_truck_capacity suele estar en pallets. 1 pallet = ~2.1m3 max en camión.
+            v_ltl_truck_fraction := v_ltl_volume_m3 / NULLIF((v_truck_capacity * 2.1), 0);
+            IF v_ltl_truck_fraction IS NULL THEN v_ltl_truck_fraction := 0; END IF;
+
+            -- Regla Logística: Peso Volumétrico (1m3 = 333kg)
+            IF (v_ltl_weight / 333.0) > v_ltl_volume_m3 THEN
+                v_ltl_truck_fraction := (v_ltl_weight / 333.0) / NULLIF((v_truck_capacity * 2.1), 0);
+            END IF;
+
+            IF v_ltl_truck_fraction > 1.0 THEN v_ltl_truck_fraction := 1.0; END IF;
+
+            -- Piso de 20% + Proporción con recargo del 30%
+            v_ltl_factor := 0.20 + (v_ltl_truck_fraction * 1.3);
+            v_subtotal := v_subtotal * v_ltl_factor;
+        END;
     END IF;
 
     -- 7. TOTAL Y COMISIÓN

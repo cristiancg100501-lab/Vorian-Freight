@@ -108,7 +108,8 @@ export default function NewShipmentPage() {
     const [dimensions, setDimensions] = useState('');
     const [itemDescription, setItemDescription] = useState('Pallet - General Goods');
     const [quantity, setQuantity] = useState('20');
-    const [dimensionsPerItem, setDimensionsPerItem] = useState('48x40x72');
+    const [dimensionsPerItem, setDimensionsPerItem] = useState('100x100x100');
+    const [stackable, setStackable] = useState(true);
     const [totalVolume, setTotalVolume] = useState('');
     const [specialHandling, setSpecialHandling] = useState({
       hazardous: false,
@@ -309,7 +310,13 @@ export default function NewShipmentPage() {
                     weight_kgs: 0,
                     route_geometry: routeDetails.geometry,
                     service_mode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
-                    cargo_units: 1,
+                    cargo_units: serviceType === 'FTL' ? 1 : (Number(quantity) || Number(pallets) || 1),
+                    ltl_details: {
+                        quantity: Number(quantity) || Number(pallets) || 1,
+                        dimensions: dimensionsPerItem || dimensions,
+                        weight: Number(weightLbs) || 0,
+                        stackable: stackable
+                    },
                     weather_condition: weatherCondition,
                     special_handling: specialHandling,
                     accessorials: accessorials,
@@ -814,11 +821,15 @@ export default function NewShipmentPage() {
                                     <Button type="button" size="sm" variant={cargoDetailsType === 'Dimensions' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Dimensions')} className="flex gap-2"><Ruler className="w-4 h-4" /> Dimensiones</Button>
                                   </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                 <div className="grid grid-cols-2 gap-4">
                                   <Input value={pallets} onChange={e => setPallets(e.target.value)} placeholder="Pallets" className="h-12 bg-muted/50 border-0"/>
-                                  <Input value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="Dimensiones" className="h-12 bg-muted/50 border-0"/>
+                                  <Input value={dimensions} onChange={e => setDimensions(e.target.value)} placeholder="Dimensiones (ej. 100x100x100 cm)" className="h-12 bg-muted/50 border-0"/>
                                 </div>
-                                 <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso (lbs)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                 <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso Total (kg)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                 <div className="flex items-center space-x-2 pt-2">
+                                  <Checkbox id="stackable" checked={stackable} onCheckedChange={(checked) => setStackable(!!checked)} />
+                                  <Label htmlFor="stackable">Carga Apilable (Stackable)</Label>
+                                </div>
                             </div>
                           </div>
 

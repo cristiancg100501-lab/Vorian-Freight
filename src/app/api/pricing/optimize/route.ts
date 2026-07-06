@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         pickup_region, delivery_region, pickup_address, delivery_address,
         elevation_diff, distance_meters, duration_mins, vehicle_type, 
         container_status, weight_kgs, route_geometry,
-        service_mode, cargo_units, weather_condition,
+        service_mode, cargo_units, ltl_details, weather_condition,
         special_handling, accessorials,
         pickup_date, pickup_window,
         customer_id, is_asap
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
             p_vehicle_type: vehicle_type || 'camion_3_4',
             p_service_mode: service_mode || 'exclusive',
             p_cargo_units: cargo_units || 1,
+            p_ltl_details: ltl_details || null,
             p_route_geometry: route_geometry,
             p_diesel_price: dynamicDieselPrice
         }
