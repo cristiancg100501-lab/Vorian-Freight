@@ -102,9 +102,10 @@ export default function NewShipmentPage() {
     
     // Step 2 State
     const [commodity, setCommodity] = useState('General Freight');
+    const [packagingType, setPackagingType] = useState('Pallets');
+    const [packagingQuantity, setPackagingQuantity] = useState('');
     const [weightLbs, setWeightLbs] = useState('');
     const [cargoDetailsType, setCargoDetailsType] = useState('Dimensions');
-    const [pallets, setPallets] = useState('');
     const [dimLength, setDimLength] = useState('');
     const [dimWidth, setDimWidth] = useState('');
     const [dimHeight, setDimHeight] = useState('');
@@ -312,9 +313,9 @@ export default function NewShipmentPage() {
                     weight_kgs: 0,
                     route_geometry: routeDetails.geometry,
                     service_mode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
-                    cargo_units: serviceType === 'FTL' ? 1 : (Number(quantity) || Number(pallets) || 1),
+                    cargo_units: serviceType === 'FTL' ? 1 : (Number(quantity) || Number(packagingQuantity) || 1),
                     ltl_details: {
-                        quantity: Number(quantity) || Number(pallets) || 1,
+                        quantity: Number(quantity) || Number(packagingQuantity) || 1,
                         dimensions: (dimLength && dimWidth && dimHeight) ? `${dimLength}x${dimWidth}x${dimHeight}` : dimensionsPerItem || '100x100x100',
                         weight: Number(weightLbs) || 0,
                         stackable: stackable
@@ -362,7 +363,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType, dimLength, dimWidth, dimHeight, weightLbs, stackable, quantity, pallets]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType, dimLength, dimWidth, dimHeight, weightLbs, stackable, quantity, packagingQuantity]);
 
     useEffect(() => {
         calculatePrice();
@@ -811,49 +812,60 @@ export default function NewShipmentPage() {
                           <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Detalles de Carga</h2>
                             <div className="space-y-4">
-                               <div>
-                                    <label htmlFor="commodity" className="text-sm font-semibold text-foreground">Mercancía</label>
-                                    <Input id="commodity" value={commodity} onChange={e => setCommodity(e.target.value)} placeholder="ej. Carga General" className="mt-2 h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <span className="text-sm font-semibold">Detalles de Carga</span>
-                                  <div className="flex items-center gap-2 rounded-md bg-muted/50 p-1">
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Pallets' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Pallets')} className="flex gap-2"><Package className="w-4 h-4" /> Pallets</Button>
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Weight' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Weight')} className="flex gap-2"><Weight className="w-4 h-4" /> Peso</Button>
-                                    <Button type="button" size="sm" variant={cargoDetailsType === 'Dimensions' ? 'secondary' : 'ghost'} onClick={() => setCargoDetailsType('Dimensions')} className="flex gap-2"><Ruler className="w-4 h-4" /> Dimensiones</Button>
+                                <div>
+                                     <label htmlFor="commodity" className="text-sm font-semibold text-foreground">Mercancía</label>
+                                     <Select value={commodity} onValueChange={setCommodity}>
+                                       <SelectTrigger className="mt-2 h-12 bg-muted/50 border-0 focus-visible:ring-primary">
+                                         <SelectValue placeholder="Selecciona el tipo de mercancía" />
+                                       </SelectTrigger>
+                                       <SelectContent>
+                                         <SelectItem value="Carga General">Carga General</SelectItem>
+                                         <SelectItem value="Carga Seca/Alimentos">Carga Seca/Alimentos</SelectItem>
+                                         <SelectItem value="Carga Refrigerada">Carga Refrigerada</SelectItem>
+                                         <SelectItem value="Carga Frágil">Carga Frágil</SelectItem>
+                                         <SelectItem value="Materiales Peligrosos">Materiales Peligrosos</SelectItem>
+                                         <SelectItem value="Maquinaria/Sobredimensionado">Maquinaria/Sobredimensionado</SelectItem>
+                                         <SelectItem value="Carga Paletizada">Carga Paletizada</SelectItem>
+                                         <SelectItem value="Otros">Otros</SelectItem>
+                                       </SelectContent>
+                                     </Select>
+                                 </div>
+                                 <div className="flex flex-col gap-2">
+                                  <span className="text-sm font-semibold">Empaque e Ítems</span>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <Select value={packagingType} onValueChange={setPackagingType}>
+                                       <SelectTrigger className="h-12 bg-muted/50 border-0 focus-visible:ring-primary">
+                                         <SelectValue placeholder="Tipo de Empaque" />
+                                       </SelectTrigger>
+                                       <SelectContent>
+                                         <SelectItem value="Cajas">Cajas</SelectItem>
+                                         <SelectItem value="Pallets">Pallets</SelectItem>
+                                         <SelectItem value="Totes/Bidones">Totes/Bidones</SelectItem>
+                                         <SelectItem value="Bolsas/Sacos">Bolsas/Sacos</SelectItem>
+                                         <SelectItem value="Rollos">Rollos</SelectItem>
+                                         <SelectItem value="Atados">Atados</SelectItem>
+                                         <SelectItem value="Otro">Otro</SelectItem>
+                                       </SelectContent>
+                                     </Select>
+                                     <Input value={packagingQuantity} onChange={e => setPackagingQuantity(e.target.value)} type="number" placeholder="Cantidad" className="h-12 bg-muted/50 border-0"/>
                                   </div>
-                                </div>
-                                 <div className="grid grid-cols-2 gap-4">
-                                  <Input value={pallets} onChange={e => setPallets(e.target.value)} placeholder="Pallets" className="h-12 bg-muted/50 border-0"/>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4 pt-2">
                                   <Input value={dimLength} onChange={e => setDimLength(e.target.value)} type="number" placeholder="Largo (cm)" className="h-12 bg-muted/50 border-0"/>
                                   <Input value={dimWidth} onChange={e => setDimWidth(e.target.value)} type="number" placeholder="Ancho (cm)" className="h-12 bg-muted/50 border-0"/>
                                   <Input value={dimHeight} onChange={e => setDimHeight(e.target.value)} type="number" placeholder="Alto (cm)" className="h-12 bg-muted/50 border-0"/>
                                 </div>
-                                 <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso Total (kg)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                 <div className="pt-2">
+                                   <Input id="weight" value={weightLbs} onChange={e => setWeightLbs(e.target.value)} type="number" placeholder="Peso Total (kg)" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                   {serviceType === 'consolidated' && Number(weightLbs) > 5000 && (
+                                     <p className="text-red-500 text-xs font-semibold mt-2">
+                                        ⚠️ Peso máximo sugerido para LTL excedido (límite 5,000 kg). Considere usar un Camión Exclusivo (FTL).
+                                     </p>
+                                   )}
+                                 </div>
                                  <div className="flex items-center space-x-2 pt-2">
                                   <Checkbox id="stackable" checked={stackable} onCheckedChange={(checked) => setStackable(!!checked)} />
                                   <Label htmlFor="stackable">Carga Apilable (Stackable)</Label>
-                                </div>
-                            </div>
-                          </div>
-
-                          {/* PALLET & ITEM INFORMATION */}
-                          <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Información de Pallet e Ítem</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                               <Input value={itemDescription} onChange={e => setItemDescription(e.target.value)} placeholder="Descripción del Ítem" className="h-12 bg-muted/50 border-0"/>
-                               <Input value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="Cantidad" className="h-12 bg-muted/50 border-0"/>
-                            </div>
-                            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 mt-4">
-                               <Input value={dimensionsPerItem} onChange={e => setDimensionsPerItem(e.target.value)} placeholder="Dimensiones por ítem" className="h-12 bg-muted/50 border-0"/>
-                               <span className="text-muted-foreground">x</span>
-                               <Input placeholder="40x" className="h-12 bg-muted/50 border-0"/>
-                                <span className="text-muted-foreground">=</span>
-                                <div className="relative">
-                                  <Input value={totalVolume} onChange={e => setTotalVolume(e.target.value)} placeholder="Entrada" className="h-12 bg-muted/50 border-0 pr-8"/>
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">ft³</span>
                                 </div>
                             </div>
                           </div>
