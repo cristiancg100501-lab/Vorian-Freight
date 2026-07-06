@@ -102,13 +102,13 @@ export default function NewShipmentPage() {
     
     // Step 2 State
     const [commodity, setCommodity] = useState('General Freight');
-    const [weightLbs, setWeightLbs] = useState('42000');
-    const [cargoDetailsType, setCargoDetailsType] = useState('Pallets');
+    const [weightLbs, setWeightLbs] = useState('');
+    const [cargoDetailsType, setCargoDetailsType] = useState('Dimensions');
     const [pallets, setPallets] = useState('');
     const [dimensions, setDimensions] = useState('');
     const [itemDescription, setItemDescription] = useState('Pallet - General Goods');
-    const [quantity, setQuantity] = useState('20');
-    const [dimensionsPerItem, setDimensionsPerItem] = useState('100x100x100');
+    const [quantity, setQuantity] = useState('1');
+    const [dimensionsPerItem, setDimensionsPerItem] = useState('');
     const [stackable, setStackable] = useState(true);
     const [totalVolume, setTotalVolume] = useState('');
     const [specialHandling, setSpecialHandling] = useState({
@@ -313,7 +313,7 @@ export default function NewShipmentPage() {
                     cargo_units: serviceType === 'FTL' ? 1 : (Number(quantity) || Number(pallets) || 1),
                     ltl_details: {
                         quantity: Number(quantity) || Number(pallets) || 1,
-                        dimensions: dimensionsPerItem || dimensions,
+                        dimensions: dimensions || dimensionsPerItem || '100x100x100',
                         weight: Number(weightLbs) || 0,
                         stackable: stackable
                     },
