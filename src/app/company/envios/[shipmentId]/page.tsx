@@ -46,6 +46,7 @@ import {
     ClipboardList,
     Pencil,
     Layers,
+    X,
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 const ShipmentMap = dynamic(() => import('@/components/map'), { 
@@ -208,6 +209,33 @@ export default function ShipmentDetailPage() {
             alert("Error al asignar el conductor.");
         } finally {
             setIsAssigning(false);
+        }
+    };
+
+    const handleReturnLoad = async () => {
+        if (!shipmentId || !user) return;
+        if (!confirm("⚠️ ¿Estás seguro de devolver esta carga al mercado?\n\nEsto añadirá 1 Strike a tu perfil de empresa por cancelación, lo que podría afectar tu reputación y nivel de socio.")) {
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase.rpc('return_load', {
+                p_shipment_id: shipmentId,
+                p_company_id: user.id
+            });
+
+            if (error) throw error;
+            
+            if (data && data.success) {
+                alert(data.message || "Carga devuelta al mercado exitosamente.");
+                // Redirect back to the loads list or refresh
+                window.location.href = "/company/envios";
+            } else {
+                alert(data?.message || "No se pudo devolver la carga.");
+            }
+        } catch (error) {
+            console.error("Error returning load:", error);
+            alert("Ocurrió un error al intentar devolver la carga.");
         }
     };
 
@@ -393,6 +421,16 @@ export default function ShipmentDetailPage() {
                                  <Pencil className="h-4 w-4 mr-2"/>
                                  Asignar / Cambiar Conductor
                             </Button>
+                            {s.status === 'ACCEPTED' && (
+                                <Button 
+                                    variant="destructive" 
+                                    className="w-full" 
+                                    onClick={handleReturnLoad}
+                                >
+                                    <X className="h-4 w-4 mr-2"/>
+                                    Devolver Carga al Mercado
+                                </Button>
+                            )}
                         </CardContent>
                     </Card>
                     <Card>
