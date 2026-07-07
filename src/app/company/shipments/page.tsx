@@ -613,14 +613,19 @@ export default function CompanyShipmentsPage() {
         
         setIsAccepting(true);
         try {
-            // Actualizamos la tabla consolidada 'shipments'
-            const { error } = await supabase.from("shipments").update({
-                status: "ACCEPTED",
-                carrierId: user.id,
-                updatedAt: new Date().toISOString()
-            }).eq('id', selectedLoad.id);
+            // Utilizamos el RPC 'accept_load' para garantizar First-Come-First-Serve atómico
+            const { data, error } = await supabase.rpc('accept_load', {
+                p_shipment_id: selectedLoad.id,
+                p_company_id: user.id
+            });
 
             if (error) throw error;
+            
+            if (!data.success) {
+                alert(data.message || "La carga ya no está disponible.");
+                setSelectedLoad(null);
+                return;
+            }
 
             setSelectedLoad(null);
         } catch (error) {
