@@ -317,7 +317,7 @@ export default function NewShipmentPage() {
                     ltl_details: {
                         quantity: Number(quantity) || Number(packagingQuantity) || 1,
                         dimensions: (dimLength && dimWidth && dimHeight) ? `${dimLength}x${dimWidth}x${dimHeight}` : dimensionsPerItem || '100x100x100',
-                        weight: Number(weightLbs) || 0,
+                        weight: (Number(weightLbs) || 0) / 2.20462, // Convertir de Lbs a Kg para el motor volumétrico (1m3 = 333kg)
                         stackable: stackable
                     },
                     weather_condition: weatherCondition,
