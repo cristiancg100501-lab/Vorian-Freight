@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageTransition } from "@/components/page-transition";
 import Image from "next/image";
-import BlueVorianIcon from "@/assets/bluevorian.png";
+import VorianNewLogo from "@/assets/vorian_new.png";
 import VorianFreightIcon from "@/assets/vorianfreight.png";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -88,7 +88,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </svg>
                 
                 <Image 
-                  src={BlueVorianIcon} 
+                  src={VorianNewLogo} 
                   alt="Vorian Freight Light" 
                   width={65} 
                   height={65} 
