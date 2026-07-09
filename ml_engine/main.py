@@ -12,18 +12,23 @@ class PredictionRequest(BaseModel):
     weight_factor: float
     hour_of_day: int
     day_of_week: int
+    utilization_rate: float
+    demand_pressure: float
 
 class TrainingRecord(PredictionRequest):
     target_factor: float
+    target_commission: float
 
 class TrainingRequest(BaseModel):
     data: List[TrainingRecord]
 
 @app.post("/predict")
 def predict_factor(req: PredictionRequest):
-    factor = pricing_model.predict(req.model_dump())
+    result = pricing_model.predict(req.model_dump())
     return {
-        "factor_ml": factor, 
+        "factor_ml": result["factor"], 
+        "commission_pct": result["commission"],
+        "is_exploration": result["is_exploration"],
         "cold_start": pricing_model.model is None
     }
 

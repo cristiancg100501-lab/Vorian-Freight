@@ -356,7 +356,14 @@ export async function POST(request: Request) {
             );
         }
 
-        sdSnapshot = { freeDrivers, busyDrivers, totalFleet, utilizationRate: (utilizationRate * 100).toFixed(1) + '%', recentAccepted, factor: (factorSupplyDemand * 100).toFixed(1) + '%' };
+        sdSnapshot = { 
+            freeDrivers, busyDrivers, totalFleet, 
+            utilizationRate: (utilizationRate * 100).toFixed(1) + '%', 
+            recentAccepted, 
+            factor: (factorSupplyDemand * 100).toFixed(1) + '%',
+            utilizationRateNum: utilizationRate,
+            demandPressureNum: demandPressure
+        };
         console.log(`📊 S&D → Libres: ${freeDrivers} | Ocupados: ${busyDrivers} | Utilización: ${(utilizationRate * 100).toFixed(0)}% | Aceptados 30min: ${recentAccepted} | Factor: +${(factorSupplyDemand * 100).toFixed(1)}%`);
     } catch (e) {
         console.warn('No se pudo calcular el factor oferta-demanda. Usando 0.', e);
@@ -410,6 +417,10 @@ export async function POST(request: Request) {
 
     // 3. Consultar al Modelo ML (FastAPI)
     let factorML = 1.0;
+    let mlCommission = 0.10; // Default commission fallback
+    let isExploration = false;
+    let isColdStart = true;
+    
     try {
         const mlResponse = await fetch(`${ML_ENGINE_URL}/predict`, {
             method: 'POST',
@@ -420,7 +431,9 @@ export async function POST(request: Request) {
                 terrain_factor: terrainFactor,
                 weight_factor: weightFactor,
                 hour_of_day: currentHour,
-                day_of_week: currentDay
+                day_of_week: currentDay,
+                utilization_rate: sdSnapshot.utilizationRateNum || 0,
+                demand_pressure: sdSnapshot.demandPressureNum || 0
             }),
             signal: AbortSignal.timeout(2000)
         });
@@ -428,18 +441,25 @@ export async function POST(request: Request) {
         if (mlResponse.ok) {
             const mlData = await mlResponse.json();
             factorML = mlData.factor_ml;
+            mlCommission = mlData.commission_pct || 0.10;
+            isExploration = mlData.is_exploration || false;
+            isColdStart = mlData.cold_start || false;
         } else {
             console.warn("ML Engine respondió con error:", mlResponse.status);
         }
     } catch (e) {
-        console.warn("No se pudo conectar al ML Engine. Usando factorML = 1.0", e);
+        console.warn("No se pudo conectar al ML Engine. Usando defaults", e);
     }
 
-    // 4. Calcular Precio Final (Base * IA * (Mkt + Weather)) + Accesorios + Peajes
-    const totalMarketMultiplier = factorMarket + factorWeather;
+    // 4. Calcular Precio Final
+    // Si la IA ya aprendió (!isColdStart), factorMarket se ignora porque la IA ya internalizó la escasez y el clima
+    // Si la IA está en pañales (isColdStart), sumamos la heurística matemática.
+    const totalMarketMultiplier = isColdStart ? (factorMarket + factorWeather) : 1.0;
+    
+    // El ML Factor en cold_start es 1.0. Cuando ya está entrenada, el factorML contiene TODA la predicción del alza.
     const finalPrice = (basePrice * factorML * totalMarketMultiplier) + accessorialsTotal + tollsCost;
 
-    // 5. Registrar Cotización (Embudo)
+    // 5. Registrar Cotización (Embudo y Entrenamiento IA)
     const { data: logData, error: logError } = await supabaseAdmin.from('pricing_ml_logs').insert({
         distance_km: distanceKm,
         duration_hrs: durationHrs,
@@ -452,7 +472,11 @@ export async function POST(request: Request) {
         factor_market: totalMarketMultiplier,
         factor_supply_demand: factorSupplyDemand,
         offered_price: finalPrice,
-        status: 'quoted'
+        status: 'quoted',
+        utilization_rate: sdSnapshot.utilizationRateNum || 0,
+        demand_pressure: sdSnapshot.demandPressureNum || 0,
+        commission_pct: mlCommission,
+        is_exploration: isExploration
     }).select('id').single();
 
     if (logError) {
@@ -461,8 +485,8 @@ export async function POST(request: Request) {
 
     // 6. Retornar al Cliente
     const priceWithoutTolls = finalPrice - tollsCost;
-    // Calcular porcentaje dinámico en base a lo que devolvió la DB (settings global)
-    const commPct = rpcSubtotal > 0 ? (rpcCommission / rpcSubtotal) : 0.10;
+    // Si la IA ya está entrenada o si no hay RPC commission, usamos la comisión inteligente de la IA
+    const commPct = isColdStart ? (rpcSubtotal > 0 ? (rpcCommission / rpcSubtotal) : mlCommission) : mlCommission;
     const platformFee = priceWithoutTolls * commPct; 
     const carrierPayment = priceWithoutTolls - platformFee;
     
