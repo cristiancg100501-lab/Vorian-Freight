@@ -70,7 +70,7 @@ const statusStyles: { [key: string]: string } = {
   Delayed: "bg-orange-500/10 text-orange-500 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.4)] animate-vibrate",
 };
 
-const PIE_COLORS = ["#fa788e", "#4a1d80", "#22c55e", "#f59e0b", "#ef4444"];
+const PIE_COLORS = ["#0066f5", "#0f172a", "#22c55e", "#f59e0b", "#ef4444"];
 
 const Trend = ({ value }: { value: number }) => {
   const isPositive = value >= 0;
@@ -279,8 +279,8 @@ export default function AdminDashboard() {
                   <AreaChart data={stats.chartData}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#fa788e" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#fa788e" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#0066f5" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0066f5" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
                     <Area 
                       type="monotone" 
                       dataKey="total" 
-                      stroke="#fa788e" 
+                      stroke="#0066f5" 
                       strokeWidth={3} 
                       fillOpacity={1} 
                       fill="url(#colorTotal)" 
@@ -318,7 +318,7 @@ export default function AdminDashboard() {
           <Card className="h-full border-none shadow-md bg-card/95">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="h-5 w-5 text-[#4a1d80]" />
+                <Activity className="h-5 w-5 text-[#0f172a]" />
                 Estado de la Red
               </CardTitle>
               <CardDescription>Distribución actual de envíos</CardDescription>
@@ -429,7 +429,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-[#fa788e] text-white border-none shadow-lg">
+              <Card className="bg-[#0066f5] text-white border-none shadow-lg">
                 <CardContent className="p-6 flex flex-col justify-between h-full">
                   <TrendingUp className="h-6 w-6 opacity-50" />
                   <div>
@@ -472,7 +472,7 @@ export default function AdminDashboard() {
 
         <motion.div variants={itemVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-4">
           <Link href="/admin/mission-control" prefetch={false} className="group">
-            <Card className="h-full border-none shadow-md bg-[#4a1d80] text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
+            <Card className="h-full border-none shadow-md bg-[#0f172a] text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
               <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
                 <MapIcon size={100} />
               </div>

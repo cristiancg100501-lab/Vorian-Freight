@@ -85,11 +85,11 @@ export default function DemandHeatmap({ shipments }: DemandHeatmapProps) {
           "heatmap-color": [
             "interpolate", ["linear"], ["heatmap-density"],
             0, "rgba(33,102,172,0)",
-            0.2, "#fa788e22",
-            0.4, "#fa788e66",
-            0.6, "#fa788eaa",
-            0.8, "#fa788eee",
-            1,  "#fa788e",
+            0.2, "#0066f522",
+            0.4, "#0066f566",
+            0.6, "#0066f5aa",
+            0.8, "#0066f5ee",
+            1,  "#0066f5",
           ],
           "heatmap-radius": [
             "interpolate", ["linear"], ["zoom"], 11, 15, 15, 20,
@@ -108,7 +108,7 @@ export default function DemandHeatmap({ shipments }: DemandHeatmapProps) {
         minzoom: 14,
         paint: {
           "circle-radius": 5,
-          "circle-color": "#fa788e",
+          "circle-color": "#0066f5",
           "circle-stroke-color": "white",
           "circle-stroke-width": 1,
           "circle-opacity": [
@@ -170,11 +170,11 @@ export default function DemandHeatmap({ shipments }: DemandHeatmapProps) {
           "heatmap-color": [
             "interpolate", ["linear"], ["heatmap-density"],
             0, "rgba(33,102,172,0)",
-            0.2, "#fa788e22",
-            0.4, "#fa788e66",
-            0.6, "#fa788eaa",
-            0.8, "#fa788eee",
-            1,  "#fa788e",
+            0.2, "#0066f522",
+            0.4, "#0066f566",
+            0.6, "#0066f5aa",
+            0.8, "#0066f5ee",
+            1,  "#0066f5",
           ],
           "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 15, 15, 20],
           "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 14, 1, 15, 0],
@@ -187,7 +187,7 @@ export default function DemandHeatmap({ shipments }: DemandHeatmapProps) {
         minzoom: 14,
         paint: {
           "circle-radius": 5,
-          "circle-color": "#fa788e",
+          "circle-color": "#0066f5",
           "circle-stroke-color": "white",
           "circle-stroke-width": 1,
           "circle-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 1],

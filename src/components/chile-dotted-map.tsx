@@ -107,7 +107,7 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
       const r = hasDemand ? 2.5 * scaleX : 1.5 * scaleX;
 
       if (hasDemand) {
-        ctx.fillStyle = "#fa788e";
+        ctx.fillStyle = "#0066f5";
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -165,7 +165,7 @@ export default function ChileDottedMap({ shipments }: ChileDottedMapProps) {
               <div
                 key={i}
                 className={`h-1 w-3 rounded-full ${
-                  i <= densityLevel ? "bg-[#fa788e]" : "bg-muted"
+                  i <= densityLevel ? "bg-[#0066f5]" : "bg-muted"
                 }`}
               />
             ))}
