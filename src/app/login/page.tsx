@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Truck, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
+import blueVorianLogo from "@/assets/bluevorian.png";
 
 import dynamic from 'next/dynamic';
 const LoginMap = dynamic(() => import('@/components/login-map').then(mod => mod.LoginMap), { 
@@ -210,10 +211,10 @@ export default function Home() {
   }
 
   return (
-    <div className={cn("min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500", resolvedTheme === 'light' ? 'bg-white' : 'bg-black')}>
+    <div className="min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500 bg-white">
       {/* Background with dynamic map */}
       <div className="absolute inset-0 h-full w-full">
-        <LoginMap theme={resolvedTheme} key={resolvedTheme} />
+        <LoginMap theme="light" key="light" />
       </div>
       
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
@@ -232,7 +233,7 @@ export default function Home() {
                 className="flex justify-center mb-10"
               >
                 <Image
-                  src="/vorian.svg"
+                  src={blueVorianLogo}
                   width={180}
                   height={75}
                   alt="Vorian Logistics Logo"

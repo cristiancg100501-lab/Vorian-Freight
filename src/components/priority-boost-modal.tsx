@@ -122,16 +122,16 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
               disabled={isLoading}
               onClick={() => handleBoost(tier3)}
               variant="outline" 
-              className="h-auto py-4 px-6 flex justify-between items-center border-purple-200 hover:bg-purple-50"
+              className="h-auto py-4 px-6 flex justify-between items-center border-blue-200 hover:bg-blue-50"
             >
               <div className="flex items-center gap-3">
-                <div className="bg-purple-100 p-2 rounded-full"><Rocket className="h-5 w-5 text-purple-600" /></div>
+                <div className="bg-blue-100 p-2 rounded-full"><Rocket className="h-5 w-5 text-blue-600" /></div>
                 <div className="text-left">
                   <div className="font-bold">Prioridad Emergencia</div>
                   <div className="text-xs text-muted-foreground">La carga número 1 del sistema</div>
                 </div>
               </div>
-              <div className="text-lg font-black text-purple-600">+${tier3.toLocaleString('es-CL')}</div>
+              <div className="text-lg font-black text-blue-600">+${tier3.toLocaleString('es-CL')}</div>
             </Button>
             
             {isLoading && (

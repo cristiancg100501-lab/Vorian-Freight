@@ -43,8 +43,8 @@ export const CUSTOMER_BADGES = {
   BLACK_DIAMOND: {
     key: "BLACK_DIAMOND" as const,
     name: "Socio Obsidiana",
-    className: "bg-gradient-to-br from-neutral-950 via-purple-950 to-neutral-900 text-purple-200 border-purple-500/30 font-bold",
-    glowClass: "shadow-[0_0_15px_rgba(139,92,246,0.55)] border-purple-500/40",
+    className: "bg-gradient-to-br from-neutral-950 via-blue-950 to-neutral-900 text-blue-200 border-blue-500/30 font-bold",
+    glowClass: "shadow-[0_0_15px_rgba(139,92,246,0.55)] border-blue-500/40",
     nextThreshold: null,
     prevThreshold: 7,
   },
@@ -86,8 +86,8 @@ export const COMPANY_BADGES = {
   BLACK_DIAMOND: {
     key: "BLACK_DIAMOND" as const,
     name: "Flota Obsidiana",
-    className: "bg-gradient-to-br from-slate-950 via-slate-900 to-purple-950 text-purple-200 border-purple-500/30 font-bold",
-    glowClass: "shadow-[0_0_15px_rgba(168,85,247,0.55)] border-purple-500/40",
+    className: "bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-blue-200 border-blue-500/30 font-bold",
+    glowClass: "shadow-[0_0_15px_rgba(168,85,247,0.55)] border-blue-500/40",
     nextThreshold: null,
     prevThreshold: 7,
   },

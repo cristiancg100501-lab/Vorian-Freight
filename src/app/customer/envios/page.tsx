@@ -27,7 +27,7 @@ import { PriorityBoostModal } from "@/components/priority-boost-modal";
 const statusStyles: { [key: string]: { bg: string, text: string, label: string } } = {
   "PENDING":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
   "Pending":           { bg: "bg-orange-500/10", text: "text-orange-500", label: "Pendiente" },
-  "ACCEPTED":          { bg: "bg-purple-500/10", text: "text-purple-500", label: "Aceptado" },
+  "ACCEPTED":          { bg: "bg-blue-500/10", text: "text-blue-500", label: "Aceptado" },
   "EN_ROUTE_TO_PICKUP":{ bg: "bg-blue-500/10", text: "text-blue-600", label: "En Camino a Origen" },
   "ARRIVED_AT_PICKUP": { bg: "bg-indigo-500/10", text: "text-indigo-500", label: "En Punto de Recogida" },
   "IN_TRANSIT":        { bg: "bg-sky-500/10", text: "text-sky-600", label: "En Tránsito" },

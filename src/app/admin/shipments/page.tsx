@@ -24,8 +24,8 @@ const statusStyles: { [key: string]: string } = {
   "ACCEPTED": "bg-accent text-accent-foreground",
   "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
-  "IN_TRANSIT": "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200",
+  "IN_TRANSIT": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  "ARRIVED_AT_DROPOFF": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   "COMPLETED": "bg-foreground text-background",
   "CANCELLED": "bg-destructive text-destructive-foreground",
 };

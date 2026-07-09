@@ -170,7 +170,7 @@ export default function TollsMapPage() {
                 });
             
             const markerColorClass = isSelected 
-                ? "bg-purple-500 scale-150 z-50 ring-4 ring-purple-500/30" 
+                ? "bg-blue-500 scale-150 z-50 ring-4 ring-blue-500/30" 
                 : isManual ? "bg-orange-500 hover:scale-110 shadow-[0_0_15px_rgba(249,115,22,0.5)] rounded-lg"
                 : isAVO ? "bg-yellow-500 hover:scale-110 shadow-[0_0_15px_rgba(250,204,21,0.5)]"
                 : isRuta78 ? "bg-blue-500 hover:scale-110 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
@@ -469,7 +469,7 @@ export default function TollsMapPage() {
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-md border-b p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-purple-500" />
+                    <MapPin className="h-5 w-5 text-blue-500" />
                     <h1 className="text-xl font-black tracking-tight uppercase">Mapa de Pórticos (TAG)</h1>
                 </div>
                 <div className="flex items-center gap-4">

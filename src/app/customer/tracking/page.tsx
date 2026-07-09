@@ -102,7 +102,7 @@ mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kza
 const STATUS: Record<string, { label: string; color: string; bg: string }> = {
   "Pending":             { label: "Buscando Chofer",        color: "text-orange-500", bg: "bg-orange-500/10" },
   "PENDING":             { label: "Buscando Chofer",        color: "text-orange-500", bg: "bg-orange-500/10" },
-  "ACCEPTED":            { label: "Chofer Asignado",        color: "text-purple-500", bg: "bg-purple-500/10" },
+  "ACCEPTED":            { label: "Chofer Asignado",        color: "text-blue-500", bg: "bg-blue-500/10" },
   "EN_ROUTE_TO_PICKUP":  { label: "Chofer en Camino",       color: "text-blue-500",   bg: "bg-blue-500/10"   },
   "ARRIVED_AT_PICKUP":   { label: "Chofer en Origen",       color: "text-indigo-500", bg: "bg-indigo-500/10" },
   "IN_TRANSIT":          { label: "En Tránsito",            color: "text-sky-500",    bg: "bg-sky-500/10"    },

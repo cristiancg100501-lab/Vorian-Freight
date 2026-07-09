@@ -534,7 +534,7 @@ export default function AdminRatesPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-[10px] uppercase font-bold text-muted-foreground">Margen Vorian (%)</Label>
-                                                <Input type="number" value={vorianCommission} onChange={e => setVorianCommission(e.target.value)} className="h-10 bg-background border-purple-500/30" />
+                                                <Input type="number" value={vorianCommission} onChange={e => setVorianCommission(e.target.value)} className="h-10 bg-background border-blue-500/30" />
                                             </div>
                                         </div>
                                     </div>
@@ -778,7 +778,7 @@ export default function AdminRatesPage() {
                                         </div>
 
                                         {/* Bloque Spread Vorian */}
-                                        <div className="p-6 rounded-2xl bg-purple-600 text-white shadow-xl shadow-purple-500/20 relative overflow-hidden group border border-white/10">
+                                        <div className="p-6 rounded-2xl bg-blue-600 text-white shadow-xl shadow-blue-500/20 relative overflow-hidden group border border-white/10">
                                             <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
                                                 <Zap className="w-24 h-24" />
                                             </div>
@@ -804,7 +804,7 @@ export default function AdminRatesPage() {
                                         <div className="h-6 w-full bg-muted rounded-full overflow-hidden flex shadow-inner">
                                             <div className="h-full bg-red-500 w-[45%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Combustible y Desgaste">Costos Camión</div>
                                             <div className="h-full bg-blue-500 w-[20%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Sueldo Chofer">Chofer</div>
-                                            <div className="h-full bg-purple-500 w-[25%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Comisión y OpEx">Vorian</div>
+                                            <div className="h-full bg-blue-500 w-[25%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Comisión y OpEx">Vorian</div>
                                             <div className="h-full bg-yellow-500 w-[10%] flex items-center justify-center text-[8px] font-bold text-white uppercase" title="Fondo de Riesgo">Risk Buffer</div>
                                         </div>
                                         <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase pt-2">
@@ -843,7 +843,7 @@ export default function AdminRatesPage() {
                                         {settingsHistory.map((h, i) => (
                                             <tr key={h.id || i} className="border-b border-primary/10 hover:bg-primary/5 transition-colors">
                                                 <td className="py-2 font-bold">{format(new Date(h.changed_at), "d MMM, HH:mm", { locale: es })}</td>
-                                                <td className="py-2 text-right font-mono font-bold text-purple-600">{h.vorian_commission || h.vorianCommission || h.voriancommission}%</td>
+                                                <td className="py-2 text-right font-mono font-bold text-blue-600">{h.vorian_commission || h.vorianCommission || h.voriancommission}%</td>
                                                 <td className="py-2 text-right font-mono font-bold text-blue-600">{h.r_base} km/L</td>
                                                 <td className="py-2 text-right font-mono font-bold">${h.cost_rampla}</td>
                                                 <td className="py-2 text-right font-mono font-bold">${h.costo_chofer_hr}</td>

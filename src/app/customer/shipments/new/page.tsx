@@ -1182,7 +1182,7 @@ Broadway: 1
                                             )}
 
                                             {priceBreakdown.market_adjustment !== 0 && (
-                                                <div className="flex justify-between items-center text-purple-600/80 dark:text-purple-400/80">
+                                                <div className="flex justify-between items-center text-blue-600/80 dark:text-blue-400/80">
                                                     <span>Ajuste Dinámico (Multiplicadores)</span>
                                                     <span className="font-mono">{priceBreakdown.market_adjustment > 0 ? '+ ' : '- '}${Math.abs(priceBreakdown.market_adjustment).toLocaleString()}</span>
                                                 </div>
@@ -1234,7 +1234,7 @@ Broadway: 1
                                                         </div>
                                                         <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
                                                             <span>Market Surge (Demanda/Clima/Riesgo)</span>
-                                                            <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">x {mlFactors?.market_factor?.toFixed(2) || '1.00'}</span>
+                                                            <span className="font-mono text-blue-600 dark:text-blue-400 font-bold">x {mlFactors?.market_factor?.toFixed(2) || '1.00'}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center text-xs text-muted-foreground">
                                                             <span>Ajuste Neuronal (Machine Learning)</span>
@@ -1310,7 +1310,7 @@ Broadway: 1
                                                              <div className="flex justify-between items-center text-[10px]">
                                                                 <span className="text-muted-foreground font-bold">Ajuste de Mercado Inteligente</span>
                                                                 <div className="flex gap-2">
-                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 font-bold">ML: {mlFactors.ml_factor.toFixed(2)}x</span>
+                                                                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-bold">ML: {mlFactors.ml_factor.toFixed(2)}x</span>
                                                                     <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 font-bold">Mkt: {mlFactors.market_factor.toFixed(2)}x</span>
                                                                 </div>
                                                              </div>

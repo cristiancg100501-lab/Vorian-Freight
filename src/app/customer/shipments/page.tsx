@@ -17,7 +17,7 @@ import { useCallback } from "react";
 
 const statusStyles: { [key: string]: string } = {
   "PENDING": "bg-orange-500/10 text-orange-500",
-  "ACCEPTED": "bg-purple-500/10 text-purple-600",
+  "ACCEPTED": "bg-blue-500/10 text-blue-600",
   "EN_ROUTE_TO_PICKUP": "bg-blue-500/10 text-blue-600",
   "ARRIVED_AT_PICKUP": "bg-indigo-500/10 text-indigo-600",
   "IN_TRANSIT": "bg-sky-500/10 text-sky-700",

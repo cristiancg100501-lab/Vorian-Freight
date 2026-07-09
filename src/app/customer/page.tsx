@@ -35,8 +35,8 @@ const statusStyles: { [key: string]: string } = {
   "ACCEPTED": "bg-accent/20 text-accent-foreground border-accent",
   "EN_ROUTE_TO_PICKUP": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
   "ARRIVED_AT_PICKUP": "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300",
-  "IN_TRANSIT": "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-  "ARRIVED_AT_DROPOFF": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200 dark:bg-fuchsia-900/30 dark:text-fuchsia-300",
+  "IN_TRANSIT": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  "ARRIVED_AT_DROPOFF": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
   "COMPLETED": "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300",
   "CANCELLED": "bg-destructive/20 text-destructive border-destructive",
 };
@@ -229,11 +229,11 @@ export default function CustomerDashboard() {
 
         <motion.div variants={itemVariants}>
           <Card className="bg-card/50 backdrop-blur-xl border-white/10 shadow-sm overflow-hidden relative group">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardContent className="p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <p className="text-sm font-medium text-muted-foreground">Efectividad</p>
-                <div className="p-2 bg-purple-500/10 rounded-full text-purple-500">
+                <div className="p-2 bg-blue-500/10 rounded-full text-blue-500">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
               </div>

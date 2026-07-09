@@ -62,8 +62,8 @@ const statusStyles: { [key: string]: string } = {
   Delivered: "bg-green-500/10 text-green-500 border-green-500/20",
   pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)] animate-pulse",
   Pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)] animate-pulse",
-  assigned: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-  Booked: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  assigned: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  Booked: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
   Cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
   delayed: "bg-orange-500/10 text-orange-500 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.4)] animate-vibrate",
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
         {[
           { title: "Ingresos Estimados", value: <CountUp end={stats.totalRevenue} prefix="$" />, icon: DollarSign, trend: 12.5, color: "text-green-500" },
           { title: "Envíos en Ruta", value: <CountUp end={stats.active} />, icon: Truck, trend: 8.2, color: "text-blue-500" },
-          { title: "Flota Online", value: <><CountUp end={stats.driversOnline} />/<CountUp end={stats.totalDrivers} /></>, icon: Users, trend: -2.4, color: "text-purple-500" },
+          { title: "Flota Online", value: <><CountUp end={stats.driversOnline} />/<CountUp end={stats.totalDrivers} /></>, icon: Users, trend: -2.4, color: "text-blue-500" },
           { title: "Pendientes", value: <CountUp end={stats.pending} />, icon: Clock, trend: 5.1, color: "text-orange-500" },
         ].map((kpi, i) => (
           <motion.div key={i} variants={itemVariants}>
