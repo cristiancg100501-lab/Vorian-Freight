@@ -57,12 +57,28 @@ export default function MissionControlPage() {
       const lat = typeof profile.currentLatitude === 'string' ? parseFloat(profile.currentLatitude) : profile.currentLatitude;
       const lng = typeof profile.currentLongitude === 'string' ? parseFloat(profile.currentLongitude) : profile.currentLongitude;
 
+      // Calcular presencia real con heartbeat
+      const lastPingStr = profile.last_ping;
+      let isOnlineNow = profile.isAvailable || false;
+      
+      if (isOnlineNow) {
+        if (!lastPingStr) {
+          isOnlineNow = false; // Fantasma viejo
+        } else {
+          const lastPingTime = new Date(lastPingStr).getTime();
+          const minutesSincePing = (new Date().getTime() - lastPingTime) / (1000 * 60);
+          if (minutesSincePing > 5) {
+            isOnlineNow = false;
+          }
+        }
+      }
+
       return {
         ...profile,
         id: profile.id,
         fullName: u ? `${u.firstName} ${u.lastName}` : `Conductor (${profile.id.substring(0,5)})`,
         vehiclePlate: profile.vehiclePlate || profile.licensePlate || "S/P",
-        isAvailable: profile.isAvailable || false,
+        isAvailable: isOnlineNow,
         currentLatitude: lat,
         currentLongitude: lng,
         lastLocationUpdate: profile.lastLocationUpdate || null,
