@@ -101,7 +101,20 @@ export default function AdminDashboard() {
     const completed = shipments.filter(s => s.status === 'COMPLETED').length;
     
     const totalDrivers = drivers.length;
-    const driversOnline = drivers.filter(d => d.isAvailable).length;
+    const driversOnline = drivers.filter(d => {
+      if (!d.isAvailable) return false;
+      
+      // Si no tiene last_ping, es un "fantasma" de antes de implementar el heartbeat
+      if (!d.last_ping) return false;
+      
+      const lastPingTime = new Date(d.last_ping).getTime();
+      const now = new Date().getTime();
+      const minutesSincePing = (now - lastPingTime) / (1000 * 60);
+      
+      const hasActiveShipment = shipments.some(s => s.driverId === d.id && ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT'].includes(s.status));
+      
+      return minutesSincePing <= 5 || hasActiveShipment;
+    }).length;
     
     // Métricas por tipo de camión
     const vehicleTypes = shipments.reduce((acc: any, s) => {
