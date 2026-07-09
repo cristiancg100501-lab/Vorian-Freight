@@ -35,7 +35,7 @@ import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useTheme } from "next-themes";
 import VorianFreightIcon from "@/assets/vorianfreight.png";
-import PinkVorianIcon from "@/assets/pinkvorian.png";
+
 import VorianNewLogo from "@/assets/vorian_new.png";
 
 type NavItem = {
