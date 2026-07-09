@@ -293,7 +293,7 @@ export async function POST(request: Request) {
         const [driversResult, acceptedResult, settingsResult] = await Promise.all([
             supabaseAdmin
                 .from('driverProfiles')
-                .select('id, currentOrderId, currentLatitude, currentLongitude')
+                .select('id, currentOrderId, currentLatitude, currentLongitude, last_ping')
                 .eq('isAvailable', true),
 
             // Demanda real: envíos ACEPTADOS (reservados) en los últimos 30 minutos
@@ -317,6 +317,12 @@ export async function POST(request: Request) {
         
         if (driversResult.data) {
             driversResult.data.forEach((d: any) => {
+                // Filtro estricto de latido (Heartbeat) para evitar choferes fantasma
+                if (!d.last_ping) return;
+                const lastPingTime = new Date(d.last_ping).getTime();
+                const minutesSincePing = (now.getTime() - lastPingTime) / (1000 * 60);
+                if (minutesSincePing > 5 && !d.currentOrderId) return; // Si pasaron 5 mins y no está ocupado, es fantasma
+
                 let isNear = false;
                 if (d.currentLatitude && d.currentLongitude && pickup_h3_hexes.length > 0) {
                     const driverHex = latLngToCell(d.currentLatitude, d.currentLongitude, 7);
