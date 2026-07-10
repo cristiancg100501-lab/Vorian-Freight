@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
-import { Bell, Moon, Sun, Package, Truck, Lock, CheckCircle2, Award } from "lucide-react";
+import { Bell, Moon, Sun, Package, Truck, Lock, CheckCircle2, Award, Brain } from "lucide-react";
 import { useSupabase, useUser } from "./providers/supabase-provider";
 import { useSupabaseDoc } from "@/hooks/supabase-hooks";
 import Image from "next/image";
@@ -33,6 +33,13 @@ export function Header() {
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
   const [completedTrips, setCompletedTrips] = useState<number | null>(null);
+  const [mlStatus, setMlStatus] = useState<{ 
+    online: boolean; 
+    model_loaded: boolean;
+    total_accepted?: number;
+    progress_to_train?: number;
+    train_threshold?: number;
+  } | null>(null);
 
   const { data: userProfile } = useSupabaseDoc("userProfiles", user?.id);
   const { data: companyProfile } = useSupabaseDoc("companyProfiles", user?.id);
@@ -85,6 +92,25 @@ export function Header() {
     return () => { isMounted = false; };
   }, [user, supabase]);
 
+  // Poll ML Engine status every 60s
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMlStatus = async () => {
+      try {
+        const res = await fetch('/api/admin/ml-status', { cache: 'no-store' });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setMlStatus(data);
+        }
+      } catch {
+        if (isMounted) setMlStatus({ online: false, model_loaded: false });
+      }
+    };
+    fetchMlStatus();
+    const interval = setInterval(fetchMlStatus, 60_000);
+    return () => { isMounted = false; clearInterval(interval); };
+  }, []);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
@@ -131,6 +157,10 @@ export function Header() {
         { ...COMPANY_BADGES.BLACK_DIAMOND, range: "+201 viajes", active: tripsCount >= 201 },
       ];
 
+  // ML Status derived values
+  const mlOnline = mlStatus?.online ?? false;
+  const mlTrained = mlStatus?.model_loaded ?? false;
+
   return (
     <header className="flex h-14 items-center justify-end gap-4 border-b bg-card px-4 lg:h-[60px] lg:px-6">
       <div className="flex items-center gap-2">
@@ -143,6 +173,88 @@ export function Header() {
         />
         <Moon className="h-5 w-5" />
       </div>
+      {/* ML Engine Status Indicator */}
+      {mlStatus !== null && (
+        <div className="relative group flex items-center">
+          <button
+            aria-label={mlTrained ? 'IA de Pricing: Modelo Entrenado' : mlOnline ? 'IA de Pricing: En Aprendizaje' : 'IA de Pricing: Desconectada'}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all duration-300 select-none",
+              mlTrained
+                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                : mlOnline
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                  : "border-muted-foreground/20 bg-muted/30 text-muted-foreground"
+            )}
+          >
+            {/* Animated dot */}
+            <span className="relative flex h-2 w-2">
+              {!mlTrained && mlOnline && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              )}
+              <span className={cn(
+                "relative inline-flex rounded-full h-2 w-2",
+                mlTrained ? "bg-emerald-500" : mlOnline ? "bg-amber-500" : "bg-muted-foreground/40"
+              )} />
+            </span>
+            <Brain className="h-3 w-3" />
+            <span className="hidden sm:inline">
+              {mlTrained ? 'IA Lista' : mlOnline ? 'Aprendiendo' : 'IA Offline'}
+            </span>
+          </button>
+
+          {/* Hover tooltip */}
+          <div className="absolute right-0 top-9 w-64 p-3.5 bg-card border rounded-xl shadow-2xl opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none transition-all duration-200 z-50 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className={cn("h-4 w-4", mlTrained ? "text-emerald-500" : mlOnline ? "text-amber-500" : "text-muted-foreground")} />
+              <p className="text-xs font-black text-foreground">Motor de Pricing IA</p>
+            </div>
+            {mlTrained ? (
+              <>
+                <p className="text-[11px] text-emerald-500 font-semibold">✅ Modelo entrenado y activo</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  El motor ML genera precios inteligentes en tiempo real basados en aceptaciones reales del mercado.
+                </p>
+                {mlStatus?.total_accepted !== undefined && (
+                  <p className="text-[10px] text-muted-foreground mt-1.5 pt-1.5 border-t border-border">
+                    📊 <span className="font-semibold">{mlStatus.total_accepted}</span> reservas de entrenamiento acumuladas
+                  </p>
+                )}
+              </>
+            ) : mlOnline ? (
+              <>
+                <p className="text-[11px] text-amber-500 font-semibold">🔄 En fase de aprendizaje</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Se necesitan al menos {mlStatus?.train_threshold ?? 10} reservas aceptadas para entrenar el modelo.
+                </p>
+                {/* Barra de progreso */}
+                {mlStatus?.progress_to_train !== undefined && (
+                  <div className="mt-2">
+                    <div className="flex justify-between text-[9px] text-muted-foreground mb-1">
+                      <span>Progreso</span>
+                      <span className="font-bold text-amber-500">{mlStatus.progress_to_train}/{mlStatus.train_threshold ?? 10} reservas</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, ((mlStatus.progress_to_train ?? 0) / (mlStatus.train_threshold ?? 10)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-[11px] text-muted-foreground font-semibold">⚫ Motor ML desconectado</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  El microservicio FastAPI no responde. Los precios se calculan con heurística estándar.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
         <Bell className="h-5 w-5" />
         <span className="sr-only">Notificaciones</span>

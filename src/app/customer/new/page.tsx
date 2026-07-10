@@ -154,6 +154,7 @@ export default function NewShipmentPage() {
     const [pricingFactors, setPricingFactors] = useState<any>(null);
     const [mlFactors, setMlFactors] = useState<any>(null);
     const [pricingLogId, setPricingLogId] = useState<string | null>(null);
+    const [pricingQuotedAt, setPricingQuotedAt] = useState<string | null>(null);
     const [isRefreshingPrice, setIsRefreshingPrice] = useState(false);
     const [priceValidFor, setPriceValidFor] = useState(20);
 
@@ -352,6 +353,7 @@ export default function NewShipmentPage() {
             setPricingFactors(data.factors.rpc_factors);
             setMlFactors({ ml_factor: data.factors.ml_factor, market_factor: data.factors.market_factor });
             setPricingLogId(data.log_id);
+            setPricingQuotedAt(new Date().toISOString());
             setPriceBreakdown(data.breakdown);
             
         } catch (err: any) {
@@ -513,8 +515,8 @@ export default function NewShipmentPage() {
               deliveryWindow,
               commodity,
               weightLbs: parseInt(weightLbs) || 0,
-              pallets: parseInt(pallets) || 0,
-              dimensions,
+              pallets: parseInt(packagingQuantity) || 0,
+              dimensions: [dimLength, dimWidth, dimHeight].filter(Boolean).join(' x ') || '',
               itemDescription,
               quantity: parseInt(quantity) || 0,
               dimensionsPerItem,
@@ -539,6 +541,15 @@ export default function NewShipmentPage() {
           if (insertError) {
             console.error('Supabase insert error:', JSON.stringify(insertError, null, 2));
             throw new Error(`[${insertError.code}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`);
+          }
+
+          // 🤖 Señal ML: cliente aceptó el precio → cerrar ciclo de aprendizaje
+          if (pricingLogId) {
+            fetch('/api/pricing/accept', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ log_id: pricingLogId, quoted_at: pricingQuotedAt }),
+            }).catch(() => {/* fire-and-forget, no crítico */});
           }
 
           router.push('/customer');

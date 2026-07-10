@@ -627,6 +627,14 @@ export default function CompanyShipmentsPage() {
                 return;
             }
 
+            // 🤖 Señal ML: el carrier aceptó → el carrier_payment era suficiente para esta ruta
+            // Fire-and-forget: no bloqueamos la UX del company por esto
+            fetch('/api/admin/ml-carrier-accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shipment_id: selectedLoad.id }),
+            }).catch(() => {/* silencioso — no crítico */});
+
             setSelectedLoad(null);
         } catch (error) {
             console.error("Error updating document:", error);
@@ -635,6 +643,7 @@ export default function CompanyShipmentsPage() {
             setIsAccepting(false);
         }
     };
+
 
     return (
         <div className="h-[calc(100vh-8rem)] flex flex-col gap-4 relative overflow-hidden rounded-xl border bg-background shadow-inner">

@@ -131,12 +131,15 @@ export async function POST(request: Request) {
 
     // a) Recargo por Urgencia (Lead Time Surge)
     let leadTimeSurge = 0;
+    let lead_time_hrs = 24.0;
     if (is_asap) {
         leadTimeSurge = 0.20; // +20% for ASAP
+        lead_time_hrs = 0.0;
     } else if (pickup_date) {
         const pd = new Date(pickup_date);
         const nowMs = Date.now();
         const diffHrs = (pd.getTime() - nowMs) / (1000 * 60 * 60);
+        lead_time_hrs = Math.max(0, diffHrs);
         if (diffHrs < 12 && diffHrs > 0) {
             leadTimeSurge = 0.15; // +15%
         } else if (diffHrs > 72) {
@@ -170,6 +173,7 @@ export async function POST(request: Request) {
     }
     
     let highDemandShipmentsCount = 0;
+    let zonal_concentration = 0.0;
     try {
         const fortyFiveMinsAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString();
         const { data: recentShipments } = await supabaseAdmin
@@ -220,6 +224,7 @@ export async function POST(request: Request) {
         if (highDemandShipmentsCount >= 2) {
             // 1. Concentración: Qué porcentaje del tráfico nacional está ocurriendo SOLO en este hexágono
             const concentration = highDemandShipmentsCount / totalPlatformShipments;
+            zonal_concentration = concentration;
             
             // 2. Puntaje Dinámico: Multiplica el volumen absoluto por la concentración.
             // Si hay 5 envíos en todo el país y 5 acá -> Score = 5 * 1.0 = 5
@@ -373,28 +378,37 @@ export async function POST(request: Request) {
 
     // d) Factor Climático (Vorian Weather Surge)
     let factorWeather = 0.0;
+    let weather_severity = 0;
     if (weather_condition) {
         const weather = weather_condition.toLowerCase();
         if (weather === 'snow') {
             factorWeather = 0.40; // +40% Riesgo extremo
+            weather_severity = 4;
         } else if (weather === 'thunderstorm') {
             factorWeather = 0.30; // +30% Tormenta
+            weather_severity = 3;
         } else if (['rain', 'drizzle'].includes(weather)) {
             factorWeather = 0.25; // +25% Lluvia (Frenado difícil)
+            weather_severity = 2;
         } else if (['fog', 'mist'].includes(weather)) {
             factorWeather = 0.15; // +15% Poca visibilidad
+            weather_severity = 1;
         } else if (weather === 'clouds') {
             factorWeather = 0.02; // +2% (Nublado normal, casi no afecta)
+            weather_severity = 0;
         }
         console.log(`🌧️ Clima detectado: ${weather_condition}. Factor Weather ajustado a: ${factorWeather}`);
     }
 
     // e) Riesgo Adicional (Materiales Peligrosos / Sobrepeso explícito)
-    if (special_handling?.hazardous) factorMarket += 0.20;
-    if (special_handling?.overweight) factorMarket += 0.30;
+    const is_hazardous = !!special_handling?.hazardous;
+    const is_overweight = !!special_handling?.overweight;
+    if (is_hazardous) factorMarket += 0.20;
+    if (is_overweight) factorMarket += 0.30;
 
-    // f) Programa de Lealtad (Customer Tier Discount)
+    // f) Programa de Lealtad (Customer Tier Discount) + captura para ML
     let loyaltyDiscount = 0;
+    let customerTripCount = 0;
     if (customer_id) {
         try {
             const { count } = await supabaseAdmin
@@ -402,10 +416,10 @@ export async function POST(request: Request) {
                 .select('id', { count: 'exact', head: true })
                 .eq('client_id', customer_id);
                 
-            const trips = count || 0;
-            if (trips >= 50) loyaltyDiscount = -0.08; // Gold (-8%)
-            else if (trips >= 20) loyaltyDiscount = -0.04; // Silver (-4%)
-            else if (trips >= 5) loyaltyDiscount = -0.02; // Bronze (-2%)
+            customerTripCount = count || 0;
+            if (customerTripCount >= 50) loyaltyDiscount = -0.08; // Gold (-8%)
+            else if (customerTripCount >= 20) loyaltyDiscount = -0.04; // Silver (-4%)
+            else if (customerTripCount >= 5) loyaltyDiscount = -0.02; // Bronze (-2%)
         } catch(e) { console.warn('Error fetching customer trips', e) }
     }
     factorMarket += loyaltyDiscount;
@@ -420,6 +434,8 @@ export async function POST(request: Request) {
     let mlCommission = 0.10; // Default commission fallback
     let isExploration = false;
     let isColdStart = true;
+    const quotedAt = new Date().toISOString();
+    const monthOfYear = new Date().getMonth() + 1; // 1-12
     
     try {
         const mlResponse = await fetch(`${ML_ENGINE_URL}/predict`, {
@@ -433,7 +449,14 @@ export async function POST(request: Request) {
                 hour_of_day: currentHour,
                 day_of_week: currentDay,
                 utilization_rate: sdSnapshot.utilizationRateNum || 0,
-                demand_pressure: sdSnapshot.demandPressureNum || 0
+                demand_pressure: sdSnapshot.demandPressureNum || 0,
+                month_of_year: monthOfYear,
+                customer_trip_count: customerTripCount,
+                lead_time_hrs: lead_time_hrs,
+                weather_severity: weather_severity,
+                zonal_concentration: zonal_concentration,
+                is_hazardous: is_hazardous,
+                is_overweight: is_overweight
             }),
             signal: AbortSignal.timeout(2000)
         });
@@ -476,7 +499,18 @@ export async function POST(request: Request) {
         utilization_rate: sdSnapshot.utilizationRateNum || 0,
         demand_pressure: sdSnapshot.demandPressureNum || 0,
         commission_pct: mlCommission,
-        is_exploration: isExploration
+        is_exploration: isExploration,
+        // Nuevas señales de aprendizaje
+        quoted_at: quotedAt,
+        month_of_year: monthOfYear,
+        customer_trip_count: customerTripCount,
+        was_customer_accepted: false,
+        was_carrier_accepted: false,
+        lead_time_hrs: lead_time_hrs,
+        weather_severity: weather_severity,
+        zonal_concentration: zonal_concentration,
+        is_hazardous: is_hazardous,
+        is_overweight: is_overweight
     }).select('id').single();
 
     if (logError) {

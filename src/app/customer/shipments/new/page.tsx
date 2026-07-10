@@ -145,6 +145,7 @@ export default function NewClientShipmentPage() {
     const [pricingFactors, setPricingFactors] = useState<any>(null);
     const [mlFactors, setMlFactors] = useState<any>(null);
     const [pricingLogId, setPricingLogId] = useState<string | null>(null);
+    const [pricingQuotedAt, setPricingQuotedAt] = useState<string | null>(null);
     const [priceValidFor, setPriceValidFor] = useState(20);
     const [isRefreshingPrice, setIsRefreshingPrice] = useState(false);
     const [cargoUnits, setCargoUnits] = useState(1);
@@ -343,6 +344,7 @@ export default function NewClientShipmentPage() {
             setPricingFactors(data.factors.rpc_factors); // Factores físicos (distancia, diesel, etc.)
             setMlFactors({ ml_factor: data.factors.ml_factor, market_factor: data.factors.market_factor });
             setPricingLogId(data.log_id);
+            setPricingQuotedAt(new Date().toISOString());
             setPriceBreakdown(data.breakdown);
             
             // Re-calculate the actual visual breakdown of tolls for the UI and Map
@@ -511,7 +513,7 @@ export default function NewClientShipmentPage() {
                 await fetch('/api/pricing/accept', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ log_id: pricingLogId })
+                    body: JSON.stringify({ log_id: pricingLogId, quoted_at: pricingQuotedAt })
                 }).catch(e => console.warn("Failed to update pricing log:", e));
             }
         } catch (e) {}
