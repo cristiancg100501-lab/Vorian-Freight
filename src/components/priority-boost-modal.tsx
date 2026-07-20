@@ -59,7 +59,7 @@ export function PriorityBoostModal({ shipmentId, basePrice, currentBoost, onBoos
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100 hover:text-orange-700 animate-pulse">
+        <Button variant="outline" size="sm" className="bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100 hover:text-orange-700">
           <Zap className="h-4 w-4 mr-1 fill-orange-500" />
           Acelerar Búsqueda
         </Button>

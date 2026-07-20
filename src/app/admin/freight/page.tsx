@@ -70,7 +70,7 @@ const statusStyles: { [key: string]: string } = {
   Delayed: "bg-orange-500/10 text-orange-500 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.4)] animate-vibrate",
 };
 
-const PIE_COLORS = ["#0066f5", "#0f172a", "#22c55e", "#f59e0b", "#ef4444"];
+const PIE_COLORS = ["#121212", "#404040", "#737373", "#a3a3a3", "#d4d4d4"];
 
 const Trend = ({ value }: { value: number }) => {
   const isPositive = value >= 0;
@@ -240,10 +240,10 @@ export default function AdminDashboard() {
       >
         {/* KPI Cards */}
         {[
-          { title: "Ingresos Estimados", value: <CountUp end={stats.totalRevenue} prefix="$" />, icon: DollarSign, trend: 12.5, color: "text-green-500" },
-          { title: "Envíos en Ruta", value: <CountUp end={stats.active} />, icon: Truck, trend: 8.2, color: "text-blue-500" },
-          { title: "Flota Online", value: <><CountUp end={stats.driversOnline} />/<CountUp end={stats.totalDrivers} /></>, icon: Users, trend: -2.4, color: "text-blue-500" },
-          { title: "Pendientes", value: <CountUp end={stats.pending} />, icon: Clock, trend: 5.1, color: "text-orange-500" },
+          { title: "Ingresos Estimados", value: <CountUp end={stats.totalRevenue} prefix="$" />, icon: DollarSign, trend: 12.5, color: "text-[#121212]" },
+          { title: "Envíos en Ruta", value: <CountUp end={stats.active} />, icon: Truck, trend: 8.2, color: "text-[#404040]" },
+          { title: "Flota Online", value: <><CountUp end={stats.driversOnline} />/<CountUp end={stats.totalDrivers} /></>, icon: Users, trend: -2.4, color: "text-[#737373]" },
+          { title: "Pendientes", value: <CountUp end={stats.pending} />, icon: Clock, trend: 5.1, color: "text-[#121212]" },
         ].map((kpi, i) => (
           <motion.div key={i} variants={itemVariants}>
             <Card className="overflow-hidden border-none shadow-md bg-card/95 group hover:bg-card transition-colors duration-300 cursor-default">
@@ -292,8 +292,8 @@ export default function AdminDashboard() {
                   <AreaChart data={stats.chartData}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0066f5" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#0066f5" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#121212" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#121212" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
                     <Area 
                       type="monotone" 
                       dataKey="total" 
-                      stroke="#0066f5" 
+                      stroke="#121212" 
                       strokeWidth={3} 
                       fillOpacity={1} 
                       fill="url(#colorTotal)" 
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-[#0066f5] text-white border-none shadow-lg">
+              <Card className="bg-[#404040] text-white border-none shadow-lg">
                 <CardContent className="p-6 flex flex-col justify-between h-full">
                   <TrendingUp className="h-6 w-6 opacity-50" />
                   <div>
@@ -485,7 +485,7 @@ export default function AdminDashboard() {
 
         <motion.div variants={itemVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-4">
           <Link href="/admin/mission-control" prefetch={false} className="group">
-            <Card className="h-full border-none shadow-md bg-[#0f172a] text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
+            <Card className="h-full border-none shadow-md bg-[#121212] text-white overflow-hidden relative cursor-pointer hover:brightness-110 hover:shadow-xl transition-all duration-300">
               <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
                 <MapIcon size={100} />
               </div>

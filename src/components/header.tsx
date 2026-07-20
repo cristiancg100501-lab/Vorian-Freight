@@ -92,8 +92,12 @@ export function Header() {
     return () => { isMounted = false; };
   }, [user, supabase]);
 
-  // Poll ML Engine status every 60s
+  // API de ML inactiva temporalmente por petición del usuario
+  /*
   useEffect(() => {
+    const role = userProfile ? (userProfile as any).role : null;
+    if (role !== 'admin') return;
+
     let isMounted = true;
     const fetchMlStatus = async () => {
       try {
@@ -109,7 +113,8 @@ export function Header() {
     fetchMlStatus();
     const interval = setInterval(fetchMlStatus, 60_000);
     return () => { isMounted = false; clearInterval(interval); };
-  }, []);
+  }, [userProfile]);
+  */
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

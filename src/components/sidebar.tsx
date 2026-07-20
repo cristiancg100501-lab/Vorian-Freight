@@ -34,9 +34,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useTheme } from "next-themes";
-import VorianFreightIcon from "@/assets/vorianfreight.png";
-
-import VorianNewLogo from "@/assets/vorian_new.png";
+import VorianWhiteLogo from "@/assets/vorianwhite.png";
 
 type NavItem = {
   href: string;
@@ -105,9 +103,9 @@ const getNavItemsForRole = (role: string): NavItem[] => {
 export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isCollapsed: boolean; setCollapsed: (isCollapsed: boolean) => void; }) {
   const pathname = usePathname();
   const navItems = getNavItemsForRole(role);
-  const activeColorClass = "bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.4)]";
-  const hoverColorClass = "hover:bg-primary/20 hover:text-primary hover:shadow-primary/10";
-  const textColorClass = "text-primary";
+  const activeColorClass = "bg-white/10 dark:bg-black/5 text-white dark:text-black shadow-[0_0_15px_rgba(255,255,255,0.1)] dark:shadow-[0_0_15px_rgba(0,0,0,0.1)]";
+  const hoverColorClass = "hover:bg-white/10 dark:hover:bg-black/5 hover:text-white dark:hover:text-black";
+  const textColorClass = "text-white/70 dark:text-black/70";
 
   const { supabase } = useSupabase();
   const { resolvedTheme } = useTheme();
@@ -174,7 +172,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                             href={item.href}
                             prefetch={false}
                             className={cn(
-                                "group relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg",
+                                "group relative flex h-10 w-10 items-center justify-center rounded-xl text-white/70 dark:text-black/70 transition-all duration-300 hover:scale-110 hover:shadow-lg",
                                 hoverColorClass,
                                 isActive && activeColorClass
                             )}
@@ -200,8 +198,8 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
             href={item.href}
             prefetch={false}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-muted hover:text-foreground group relative",
-                isActive && cn("shadow-[0_0_20px_rgba(0,0,0,0.2)] font-semibold", "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.3)]")
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-white/70 dark:text-black/70 transition-all hover:bg-white/10 dark:hover:bg-black/5 hover:text-white dark:hover:text-black group relative",
+                isActive && cn("shadow-md font-semibold", "bg-white/10 dark:bg-black/5 text-white dark:text-black")
             )}
         >
             <item.icon className={cn("h-4 w-4 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
@@ -222,53 +220,55 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
       <div 
         className={cn(
           "sticky top-4 flex h-full max-h-[calc(100vh-2rem)] flex-col gap-2 rounded-xl border shadow-2xl overflow-hidden transition-all duration-300",
-          "bg-card/98 border-border"
+          "bg-[#121212] dark:bg-white border-white/10 dark:border-black/10 text-white dark:text-black"
         )}
         style={{ 
-          borderColor: 'rgba(255,255,255,0.05)',
+          borderColor: resolvedTheme === 'dark' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)',
         } as any}
       >
-        <div className={cn("flex h-14 items-center justify-center border-b border-white/5 px-4 lg:h-[60px] lg:px-6", "bg-white/5")}>
+        <div className={cn("flex h-14 items-center justify-center border-b border-white/10 dark:border-black/5 px-4 lg:h-[60px] lg:px-6", "bg-white/5 dark:bg-black/5")}>
           <Link href={getBrandLink(role)} className="flex items-center justify-center w-full h-full group">
             {isCollapsed ? (
                 <>
                   <Image
-                    src={VorianNewLogo}
-                    alt="Vorian Freight Logo"
-                    width={80}
-                    height={80}
-                    className="h-full w-full object-contain drop-shadow-lg transform scale-[2.5]"
+                    src={VorianWhiteLogo}
+                    alt="Vorian Global Logo"
+                    width={100}
+                    height={100}
+                    className="h-full w-full object-contain transform scale-[4.0] dark:invert"
                     priority
                     unoptimized
                   />
                 </>
             ) : (
-                <Image
-                src={VorianNewLogo}
-                width={120}
-                height={50}
-                alt="Vorian Logistics Logo"
-                className={cn(
-                  "transition-all duration-300 object-contain", 
-                  !mounted && "opacity-0"
-                )}
-                priority
-                unoptimized
-                />
+                <>
+                  <Image
+                  src={VorianWhiteLogo}
+                  width={200}
+                  height={80}
+                  alt="Vorian Logistics Logo"
+                  className={cn(
+                    "transition-all duration-300 object-contain transform scale-[2.0] dark:invert", 
+                    !mounted && "opacity-0"
+                  )}
+                  priority
+                  unoptimized
+                  />
+                </>
             )}
           </Link>
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
           <nav className={cn("grid items-start text-sm font-medium gap-1", isCollapsed ? "justify-center" : "")}>
-            {!isCollapsed && <p className="px-3 py-2 text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">General</p>}
+            {!isCollapsed && <p className="px-3 py-2 text-[10px] font-bold text-white/30 dark:text-black/30 uppercase tracking-[0.2em]">General</p>}
             {navItems.filter(i => i.group === 'GENERAL').map(renderNavItem)}
-            {!isCollapsed && <p className="px-3 py-2 mt-4 text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Otros</p>}
+            {!isCollapsed && <p className="px-3 py-2 mt-4 text-[10px] font-bold text-white/30 dark:text-black/30 uppercase tracking-[0.2em]">Otros</p>}
             {navItems.filter(i => i.group === 'OTROS').map(renderNavItem)}
-             <div className="mt-4 pt-4 border-t border-white/5">
+             <div className="mt-4 pt-4 border-t border-white/10 dark:border-black/5">
                  {isCollapsed ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
-                             <Button onClick={handleSignOut} variant="ghost" size="icon" className="w-full flex items-center justify-center h-10 w-10 rounded-xl text-white/50 transition-all duration-300 hover:bg-red-500/20 hover:text-red-400 hover:scale-110 hover:shadow-lg group">
+                             <Button onClick={handleSignOut} variant="ghost" size="icon" className="w-full flex items-center justify-center h-10 w-10 rounded-xl text-white/50 dark:text-black/50 transition-all duration-300 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 hover:scale-110 hover:shadow-lg group">
                                 <LogOut className="h-5 w-5 transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110" />
                                 <span className="sr-only">Cerrar Sesión</span>
                             </Button>
@@ -278,7 +278,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                 ) : (
                     <button
                         onClick={handleSignOut}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-white/60 transition-all hover:bg-red-500/10 hover:text-red-400 text-left w-full group"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-white/60 dark:text-black/60 transition-all hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 text-left w-full group"
                     >
                         <LogOut className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
                         Cerrar Sesión

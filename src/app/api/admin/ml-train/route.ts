@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       is_hazardous: log.is_hazardous || false,
       is_overweight: log.is_overweight || false,
       // Solo presentes en registros aceptados
-      target_factor: log.was_customer_accepted ? (log.factor_ml || 1.0) : null,
+      target_factor: log.was_customer_accepted ? ((log.factor_ml || 1.0) * (log.factor_market || 1.0)) : null,
       target_commission: log.was_customer_accepted ? (log.commission_pct || 0.10) : null,
     }));
 

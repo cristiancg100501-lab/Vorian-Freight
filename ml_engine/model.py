@@ -35,36 +35,33 @@ class VorianPricingModel:
     def predict(self, features: dict) -> dict:
         # COLD START: Si no hay modelo entrenado, devolvemos defaults
         if self.model is None:
-            return {
-                "factor": 1.0,
-                "commission": 0.10,
-                "is_exploration": False,
-                "conversion_probability": None  # Sin datos aún
-            }
+            base_factor = 1.0
+            base_commission = 0.10
+        else:
+            df = pd.DataFrame([features])
+            # Rellenar columnas faltantes con defaults seguros
+            for col in self.PRICE_FEATURES:
+                if col not in df.columns:
+                    df[col] = 0
 
-        df = pd.DataFrame([features])
-
-        # Rellenar columnas faltantes con defaults seguros
-        for col in self.PRICE_FEATURES:
-            if col not in df.columns:
-                df[col] = 0
-
-        prediction = self.model.predict(df[self.PRICE_FEATURES])[0]
-        base_factor = float(prediction[0])
-        base_commission = float(prediction[1])
+            prediction = self.model.predict(df[self.PRICE_FEATURES])[0]
+            base_factor = float(prediction[0])
+            base_commission = float(prediction[1])
 
         # --- Lógica Epsilon-Greedy (Exploración) ---
         is_exploration = False
-        if random.random() < 0.10:
+        # Para forzar variabilidad en pruebas, incluso en cold start
+        if random.random() < 0.20:
             is_exploration = True
-            factor_noise = random.uniform(-0.05, 0.10)
+            # Explorar escenarios hacia arriba (+0% a +30%) ya que el piso es 1.0
+            factor_noise = random.uniform(0.0, 0.30)
             comm_noise = random.uniform(-0.02, 0.02)
             base_factor += factor_noise
             base_commission += comm_noise
             print(f"🤖 IA EXPLORANDO: Ajuste factor {factor_noise*100:.1f}%, comisión {comm_noise*100:.1f}%")
 
-        # Safety bounds
-        final_factor = max(0.8, min(1.5, base_factor))
+        # Safety bounds: Piso de 1.0 para proteger la tarifa base
+        final_factor = max(1.0, min(1.5, base_factor))
         final_comm = max(0.05, min(0.20, base_commission))
 
         # Probabilidad de conversión (si el modelo ya existe)

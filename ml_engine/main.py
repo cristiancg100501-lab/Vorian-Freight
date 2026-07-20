@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from model import pricing_model
 
+# Trigger reload
 app = FastAPI(title="Vorian ML Engine")
 
 class PredictionRequest(BaseModel):
@@ -53,6 +54,7 @@ class TrainingRequest(BaseModel):
 @app.post("/predict")
 def predict_factor(req: PredictionRequest):
     result = pricing_model.predict(req.model_dump())
+    
     return {
         "factor_ml": result["factor"], 
         "commission_pct": result["commission"],

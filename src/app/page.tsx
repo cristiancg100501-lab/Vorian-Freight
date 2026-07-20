@@ -1,371 +1,626 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSupabase, useUser } from "@/components/providers/supabase-provider";
-import { useSupabaseDoc } from "@/hooks/supabase-hooks";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Truck, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import blueVorianLogo from "@/assets/bluevorian.png";
-import VorianNewLogo from "@/assets/vorian_new.png";
+import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, BarChart3, Map } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import VorianLogo from "@/assets/vorian_logo.png";
+import { FAQ } from "@/components/faq";
+import { GalacticCTA } from "@/components/galactic-cta";
+import { Footer } from "@/components/footer";
+import { CompanySection } from "@/components/company-section";
 
 import dynamic from 'next/dynamic';
-const LoginMap = dynamic(() => import('@/components/login-map').then(mod => mod.LoginMap), { 
+const LandingMap = dynamic(() => import('@/components/landing-map').then(mod => mod.LandingMap), { 
   ssr: false,
-  loading: () => <div className="w-full h-full min-h-[400px] flex items-center justify-center bg-zinc-900 animate-pulse"><span className="text-zinc-500 font-medium">Cargando mapa interactivo...</span></div>
+  loading: () => <div className="w-full h-full bg-[#141414] animate-pulse"></div>
 });
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { useTheme } from "next-themes";
 
-
-export default function Home() {
-  const { user, isUserLoading } = useUser();
-  const { supabase } = useSupabase();
-  const router = useRouter();
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+export default function LandingPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-
-  const { data: userProfile, isLoading: isProfileLoading } =
-    useSupabaseDoc("userProfiles", user?.id);
-
-  useEffect(() => {
-    if (!isUserLoading && user && userProfile) {
-      router.push(`/${(userProfile as any).role}`);
-    }
-  }, [user, userProfile, isUserLoading, router]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    let loginEmail = email;
-
-    // If it's not an email, assume it's a RUT and look up the email
-    if (!email.includes("@")) {
-      try {
-        const { data, error: lookupError } = await supabase
-          .from("userProfiles")
-          .select("email")
-          .eq("rut", email)
-          .single();
-
-        if (lookupError || !data) {
-          setError("RUT no encontrado en el sistema.");
-          setIsLoading(false);
-          return;
-        }
-        loginEmail = data.email;
-      } catch (err) {
-        console.error("RUT lookup error:", err);
-        setError("Error al verificar el RUT.");
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    try {
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password,
-      });
-
-      if (authError) throw authError;
-      
-    } catch (error: any) {
-      setError("Credenciales inválidas. Por favor, intente de nuevo.");
-    } finally {
-      setIsLoading(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+      setMobileMenuOpen(false);
     }
   };
 
-
-  const [showRetry, setShowRetry] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isUserLoading || (user && isProfileLoading)) {
-        setShowRetry(true);
-      }
-    }, 8000); // 8 seconds timeout
-    return () => clearTimeout(timer);
-  }, [isUserLoading, user, isProfileLoading]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
-
-  if (isUserLoading || (user && isProfileLoading)) {
-    return (
-      <div className="min-h-screen w-full bg-black flex flex-col justify-center items-center p-4">
-        <div className="flex flex-col items-center gap-6 animate-in fade-in duration-300">
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full" />
+  return (
+    <div className="min-h-screen bg-[#1c1c1c] font-sans selection:bg-white selection:text-black">
+      {/* Navigation */}
+      <nav 
+        className={`fixed w-full z-50 transition-all duration-500 ease-in-out ${
+          isScrolled 
+            ? "-translate-y-full opacity-0 pointer-events-none" 
+            : "translate-y-0 opacity-100 py-5"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 z-50">
             <Image 
-              src={VorianNewLogo} 
-              width={120} 
-              height={50} 
-              alt="Loading" 
-              className="relative animate-pulse object-contain"
-              priority
-              unoptimized
+              src={VorianLogo} 
+              alt="Vorian Global" 
+              width={150} 
+              height={42} 
+              className="object-contain"
             />
+          </Link>
+
+          {/* Desktop Menu - Fintech/Startup Capsule Style */}
+          <div className="hidden md:flex items-center justify-center absolute left-1/2 -translate-x-1/2">
+            <div className={`flex items-center gap-1 rounded-full px-1.5 py-1.5 transition-all duration-500 ${
+              isScrolled 
+                ? "bg-[#101010]/90 backdrop-blur-xl border border-zinc-800 shadow-[0_0_15px_rgba(0,0,0,0.5)]" 
+                : "bg-[#101010]/40 backdrop-blur-md border border-zinc-800/50"
+            }`}>
+              <a href="#soluciones" className="text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/60 px-5 py-2 rounded-full transition-all cursor-pointer">
+                Soluciones
+              </a>
+              <a href="#plataforma" className="text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/60 px-5 py-2 rounded-full transition-all cursor-pointer">
+                Plataforma
+              </a>
+              <a href="#compania" className="text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/60 px-5 py-2 rounded-full transition-all cursor-pointer">
+                Compañía
+              </a>
+            </div>
           </div>
-          <p className="text-xl font-light tracking-[0.2em] text-white/80 uppercase">Vorian Logistics</p>
+
+          {/* Actions */}
+          <div className="hidden md:flex items-center gap-4 z-50">
+            <Link href="/login" className="text-sm font-semibold text-zinc-300 hover:text-white transition-colors px-2">
+              Iniciar sesión
+            </Link>
+            <Link href="/login">
+              <Button className="bg-white text-black hover:bg-zinc-200 rounded-full px-6 py-5 font-bold shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all hover:scale-105 active:scale-95 group flex items-center gap-2">
+                Hablar con ventas
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="md:hidden z-50 text-white p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X /> : <Menu />}
+          </button>
         </div>
-        
+
+        {/* Mobile Menu Dropdown */}
         <AnimatePresence>
-          {showRetry && (
+          {mobileMenuOpen && (
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="mt-12 flex flex-col items-center gap-6 text-center"
+              className="absolute top-full left-0 w-full bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-zinc-800 py-6 px-6 flex flex-col gap-6 md:hidden"
             >
-              <p className="text-white/40 text-sm max-w-xs font-light leading-relaxed">
-                La conexión está tardando más de lo habitual. Por favor, verifica tu conexión o intenta de nuevo.
-              </p>
-              <div className="flex gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => window.location.reload()}
-                  className="border-white/10 text-white/80 hover:bg-white/5 hover:text-white rounded-full px-8"
-                >
-                  Reintentar
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  onClick={handleLogout}
-                  className="text-white/40 hover:text-white/80 hover:bg-transparent rounded-full"
-                >
-                  Cerrar Sesión
-                </Button>
+              <div className="flex flex-col gap-4">
+                <a href="#soluciones" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-zinc-200 cursor-pointer">
+                  Soluciones
+                </a>
+                <a href="#plataforma" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-zinc-200 cursor-pointer">
+                  Plataforma
+                </a>
+                <a href="#compania" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-zinc-200 cursor-pointer">
+                  Compañía
+                </a>
+              </div>
+              <div className="h-px w-full bg-zinc-800"></div>
+              <div className="flex flex-col gap-4">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-zinc-200">
+                  Iniciar sesión
+                </Link>
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full bg-white text-black hover:bg-zinc-200 rounded-full py-6 text-lg font-semibold">
+                    Hablar con ventas
+                  </Button>
+                </Link>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-    );
-  }
+      </nav>
 
-  // If user is logged in but has no profile, show a different state or redirect
-  if (!isUserLoading && user && !isProfileLoading && !userProfile) {
-    return (
-      <div className="min-h-screen w-full bg-black flex flex-col justify-center items-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full space-y-10 text-center"
-        >
-          <div className="flex justify-center">
-            <div className="relative">
-              <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full" />
-              <div className="p-6 bg-yellow-500/10 rounded-full border border-yellow-500/20 relative">
-                <AlertCircle className="h-12 w-12 text-yellow-500" />
+      <main className="pt-24 md:pt-32 pb-16 relative">
+        {/* Dynamic Background Glowing Orbs */}
+        <div className="absolute top-0 left-[20%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-[pulse_8s_ease-in-out_infinite]"></div>
+        <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-green-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite_reverse]"></div>
+
+        {/* Hero Section */}
+        <section className="container mx-auto px-4 md:px-6 py-12 md:py-24 flex flex-col items-center text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-800/50 text-zinc-300 text-sm font-medium mb-8 border border-zinc-700/50"
+          >
+            <span className="flex h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+            La evolución del transporte terrestre
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="text-5xl md:text-7xl font-extrabold tracking-tight text-white max-w-4xl mb-6 leading-tight"
+          >
+            Logística <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 to-white">inteligente</span> para tu empresa
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="text-lg md:text-xl text-zinc-400 max-w-2xl mb-10 leading-relaxed"
+          >
+            Conectamos cargas con transportistas de manera eficiente, segura y transparente.
+            Gestiona tu flota o tus envíos desde una plataforma unificada.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+            className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+          >
+            <Link href="/login">
+              <Button className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-semibold bg-white text-black hover:bg-zinc-200 hover:scale-105 transition-all shadow-xl shadow-white/5">
+                Crea tu cuenta gratis <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="#como-funciona">
+              <Button variant="outline" className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-semibold border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all">
+                Conoce más
+              </Button>
+            </Link>
+          </motion.div>
+
+          {/* Realistic Dashboard Mockup */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+            className="w-full max-w-5xl mt-16 md:mt-24 relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1c] via-[#1c1c1c]/20 to-transparent z-20 pointer-events-none"></div>
+            
+            <div className="relative bg-[#0d0d0d] rounded-xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/50 flex flex-col md:flex-row text-left w-full aspect-[16/9] md:aspect-[21/9]">
+              
+              {/* Sidebar (Mock) */}
+              <div className="hidden md:flex w-56 lg:w-64 bg-[#141414] border-r border-zinc-800 flex-col p-4">
+                <div className="flex items-center gap-3 mb-8 px-2">
+                  <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center">
+                    <Truck className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="font-semibold text-white text-sm">Vorian Dashboard</div>
+                </div>
+                
+                <div className="space-y-1">
+                  {["Visión General", "Rutas Activas", "Flota", "Conductores", "Reportes"].map((item, idx) => (
+                    <div key={idx} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-3 ${idx === 1 ? 'bg-zinc-800 text-white font-medium' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors'}`}>
+                      {idx === 1 && <Map className="w-4 h-4" />}
+                      {idx !== 1 && <div className="w-4 h-4 rounded-full border border-zinc-600/50"></div>}
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="mt-auto pt-4 border-t border-zinc-800">
+                  <div className="flex items-center gap-3 px-2">
+                    <div className="w-8 h-8 rounded-full bg-zinc-700"></div>
+                    <div className="text-xs">
+                      <div className="text-zinc-200 font-medium">Administrador</div>
+                      <div className="text-zinc-500 truncate w-32">admin@empresa.com</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Content Area (Mock) */}
+              <div className="flex-1 bg-[#1a1a1a] flex flex-col">
+                {/* Topbar */}
+                <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-[#141414]">
+                  <div className="flex items-center gap-2 text-zinc-400 text-sm font-medium">
+                    Rutas Activas <span className="text-zinc-600">/</span> <span className="text-white">Ruta #VF-8492</span>
+                  </div>
+                  <div className="flex items-center gap-3 hidden sm:flex">
+                    <div className="w-32 lg:w-48 h-8 bg-[#0d0d0d] border border-zinc-800 rounded-md"></div>
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dashboard Body */}
+                <div className="p-4 lg:p-6 flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { label: "Panel de Ingresos", value: "$0", trend: "Demo" },
+                      { label: "Envíos en curso", value: "0", trend: "Iniciando" },
+                      { label: "Estado del Sistema", value: "Óptimo", trend: "100%", hidden: true },
+                    ].map((stat, idx) => (
+                      <div key={idx} className={`bg-[#141414] border border-zinc-800 rounded-xl p-4 flex flex-col gap-2 ${stat.hidden ? 'hidden lg:flex' : 'flex'}`}>
+                        <div className="text-xs text-zinc-500 uppercase tracking-wider">{stat.label}</div>
+                        <div className="flex items-end justify-between">
+                          <div className="text-xl lg:text-2xl font-bold text-white">{stat.value}</div>
+                          <div className="text-xs font-medium text-green-500">{stat.trend}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Map / Tracking View */}
+                  <div className="flex-1 bg-[#101010] border border-zinc-800 rounded-xl relative overflow-hidden flex min-h-[200px]">
+                    <div className="absolute inset-0 pointer-events-none">
+                      <LandingMap theme="dark" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-4xl font-light tracking-tight text-white">Perfil no encontrado</h2>
-            <p className="text-white/50 font-light leading-relaxed">
-              Tu cuenta se autenticó correctamente, pero no encontramos un perfil asociado en nuestro sistema.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button 
-              onClick={handleLogout} 
-              variant="outline" 
-              className="border-white/10 text-white/80 hover:bg-white/5 hover:text-white rounded-full px-8 h-12"
-            >
-              Cerrar Sesión
-            </Button>
-            <Button 
-              onClick={() => router.push('/signup')} 
-              className="bg-white text-black hover:bg-white/90 rounded-full px-8 h-12 font-medium"
-            >
-              Ir al Registro
-            </Button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
+          </motion.div>
+        </section>
 
-  return (
-    <div className="min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500 bg-white">
-      {/* Background with dynamic map */}
-      <div className="absolute inset-0 h-full w-full">
-        <LoginMap theme="light" key="light" />
-      </div>
-      
-      <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[440px] relative"
-        >
-          <div className="relative rounded-[2rem] border border-border/10 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-500 bg-background/70 text-foreground">
-            <div className="p-8 md:p-12">
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex justify-center mb-10"
-              >
-                <Image
-                  src={blueVorianLogo}
-                  width={180}
-                  height={75}
-                  alt="Vorian Logistics Logo"
-                  className="transition-all duration-300 drop-shadow-md"
-                  priority
-                  unoptimized
-                />
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                  Bienvenido
-                </h1>
-                <p className="text-muted-foreground mt-2 font-medium text-sm">
-                  Inicia sesión para acceder a tu panel de control.
-                </p>
-              </motion.div>
 
-              <form onSubmit={handleLogin} className="mt-10 space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                    Email o RUT
-                  </Label>
-                  <Input
-                    id="email"
-                    type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nombre@empresa.com o 12.345.678-9"
-                    required
-                    className="h-12 rounded-xl border-border bg-background/50 px-4 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
-                  />
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="space-y-2"
-                >
-                  <div className="flex justify-between items-center px-1">
-                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                      Contraseña
-                    </Label>
-                    <Link href="#" className="flex hover:underline opacity-60 hover:opacity-100 text-[10px] font-bold uppercase tracking-widest text-primary transition-all">
-                      ¿Olvidaste?
-                    </Link>
-                  </div>
-                  <div className="relative group">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className="h-12 rounded-xl border-border bg-background/50 px-4 pr-12 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </motion.div>
-                
-                <AnimatePresence>
-                  {error && (
-                    <motion.p 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="text-destructive font-semibold text-xs px-1"
-                    >
-                      {error}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  <Button
-                    type="submit"
-                    className="w-full h-14 rounded-xl font-bold text-sm bg-foreground hover:bg-foreground/90 text-background shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="h-5 w-5 border-2 border-background/20 border-t-background rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        Entrar
-                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              </form>
-            </div>
-            
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7 }}
-              className="border-t border-border/50 bg-muted/30 p-6 text-center backdrop-blur-md"
-            >
-              <p className="text-xs text-muted-foreground font-semibold tracking-wide">
-                ¿Aún no eres parte?{" "}
-                <Link
-                  href="/signup"
-                  className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
-                >
-                  Crea una cuenta
-                </Link>
+        {/* Features Grid */}
+        <section id="soluciones" className="py-20 md:py-32 bg-[#1c1c1c]">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center max-w-3xl mx-auto mb-16 md:mb-24">
+              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
+                Todo lo que necesitas para mover tu carga
+              </h2>
+              <p className="text-lg text-zinc-400">
+                Herramientas diseñadas para simplificar la logística, reducir costos y mantener tu negocio en movimiento.
               </p>
-            </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[280px]">
+              {/* Box 1: Large (2 cols, 1 row) - Tracking */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5 }}
+                className="md:col-span-2 bg-[#101010] rounded-[2rem] p-8 border border-zinc-800 hover:border-zinc-700 transition-all duration-300 overflow-hidden relative group shadow-lg"
+              >
+                <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-zinc-500/20 transition-colors duration-500"></div>
+                <div className="relative z-10 w-full h-full flex flex-col justify-between">
+                  <div>
+                    <div className="w-12 h-12 rounded-xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center text-white mb-4 backdrop-blur-sm">
+                      <Map className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Rastreo en tiempo real</h3>
+                    <p className="text-zinc-400 max-w-sm">Mantén el control total de tus envíos con actualizaciones precisas de ubicación y estado 24/7 en el mapa.</p>
+                  </div>
+                  
+                  {/* Decorative element: Mini Map UI */}
+                  <div className="absolute right-0 bottom-0 w-[60%] h-[75%] bg-[#1a1a1a] rounded-tl-2xl border-t border-l border-zinc-800 translate-x-8 translate-y-8 group-hover:translate-x-4 group-hover:translate-y-4 transition-transform duration-500 hidden md:block overflow-hidden shadow-2xl">
+                     {/* Fake Map Grid & Routes */}
+                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                     
+                     {/* Route Line */}
+                     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                       <path d="M 40 140 Q 100 120 120 80 T 220 40" fill="transparent" stroke="white" strokeWidth="2" strokeDasharray="4 4" className="opacity-30" />
+                     </svg>
+                     
+                     {/* Start Point */}
+                     <div className="absolute left-[30px] top-[130px] w-4 h-4 bg-zinc-700 border-2 border-[#1a1a1a] rounded-full shadow-md z-10"></div>
+                     
+                     {/* Moving Truck / Current Location */}
+                     <div className="absolute left-[110px] top-[70px] z-20">
+                        <div className="w-12 h-12 bg-white/5 rounded-full absolute -top-4 -left-4 animate-ping"></div>
+                        <div className="w-4 h-4 bg-white border-2 border-[#1a1a1a] rounded-full shadow-[0_0_15px_#ffffff] relative z-10"></div>
+                     </div>
+                     
+                     {/* Destination Point */}
+                     <div className="absolute left-[210px] top-[30px] w-5 h-5 bg-zinc-800 border-2 border-[#1a1a1a] rounded-full shadow-md z-10 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full"></div>
+                     </div>
+                     
+                     {/* Floating ETA Card */}
+                     <div className="absolute bottom-4 left-4 right-4 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3 shadow-lg z-30 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs">🚚</div>
+                          <div>
+                            <div className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">En tránsito</div>
+                            <div className="text-xs text-white font-bold truncate w-24">Patente XY-99</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">ETA</div>
+                          <div className="text-xs text-white font-bold text-green-400">14:30</div>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Box 2: Tall (1 col, 2 rows) - Fleet Management */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="row-span-2 bg-gradient-to-b from-[#1c1c1c] to-[#101010] rounded-[2rem] p-8 border border-zinc-800 hover:border-zinc-700 transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
+              >
+                <div className="absolute bottom-0 left-0 w-full h-1/2 bg-zinc-500/5 blur-[80px] group-hover:bg-zinc-500/10 transition-colors duration-500"></div>
+                <div className="relative z-10 flex-1 flex flex-col">
+                  <div className="w-12 h-12 rounded-xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center text-white mb-4 backdrop-blur-sm">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Gestión ultra eficiente</h3>
+                  <p className="text-zinc-400 mb-8">Digitaliza procesos, asigna cargas en segundos y mejora tus márgenes operativos con inteligencia artificial.</p>
+                  
+                  {/* Decorative element: Stats Bars */}
+                  <div className="mt-auto flex flex-col gap-4">
+                    {[
+                      { label: "Tiempo de Asignación", width: "w-[15%]", color: "bg-white" },
+                      { label: "Costos Operativos", width: "w-[40%]", color: "bg-zinc-400" },
+                      { label: "Satisfacción", width: "w-[95%]", color: "bg-zinc-600" },
+                    ].map((stat, i) => (
+                      <div key={i} className="space-y-2">
+                        <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{stat.label}</div>
+                        <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                          <motion.div 
+                            className={`h-full ${stat.color} rounded-full`}
+                            initial={{ width: 0 }}
+                            whileInView={{ width: stat.width.replace('w-[', '').replace(']', '') }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1, delay: 0.5 + (i * 0.2) }}
+                          ></motion.div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Box 3: Small (1 col, 1 row) - Smart Match */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-[#101010] rounded-[2rem] p-8 border border-zinc-800 hover:border-zinc-700 transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col"
+              >
+                <div className="relative z-10 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Match Inteligente</h3>
+                    <p className="text-zinc-400 text-sm">IA que conecta tu carga con el transportista ideal en milisegundos.</p>
+                  </div>
+                  
+                  {/* Decorative Real UI element */}
+                  <div className="mt-6 bg-[#1a1a1a] rounded-xl border border-zinc-800 p-4 relative group-hover:-translate-y-1 transition-transform duration-500 shadow-inner">
+                    <div className="flex items-center justify-between mb-3">
+                       <div className="flex -space-x-2">
+                         <div className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-[#1a1a1a] flex items-center justify-center text-[10px] text-white z-10 shadow-sm">📦</div>
+                         <div className="w-8 h-8 rounded-full bg-zinc-700 border-2 border-[#1a1a1a] flex items-center justify-center text-[10px] text-white z-0 shadow-sm">🚚</div>
+                       </div>
+                       <div className="bg-white/10 text-white px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 border border-white/5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                          99% Match
+                       </div>
+                    </div>
+                    <div className="w-full bg-zinc-800/50 rounded-full h-1.5 overflow-hidden">
+                       <motion.div 
+                         className="bg-white h-1.5 rounded-full"
+                         initial={{ width: 0 }}
+                         whileInView={{ width: "99%" }}
+                         viewport={{ once: true }}
+                         transition={{ duration: 1.5, delay: 0.8 }}
+                       ></motion.div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Box 4: Small (1 col, 1 row) - Analytics */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="bg-[#1c1c1c] rounded-[2rem] p-8 border border-zinc-800 hover:border-zinc-700 transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-zinc-800/40 via-transparent to-transparent opacity-50"></div>
+                <div className="relative z-10 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Analítica Avanzada</h3>
+                    <p className="text-zinc-400 text-sm">Visualiza el rendimiento logístico con reportes en tiempo real.</p>
+                  </div>
+                  
+                  {/* Decorative Real UI element */}
+                  <div className="mt-6 flex items-end gap-1.5 h-24 w-full opacity-80 group-hover:opacity-100 transition-opacity duration-500 pt-6">
+                    {[40, 70, 45, 90, 65, 100, 80].map((height, i) => (
+                      <div key={i} className="flex-1 rounded-t-sm relative group/bar flex flex-col justify-end h-full">
+                        <motion.div 
+                          className="w-full bg-zinc-800 group-hover/bar:bg-zinc-600 transition-colors rounded-t-sm"
+                          initial={{ height: 0 }}
+                          whileInView={{ height: `${height}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.8, delay: 0.5 + (i * 0.1) }}
+                        >
+                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">
+                            {height}%
+                          </div>
+                        </motion.div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
-          
-        </motion.div>
+        </section>
+
+        {/* How it Works / Split Section */}
+        <section id="plataforma" className="py-20 md:py-32 bg-[#171717] overflow-hidden">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+              <motion.div
+                initial={{ opacity: 0, x: -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="w-full lg:w-1/2"
+              >
+                <div className="aspect-square max-w-md mx-auto lg:mx-0 relative">
+                  <div className="absolute inset-0 bg-green-500/10 rounded-full blur-[80px] opacity-50 transform translate-x-10 translate-y-10 pointer-events-none"></div>
+                  
+                  <div className="relative h-full bg-[#101010] rounded-[2rem] border border-zinc-800 shadow-2xl p-6 flex flex-col overflow-hidden">
+                    {/* Header */}
+                    <div className="text-white font-bold mb-6 flex items-center justify-between z-10">
+                      Buscando Transportista...
+                      <div className="flex gap-1">
+                        <motion.div animate={{ height: [4, 14, 4] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 bg-green-500 rounded-full"></motion.div>
+                        <motion.div animate={{ height: [4, 20, 4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 bg-green-500 rounded-full"></motion.div>
+                        <motion.div animate={{ height: [4, 10, 4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 bg-green-500 rounded-full"></motion.div>
+                      </div>
+                    </div>
+                    
+                    {/* The Load / Cargo Card */}
+                    <motion.div 
+                      className="bg-[#1c1c1c] border border-zinc-800 rounded-xl p-5 mb-2 shadow-lg z-10 relative"
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                    >
+                      <div className="text-xs text-zinc-400 mb-1 font-semibold uppercase tracking-wider">Carga Disponible</div>
+                      <div className="font-bold text-white text-lg">24 Pallets - Refrigerado</div>
+                      <div className="flex justify-between items-center mt-4 text-sm text-zinc-300">
+                        <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Santiago</span>
+                        <ArrowRight className="w-4 h-4 text-zinc-600" />
+                        <span className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500"></div> Valparaíso</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Connecting Line / Scanning Effect */}
+                    <div className="flex-1 flex flex-col items-center justify-center relative my-2">
+                      <div className="absolute w-px h-full bg-zinc-800/80"></div>
+                      <motion.div 
+                        className="absolute w-[2px] bg-green-500 shadow-[0_0_15px_#22c55e]"
+                        initial={{ top: 0, height: 0, opacity: 0 }}
+                        animate={{ top: ["0%", "50%", "100%"], height: ["0%", "50%", "0%"], opacity: [0, 1, 0] }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                      ></motion.div>
+                      <div className="w-10 h-10 rounded-full bg-[#101010] border border-zinc-700 z-10 flex items-center justify-center shadow-lg">
+                        <ShieldCheck className="w-5 h-5 text-green-500" />
+                      </div>
+                    </div>
+
+                    {/* The Matched Truck Card */}
+                    <motion.div 
+                      className="bg-green-500/10 border border-green-500/30 rounded-xl p-5 mt-2 shadow-[0_0_30px_rgba(34,197,94,0.15)] z-10 relative overflow-hidden"
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      animate={{ opacity: [0, 1, 1, 0], y: [30, 0, 0, 30], scale: [0.95, 1, 1, 0.95] }}
+                      transition={{ repeat: Infinity, duration: 5, times: [0, 0.15, 0.85, 1], ease: "easeOut" }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 shadow-inner">
+                            <Truck className="w-6 h-6 text-zinc-300" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-white text-lg">Carlos R.</div>
+                            <div className="text-xs text-green-400 font-bold flex items-center gap-1 mt-0.5">
+                              ✓ Match Perfecto (99%)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-green-500 text-black font-extrabold text-sm px-3 py-1.5 rounded shadow-sm">
+                          $350.000
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="bg-black/50 text-zinc-300 text-xs font-semibold px-2.5 py-1.5 rounded border border-white/5 backdrop-blur-sm">Frigorífico</div>
+                        <div className="bg-black/50 text-zinc-300 text-xs font-semibold px-2.5 py-1.5 rounded border border-white/5 backdrop-blur-sm">A 5 km</div>
+                        <div className="bg-black/50 text-yellow-500 text-xs font-semibold px-2.5 py-1.5 rounded border border-yellow-500/20 backdrop-blur-sm flex items-center gap-1">★ 4.9</div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="w-full lg:w-1/2"
+              >
+                <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
+                  Una plataforma. <br />Infinitas posibilidades.
+                </h2>
+                <p className="text-lg text-zinc-400 mb-10">
+                  Ya sea que necesites enviar carga o tengas camiones disponibles, Vorian Global centraliza toda la operación para que te enfoques en crecer tu negocio.
+                </p>
+
+                <div className="space-y-8">
+                  {[
+                    {
+                      step: "01",
+                      title: "Publica tu carga o disponibilidad",
+                      desc: "Sube los detalles de tu requerimiento en segundos a través de una interfaz intuitiva."
+                    },
+                    {
+                      step: "02",
+                      title: "Match inteligente",
+                      desc: "Nuestro sistema conecta automáticamente la carga con el transportista ideal según ruta y capacidad."
+                    },
+                    {
+                      step: "03",
+                      title: "Viaje monitoreado y pago seguro",
+                      desc: "Sigue el trayecto en tiempo real y gestiona la documentación de entrega sin fricciones."
+                    }
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-6">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center font-bold font-mono">
+                        {item.step}
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold text-white mb-2">{item.title}</h4>
+                        <p className="text-zinc-400">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Company Section */}
+        <CompanySection />
+
+
+
+        {/* FAQ Section */}
+        <FAQ />
+
+        {/* Galactic CTA Section */}
+        <GalacticCTA />
       </main>
+
+      <Footer />
     </div>
   );
 }
-

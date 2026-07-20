@@ -15,7 +15,8 @@ export async function POST(request: Request) {
         service_mode, cargo_units, ltl_details, weather_condition,
         special_handling, accessorials,
         pickup_date, pickup_window,
-        customer_id, is_asap
+        customer_id, is_asap,
+        cargo_value
     } = body;
 
     // 0. Fetch regional diesel price from 'combustibles' table
@@ -64,10 +65,26 @@ export async function POST(request: Request) {
 
     // Fallbacks para soportar tanto la v4.0 como la v5.0 del RPC
     const rpcSubtotal = rpcData.subtotal ?? rpcData.subtotal_base ?? 0;
+    
+    // Retorno de Chofer (30% sobre el flete base de ida)
+    const driverReturnCost = rpcSubtotal * 0.30;
+    
     const rpcCommission = rpcData.commission ?? (rpcData.total ? rpcData.total - rpcSubtotal : 0);
     const tollsCost = rpcData.tolls_cost ?? 0;
 
-    let basePrice = rpcSubtotal + rpcCommission; // Precio base antes de peajes
+    // ── SEGURO DE CARGA (Aseguradora) ─────────────────────────────────
+    // Fórmula: (Valor Flete + Valor Carga + 10%) × 0.32%
+    // Mínimo: USD $50 (convertido a CLP con TC fijo 950)
+    const CLP_PER_USD = 950;
+    const declaredCargoValue = Number(cargo_value) || 0;
+    const freightValueForInsurance = rpcSubtotal + driverReturnCost;
+    const insuranceBase = (freightValueForInsurance + declaredCargoValue) * 1.10;
+    const insurancePremiumRaw = insuranceBase * 0.0032;
+    const insuranceMinimum = 50 * CLP_PER_USD; // USD $50 mínimo
+    const insurancePremium = Math.max(insurancePremiumRaw, declaredCargoValue > 0 ? insuranceMinimum : 0);
+    console.log(`🛡️ SEGURO: Base asegurada $${Math.round(insuranceBase)} | Prima $${Math.round(insurancePremium)} (mín $${insuranceMinimum}) | Carga declarada $${declaredCargoValue}`);
+
+    let basePrice = rpcSubtotal + driverReturnCost + rpcCommission; // Precio base antes de peajes
     const distanceKm = rpcData.factors?.distance_total ?? ((distance_meters || 0) / 1000) * 2;
     const durationHrs = (duration_mins || 0) / 60;
     
@@ -232,8 +249,9 @@ export async function POST(request: Request) {
             // Si hay 500 envíos en el país y 150 acá -> Score = 150 * 0.3 = 45 (Zona hirviendo)
             const dynamicScore = highDemandShipmentsCount * concentration;
             
-            // 3. Mapeo a tarifa (Máximo +30% de recargo cuando el score llega a 15)
-            const zonalSurge = Math.min((dynamicScore / 15) * 0.30, 0.30);
+            // 3. Mapeo a tarifa (Máximo +15% de recargo cuando el score llega a 30)
+            // Se suavizó para fase de pruebas (antes max 30% con score 15)
+            const zonalSurge = Math.min((dynamicScore / 30) * 0.15, 0.15);
             factorMarket += zonalSurge;
             
             console.log(`🔥 AUTO-CALIBRACIÓN ZONAL: ${highDemandShipmentsCount}/${totalPlatformShipments} fletes (${(concentration*100).toFixed(0)}% del país). Score: ${dynamicScore.toFixed(1)}. Factor +${(zonalSurge * 100).toFixed(1)}%`);
@@ -276,7 +294,8 @@ export async function POST(request: Request) {
                     return false;
                 }).length;
                 
-                if (outboundFromDest === 0) {
+                // Solo aplicamos penalización por retorno vacío si la plataforma ya tiene algo de liquidez (ej. > 20 envíos)
+                if (outboundFromDest === 0 && totalPlatformShipments > 20) {
                     deadheadPenalty = 0.15; // +15% penalty if no outbound traffic
                     console.log(`⚠️ DEADHEAD DETECTADO en destino. Recargo +15%.`);
                 }
@@ -353,11 +372,12 @@ export async function POST(request: Request) {
         const demandPressure = recentAccepted / Math.max(freeDrivers, 1);
 
         // Fórmula combinada: 60% utilización de flota + 40% presión de demanda aceptada
-        // Cap de seguridad: máximo +40%
+        // Cap de seguridad: suavizado a máximo +15% para fase de pruebas (antes 40%)
+        // También reducimos la presión de demanda a la mitad (* 0.2 en lugar de * 0.4)
         if (totalFleet > 0 || recentAccepted > 0) {
             factorSupplyDemand = Math.min(
-                demandSensitivity * (utilizationRate * 0.6 + demandPressure * 0.4),
-                0.40
+                demandSensitivity * (utilizationRate * 0.6 + demandPressure * 0.2),
+                0.15
             );
         }
 
@@ -425,9 +445,11 @@ export async function POST(request: Request) {
     factorMarket += loyaltyDiscount;
 
     // g) Límite de Seguridad (Surge Cap)
-    // Para evitar espantar clientes, la tarifa base (1.0) nunca puede subir más de 45% ni bajar más de 10%
+    // Para evitar espantar clientes, permitimos que baje hasta un 30% y suba hasta un 45%
     if (factorMarket > 1.45) factorMarket = 1.45;
-    if (factorMarket < 0.90) factorMarket = 0.90;
+    if (factorMarket < 0.70) factorMarket = 0.70;
+
+    // Límite removido o ignorado porque forzaremos a que la IA mande.
 
     // 3. Consultar al Modelo ML (FastAPI)
     let factorML = 1.0;
@@ -475,12 +497,12 @@ export async function POST(request: Request) {
     }
 
     // 4. Calcular Precio Final
-    // Si la IA ya aprendió (!isColdStart), factorMarket se ignora porque la IA ya internalizó la escasez y el clima
-    // Si la IA está en pañales (isColdStart), sumamos la heurística matemática.
-    const totalMarketMultiplier = isColdStart ? (factorMarket + factorWeather) : 1.0;
+    // FASE MVP: Reactivamos las heurísticas manuales (Envío Inmediato, Clima, Horario, etc.)
+    const totalMarketMultiplier = factorMarket;
     
-    // El ML Factor en cold_start es 1.0. Cuando ya está entrenada, el factorML contiene TODA la predicción del alza.
-    const finalPrice = (basePrice * factorML * totalMarketMultiplier) + accessorialsTotal + tollsCost;
+    // SHADOW MODE: Ignoramos el factorML en el precio final para evitar saltos aleatorios (exploración).
+    // El ML sigue recolectando datos silenciosamente, pero el cliente paga el multiplicador determinista.
+    const finalPrice = (basePrice * 1.0 * totalMarketMultiplier) + accessorialsTotal + tollsCost + insurancePremium;
 
     // 5. Registrar Cotización (Embudo y Entrenamiento IA)
     const { data: logData, error: logError } = await supabaseAdmin.from('pricing_ml_logs').insert({
@@ -510,7 +532,10 @@ export async function POST(request: Request) {
         weather_severity: weather_severity,
         zonal_concentration: zonal_concentration,
         is_hazardous: is_hazardous,
-        is_overweight: is_overweight
+        is_overweight: is_overweight,
+        driver_return_cost: driverReturnCost,
+        insurance_premium: insurancePremium,
+        cargo_value: declaredCargoValue
     }).select('id').single();
 
     if (logError) {
@@ -541,12 +566,15 @@ export async function POST(request: Request) {
     return NextResponse.json({
         success: true,
         log_id: logData?.id || null,
-        base_price: basePrice + tollsCost,
-        final_price: finalPrice, 
-        carrier_payment: carrierPayment,
-        platform_fee: platformFee,
+        base_price: Math.round(basePrice + tollsCost),
+        final_price: Math.round(finalPrice), 
+        carrier_payment: Math.round(carrierPayment),
+        platform_fee: Math.round(platformFee),
         breakdown: {
             base_freight: Math.round(rpcSubtotal),
+            driver_return_cost: Math.round(driverReturnCost),
+            insurance_premium: Math.round(insurancePremium),
+            cargo_value: Math.round(declaredCargoValue),
             accessorials_total: Math.round(accessorialsTotal),
             market_adjustment: Math.round(marketAdjustmentCost),
             weather_adjustment: Math.round(weatherAdjustmentCost),

@@ -177,7 +177,7 @@ export default function CustomerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <p className="text-sm font-medium text-muted-foreground">Envíos Activos</p>
-                <div className="p-2 bg-blue-500/10 rounded-full text-blue-500">
+                <div className="p-2 bg-foreground/10 rounded-full text-foreground">
                   <Activity className="h-4 w-4" />
                 </div>
               </div>
@@ -195,7 +195,7 @@ export default function CustomerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <p className="text-sm font-medium text-muted-foreground">Total Envíos</p>
-                <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <div className="p-2 bg-foreground/10 rounded-full text-foreground">
                   <Package className="h-4 w-4" />
                 </div>
               </div>
@@ -213,7 +213,7 @@ export default function CustomerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <p className="text-sm font-medium text-muted-foreground">Gasto Acumulado</p>
-                <div className="p-2 bg-green-500/10 rounded-full text-green-500">
+                <div className="p-2 bg-foreground/10 rounded-full text-foreground">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function CustomerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between space-y-0 pb-2">
                 <p className="text-sm font-medium text-muted-foreground">Efectividad</p>
-                <div className="p-2 bg-blue-500/10 rounded-full text-blue-500">
+                <div className="p-2 bg-foreground/10 rounded-full text-foreground">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
               </div>
@@ -377,11 +377,6 @@ export default function CustomerDashboard() {
                   )}
                 </div>
 
-                {/* Chat Integration */}
-                <div className="mt-6 pt-4 border-t">
-                  <h3 className="text-sm font-semibold mb-3">Mensajes (Conductor / Soporte)</h3>
-                  <ChatWidget shipmentId={selectedShipment.id} currentUserType="customer" />
-                </div>
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center py-12">

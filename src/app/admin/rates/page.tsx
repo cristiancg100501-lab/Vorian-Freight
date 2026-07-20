@@ -40,9 +40,10 @@ import {
 
 
 const vehicleTypes = [
+    { value: "furgon", label: "Furgón (CAT 1)", icon: Truck },
     { value: "camion_3_4", label: "Camión 3/4 (3.5T - 5T)", icon: Truck },
-    { value: "Camion Ligero", label: "Camión Rígido (CAT 2)", icon: Truck },
-    { value: "Camion Pesado", label: "Tracto-Camión (CAT 3)", icon: Truck },
+    { value: "camion_simple", label: "Camión Rígido (CAT 2)", icon: Truck },
+    { value: "rampla_40", label: "Tracto-Camión (CAT 3)", icon: Truck },
 ];
 
 // Helper to get month name in Spanish, ensuring uppercase start
@@ -403,8 +404,8 @@ export default function AdminRatesPage() {
           setSuccess(`Tarifas para ${vehicleId} actualizadas.`);
           setTimeout(() => setSuccess(null), 3000);
         } catch (err: any) {
-          setError(`Error al actualizar ${vehicleId}.`);
-          console.error(err);
+          setError(`Error al actualizar ${vehicleId}: ${err.message || JSON.stringify(err)}`);
+          console.error("UPSERT ERROR FULL:", JSON.stringify(err, null, 2));
         } finally {
           setSavingStates(prev => ({ ...prev, [vehicleId]: false }));
         }

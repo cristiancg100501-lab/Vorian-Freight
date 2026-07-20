@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useMemo, use } from "react";
 import { useSupabase } from "@/components/providers/supabase-provider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -125,6 +125,74 @@ export default function ShipmentTrackingPage({ params }: { params: Promise<{ id:
     };
   }, [shipment?.driverId, supabase]);
 
+  // Route fetch state (must be before any conditional return per React rules of hooks)
+  const [fetchedRoute, setFetchedRoute] = useState<any>(null);
+
+  // Parsear coordenadas para el mapa
+  const { originCoords, destCoords, routeGeo } = useMemo(() => {
+    let origin: [number, number] | null = null;
+    let dest: [number, number] | null = null;
+    let route: any = null;
+
+    if (!shipment) return { originCoords: origin, destCoords: dest, routeGeo: route };
+
+    // 1. Intentar obtener la geometría de ruta
+    try {
+      const rawRoute = shipment.routeGeometry || shipment.details?.route;
+      if (rawRoute) {
+        route = typeof rawRoute === 'string' ? JSON.parse(rawRoute) : rawRoute;
+        if (route?.coordinates?.length > 0) {
+          origin = route.coordinates[0];
+          dest = route.coordinates[route.coordinates.length - 1];
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing route geometry:', e);
+    }
+
+    // 2. Fallback: extraer coordenadas de campos PostGIS (origin/destination)
+    if (!origin && shipment.origin) {
+      try {
+        if (typeof shipment.origin === 'string' && shipment.origin.includes('POINT')) {
+          const match = shipment.origin.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+          if (match) origin = [parseFloat(match[1]), parseFloat(match[2])];
+        }
+      } catch (e) {}
+    }
+    if (!dest && shipment.destination) {
+      try {
+        if (typeof shipment.destination === 'string' && shipment.destination.includes('POINT')) {
+          const match = shipment.destination.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+          if (match) dest = [parseFloat(match[1]), parseFloat(match[2])];
+        }
+      } catch (e) {}
+    }
+
+    return { originCoords: origin, destCoords: dest, routeGeo: route };
+  }, [shipment]);
+
+  // 3. Fallback: si tenemos coords pero no ruta, solicitar ruta a Mapbox
+  useEffect(() => {
+    if (originCoords && destCoords && !routeGeo && !fetchedRoute) {
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(
+            `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?geometries=geojson&overview=full&access_token=pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ`
+          );
+          const data = await res.json();
+          if (data.routes?.[0]?.geometry) {
+            setFetchedRoute(data.routes[0].geometry);
+          }
+        } catch (e) {
+          console.warn('Could not fetch route from Mapbox:', e);
+        }
+      };
+      fetchRoute();
+    }
+  }, [originCoords, destCoords, routeGeo, fetchedRoute]);
+
+  const finalRouteGeometry = routeGeo || fetchedRoute;
+
   if (isLoading) {
     return <div className="p-8 text-center">Cargando detalles del envío...</div>;
   }
@@ -134,19 +202,6 @@ export default function ShipmentTrackingPage({ params }: { params: Promise<{ id:
   }
 
   const isPending = shipment.status === "Pending" || shipment.status === "PENDING";
-  
-  // Parsear coordenadas para el mapa
-  let originCoords: [number, number] | null = null;
-  let destCoords: [number, number] | null = null;
-  try {
-    const parsed = typeof shipment.routeGeometry === 'string' ? JSON.parse(shipment.routeGeometry) : shipment.routeGeometry;
-    if (parsed && parsed.coordinates && parsed.coordinates.length > 0) {
-      originCoords = parsed.coordinates[0];
-      destCoords = parsed.coordinates[parsed.coordinates.length - 1];
-    }
-  } catch (e) {
-    // Fallback: Si no hay geometry, intentar extraer de detalles
-  }
 
   return (
     <div className="space-y-6">
@@ -262,7 +317,7 @@ export default function ShipmentTrackingPage({ params }: { params: Promise<{ id:
            <ShipmentTrackingMap 
              origin={originCoords}
              destination={destCoords}
-             routeGeometry={shipment.routeGeometry}
+             routeGeometry={finalRouteGeometry}
              driverLocation={driverLocation}
              status={shipment.status}
            />

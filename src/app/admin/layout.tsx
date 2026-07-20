@@ -89,7 +89,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 
                 <Image 
                   src={VorianNewLogo} 
-                  alt="Vorian Freight Light" 
+                  alt="Vorian Global Light" 
                   width={65} 
                   height={65} 
                   className="object-contain block dark:hidden" 
@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 />
                 <Image 
                   src={VorianFreightIcon} 
-                  alt="Vorian Freight Dark" 
+                  alt="Vorian Global Dark" 
                   width={65} 
                   height={65} 
                   className="object-contain hidden dark:block" 
@@ -122,7 +122,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Main Layout Elements */}
       {mounted && (
         <>
-          <div className={cn("hidden md:block border-r bg-card transition-all duration-300", isSidebarCollapsed ? "w-[80px]" : "w-[220px] lg:w-[280px]")}>
+          <div className={cn("hidden md:block border-r bg-background transition-all duration-300", isSidebarCollapsed ? "w-[80px]" : "w-[220px] lg:w-[280px]")}>
             <Sidebar role="admin" isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} />
           </div>
           

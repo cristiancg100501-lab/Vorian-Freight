@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, Layers, Calendar as CalendarIcon, MapPin, ArrowRight, ArrowLeft, Upload, Package, Ruler, Weight, Check, Star, HelpCircle, Bolt, DollarSign } from 'lucide-react';
+import { Truck, Layers, Calendar as CalendarIcon, MapPin, ArrowRight, ArrowLeft, Upload, Package, Ruler, Weight, Check, Star, HelpCircle, Bolt, DollarSign, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -91,12 +92,12 @@ export default function NewShipmentPage() {
     });
     const [isAsap, setIsAsap] = useState(false);
     const [deliveryDate, setDeliveryDate] = useState<Date | undefined>(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000));
-    const [pickupWindow, setPickupWindow] = useState('8:00 AM - 12:00 PM');
+    const [pickupWindow, setPickupWindow] = useState('08:00 - 12:00');
     const [operationType, setOperationType] = useState('Nacional'); // 'Nacional', 'Exportación', 'Importación'
     const [depot, setDepot] = useState({ address: '', coords: null as any });
     const [depotSuggestions, setDepotSuggestions] = useState<any[]>([]);
-    const [deliveryWindow, setDeliveryWindow] = useState('1:00 PM - 5:00 PM');
-    const [vehicleType, setVehicleType] = useState('Camion Pesado');
+    const [deliveryWindow, setDeliveryWindow] = useState('13:00 - 17:00');
+    const [vehicleType, setVehicleType] = useState('rampla_40');
     const [weatherCondition, setWeatherCondition] = useState('Clear');
     const [serviceType, setServiceType] = useState('FTL');
     
@@ -122,10 +123,10 @@ export default function NewShipmentPage() {
       oversize: false,
     });
 
-    // Step 3 State
     const [accessorials, setAccessorials] = useState({
         forklift: false, insideDelivery1: false, appointment: false, driverAssist: false, palletExchange: false, liftgate1: false, insideDelivery2: false, liftgate2: false,
     });
+    const [cargoValue, setCargoValue] = useState('');
     const [carrierRating, setCarrierRating] = useState('4');
     const [uberFreightPreferred, setUberFreightPreferred] = useState(false);
     const [cargoNotes, setCargoNotes] = useState('');
@@ -328,7 +329,8 @@ export default function NewShipmentPage() {
                     pickup_window: pickupWindow,
                     operation_type: operationType,
                     customer_id: user?.id,
-                    is_asap: isAsap
+                    is_asap: isAsap,
+                    cargo_value: Number(cargoValue) || 0
                 })
             });
 
@@ -365,7 +367,7 @@ export default function NewShipmentPage() {
         } finally {
             setIsRefreshingPrice(false);
         }
-    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType, dimLength, dimWidth, dimHeight, weightLbs, stackable, quantity, packagingQuantity]);
+    }, [routeDetails, vehicleType, globalSettings, pickup.address, delivery.address, depot.address, weatherCondition, serviceType, specialHandling, accessorials, pickupDate, pickupWindow, operationType, dimLength, dimWidth, dimHeight, weightLbs, stackable, quantity, packagingQuantity, cargoValue]);
 
     useEffect(() => {
         calculatePrice();
@@ -530,6 +532,11 @@ export default function NewShipmentPage() {
               route: routeDetails.geometry,
               serviceMode: serviceType === 'FTL' ? 'exclusive' : 'consolidated',
               vehicleType,
+              // Seguro de Carga
+              cargo_value: Number(cargoValue) || 0,
+              insurance_premium: priceBreakdown?.insurance_premium || 0,
+              // Breakdown completo para auditoría/facturación
+              price_breakdown: priceBreakdown,
             },
             // Campos adicionales de tracking
             customer_id: user.id,
@@ -588,43 +595,6 @@ export default function NewShipmentPage() {
                       <div className="space-y-10">
                         {/* Route & Schedule Section */}
                         <div>
-                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Tipo de Operación</h2>
-                            <RadioGroup defaultValue="Nacional" value={operationType} onValueChange={setOperationType} className="grid grid-cols-3 gap-4 mb-6">
-                                <div>
-                                    <RadioGroupItem value="Nacional" id="nacional" className="peer sr-only" />
-                                    <Label htmlFor="nacional" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
-                                        Nacional
-                                    </Label>
-                                </div>
-                                <div>
-                                    <RadioGroupItem value="Exportación" id="exportacion" className="peer sr-only" />
-                                    <Label htmlFor="exportacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
-                                        Exportación
-                                    </Label>
-                                </div>
-                                <div>
-                                    <RadioGroupItem value="Importación" id="importacion" className="peer sr-only" />
-                                    <Label htmlFor="importacion" className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground transition-all">
-                                        Importación
-                                    </Label>
-                                </div>
-                            </RadioGroup>
-
-                            {operationType !== 'Nacional' && (
-                                <div className="mb-6 space-y-2 p-4 border rounded-xl bg-muted/30">
-                                    <label className="text-sm font-semibold text-foreground">Depósito de Vacíos</label>
-                                    <p className="text-xs text-muted-foreground mb-2">Ingresa la ubicación del depósito para el retiro o devolución del contenedor vacío.</p>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <Input value={depot.address} onChange={handleDepotChange} placeholder="Buscar depósito (ej. D&C San Antonio)" className="pl-10 h-12 bg-background border focus-visible:ring-primary" autoComplete="off" />
-                                        {depotSuggestions.length > 0 && (
-                                            <div className="absolute z-20 w-full mt-1 bg-popover border rounded-md shadow-lg">
-                                                {depotSuggestions.map(s => <div key={s.id} onMouseDown={() => handleSelectDepotSuggestion(s)} className="p-3 cursor-pointer hover:bg-accent">{s.place_name}</div>)}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
 
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Ruta y Horario</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -647,7 +617,7 @@ export default function NewShipmentPage() {
                                                     const d = new Date();
                                                     d.setDate(d.getDate() + 2);
                                                     setPickupDate(d);
-                                                    setPickupWindow("8:00 AM - 12:00 PM");
+                                                    setPickupWindow("08:00 - 12:00");
                                                 }
                                             }}
                                         >
@@ -663,7 +633,7 @@ export default function NewShipmentPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-2">
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <Button variant={"outline"} className={cn("justify-start text-left font-normal h-12 bg-muted/50 border-0", !pickupDate && "text-muted-foreground")}>
@@ -673,7 +643,17 @@ export default function NewShipmentPage() {
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={pickupDate} onSelect={setPickupDate} initialFocus /></PopoverContent>
                                         </Popover>
-                                        <Input value={pickupWindow} onChange={e => setPickupWindow(e.target.value)} placeholder="Ventana de tiempo" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                        <div className="flex items-center gap-2">
+                                            <Input type="time" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary w-full text-center font-medium" 
+                                                value={pickupWindow.split(' - ')[0] || "08:00"} 
+                                                onChange={e => setPickupWindow(`${e.target.value} - ${pickupWindow.split(' - ')[1] || "12:00"}`)} 
+                                            />
+                                            <span className="text-muted-foreground font-bold">-</span>
+                                            <Input type="time" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary w-full text-center font-medium"
+                                                value={pickupWindow.split(' - ')[1] || "12:00"} 
+                                                onChange={e => setPickupWindow(`${pickupWindow.split(' - ')[0] || "08:00"} - ${e.target.value}`)} 
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 {/* Delivery */}
@@ -695,7 +675,7 @@ export default function NewShipmentPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-2">
                                         <Popover>
                                             <PopoverTrigger asChild>
                                             <Button variant={"outline"} className={cn("justify-start text-left font-normal h-12 bg-muted/50 border-0", !deliveryDate && "text-muted-foreground")}>
@@ -705,7 +685,17 @@ export default function NewShipmentPage() {
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={deliveryDate} onSelect={setDeliveryDate} initialFocus /></PopoverContent>
                                         </Popover>
-                                        <Input value={deliveryWindow} onChange={e => setDeliveryWindow(e.target.value)} placeholder="Ventana de tiempo" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" />
+                                        <div className="flex items-center gap-2">
+                                            <Input type="time" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary w-full text-center font-medium" 
+                                                value={deliveryWindow.split(' - ')[0] || "13:00"} 
+                                                onChange={e => setDeliveryWindow(`${e.target.value} - ${deliveryWindow.split(' - ')[1] || "17:00"}`)} 
+                                            />
+                                            <span className="text-muted-foreground font-bold">-</span>
+                                            <Input type="time" className="h-12 bg-muted/50 border-0 focus-visible:ring-primary w-full text-center font-medium"
+                                                value={deliveryWindow.split(' - ')[1] || "17:00"} 
+                                                onChange={e => setDeliveryWindow(`${deliveryWindow.split(' - ')[0] || "13:00"} - ${e.target.value}`)} 
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -733,7 +723,30 @@ export default function NewShipmentPage() {
 
                         <div>
                             <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mt-10 mb-4">Tipo de Vehículo (para Tarifa)</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                                {/* Furgon */}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setVehicleType('furgon')}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
+                                        vehicleType === 'furgon' 
+                                            ? "border-primary bg-primary text-primary-foreground shadow-sm" 
+                                            : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center h-12 mb-2">
+                                        <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'furgon' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
+                                            <path d="M10 40h45v35H10z" strokeWidth="6" strokeLinejoin="round" />
+                                            <path d="M55 45h20l10 15v15H55V45z" strokeWidth="6" strokeLinejoin="round" />
+                                            <circle cx="25" cy="75" r="8" strokeWidth="6" />
+                                            <circle cx="75" cy="75" r="8" strokeWidth="6" />
+                                        </svg>
+                                    </div>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'furgon' ? "text-primary-foreground" : "")}>Furgón<br/><span className="font-normal opacity-80">(CAT 1)</span></span>
+                                </Button>
+
                                 {/* Camion 3/4 */}
                                 <Button
                                     type="button"
@@ -754,23 +767,23 @@ export default function NewShipmentPage() {
                                             <circle cx="75" cy="75" r="8" strokeWidth="6" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-primary-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(3.5T - 5T)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_3_4' ? "text-primary-foreground" : "")}>Camión 3/4<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
                                 </Button>
 
                                 {/* Camion Ligero */}
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => setVehicleType('Camion Ligero')}
+                                    onClick={() => setVehicleType('camion_simple')}
                                     className={cn(
                                         "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
-                                        vehicleType === 'Camion Ligero' 
+                                        vehicleType === 'camion_simple' 
                                             ? "border-primary bg-primary text-primary-foreground shadow-sm" 
                                             : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Ligero' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
+                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'camion_simple' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
                                             <path d="M10 25h55v50H10z" strokeWidth="6" strokeLinejoin="round" />
                                             <path d="M65 35h15l10 15v25H65V35z" strokeWidth="6" strokeLinejoin="round" />
                                             <circle cx="25" cy="75" r="8" strokeWidth="6" />
@@ -778,23 +791,23 @@ export default function NewShipmentPage() {
                                             <circle cx="75" cy="75" r="8" strokeWidth="6" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Ligero' ? "text-primary-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'camion_simple' ? "text-primary-foreground" : "")}>Camión Rígido<br/><span className="font-normal opacity-80">(CAT 2)</span></span>
                                 </Button>
 
                                 {/* Camion Pesado */}
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => setVehicleType('Camion Pesado')}
+                                    onClick={() => setVehicleType('rampla_40')}
                                     className={cn(
                                         "flex flex-col items-center justify-center h-32 p-4 border-2 rounded-xl transition-all duration-200",
-                                        vehicleType === 'Camion Pesado' 
+                                        vehicleType === 'rampla_40' 
                                             ? "border-primary bg-primary text-primary-foreground shadow-sm" 
                                             : "border-muted bg-card hover:bg-accent/50 hover:border-accent text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     <div className="flex items-center justify-center h-12 mb-2">
-                                        <svg width="56" height="56" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'Camion Pesado' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
+                                        <svg width="56" height="56" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn("transition-colors", vehicleType === 'rampla_40' ? "stroke-primary-foreground" : "stroke-muted-foreground")}>
                                             <path d="M5 20h65v55H5z" strokeWidth="6" strokeLinejoin="round" />
                                             <path d="M75 40h15l10 15v20H75V40z" strokeWidth="6" strokeLinejoin="round" />
                                             <circle cx="20" cy="75" r="8" strokeWidth="6" />
@@ -804,7 +817,7 @@ export default function NewShipmentPage() {
                                             <path d="M70 65h5" strokeWidth="4" />
                                         </svg>
                                     </div>
-                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'Camion Pesado' ? "text-primary-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
+                                    <span className={cn("font-bold text-xs text-center", vehicleType === 'rampla_40' ? "text-primary-foreground" : "")}>Tracto-Camión<br/><span className="font-normal opacity-80">(CAT 3)</span></span>
                                 </Button>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">La selección del vehículo se utiliza para estimar la tarifa y no se guarda con el envío.</p>
@@ -878,6 +891,28 @@ export default function NewShipmentPage() {
                                   <Checkbox id="stackable" checked={stackable} onCheckedChange={(checked) => setStackable(!!checked)} />
                                   <Label htmlFor="stackable">Carga Apilable (Stackable)</Label>
                                 </div>
+                            </div>
+                          </div>
+
+                          {/* VALOR DECLARADO DE LA CARGA (para seguro) */}
+                          <div>
+                            <h2 className="text-xs font-bold uppercase text-muted-foreground tracking-wider mb-4">Seguro de Carga</h2>
+                            <div className="space-y-2">
+                              <label htmlFor="cargoValue" className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                                Valor Declarado de la Carga (CLP)
+                              </label>
+                              <Input 
+                                id="cargoValue" 
+                                value={cargoValue} 
+                                onChange={e => setCargoValue(e.target.value)} 
+                                type="number" 
+                                placeholder="Ej: 5000000" 
+                                className="h-12 bg-muted/50 border-0 focus-visible:ring-primary" 
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Valor comercial de la mercancía. Se calcula una prima de seguro de 0.32% sobre (flete + carga + 10%). Mínimo USD $50.
+                              </p>
                             </div>
                           </div>
 
@@ -1127,10 +1162,18 @@ export default function NewShipmentPage() {
                                     
                                     {showBreakdown && (
                                         <div className="p-4 space-y-3 text-sm animate-in fade-in slide-in-from-top-2">
-                                            <div className="flex justify-between items-center text-muted-foreground">
-                                                <span>Flete Base Operativo</span>
+                                            <div className="flex justify-between items-center text-sm py-1">
+                                                <span className="text-muted-foreground">Tarifa Base (Ida)</span>
                                                 <span className="font-mono">${priceBreakdown.base_freight.toLocaleString()}</span>
                                             </div>
+                                            {priceBreakdown.driver_return_cost > 0 && (
+                                                <div className="flex justify-between items-center text-sm py-1">
+                                                    <span className="text-muted-foreground flex items-center gap-1">
+                                                        <RotateCcw className="w-3 h-3 text-orange-500" /> Cobertura Retorno Vacío
+                                                    </span>
+                                                    <span className="font-mono text-orange-500">+ ${priceBreakdown.driver_return_cost.toLocaleString()}</span>
+                                                </div>
+                                            )}
                                             
                                             <div className="flex justify-between items-center text-orange-600/80 dark:text-orange-400/80">
                                                 <div className="flex items-center gap-1 group relative">
@@ -1162,6 +1205,15 @@ export default function NewShipmentPage() {
                                                 <span>Peajes (TAG)</span>
                                                 <span className="font-mono">+ ${priceBreakdown.tolls_cost.toLocaleString()}</span>
                                             </div>
+
+                                            {priceBreakdown.insurance_premium > 0 && (
+                                                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 py-1">
+                                                    <span className="flex items-center gap-1">
+                                                        <ShieldCheck className="w-3 h-3" /> Seguro de Carga
+                                                    </span>
+                                                    <span className="font-mono">+ ${priceBreakdown.insurance_premium.toLocaleString()}</span>
+                                                </div>
+                                            )}
 
                                             <div className="flex justify-between items-center font-bold text-foreground pt-2 border-t">
                                                 <span>Total a Pagar</span>
@@ -1240,9 +1292,24 @@ export default function NewShipmentPage() {
                                 )}
                             </div>
 
-                            <Button className="w-full h-12 mt-6 font-bold text-lg bg-foreground hover:bg-foreground/90 text-background" onClick={handleBookShipment} disabled={isLoading || (bookingMethod === 'instant' && (estimatedPrice <= 0 || priceValidSeconds === 0)) || step !== 3}>
-                                {isLoading ? "Reservando..." : "Reservar Envío"}
-                            </Button>
+                            <motion.div 
+                                whileTap={!isLoading ? { scale: 0.95 } : undefined} 
+                                whileHover={!isLoading ? { scale: 1.02 } : undefined}
+                                animate={isLoading ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : { scale: 1, opacity: 1 }}
+                                transition={isLoading ? { repeat: Infinity, duration: 1.5, ease: "easeInOut" } : { duration: 0.2 }}
+                            >
+                                <Button className="w-full h-12 mt-6 font-bold text-lg bg-foreground hover:bg-foreground/90 text-background relative overflow-hidden group" onClick={handleBookShipment} disabled={isLoading || (bookingMethod === 'instant' && (estimatedPrice <= 0 || priceValidSeconds === 0)) || step !== 3}>
+                                    <div className="absolute inset-0 w-full h-full bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2 relative z-10">
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            <span>Reservando...</span>
+                                        </div>
+                                    ) : (
+                                        <span className="relative z-10">Reservar Envío</span>
+                                    )}
+                                </Button>
+                            </motion.div>
                             {error && <p className="text-destructive text-sm mt-4 text-center">{error}</p>}
                         </CardContent>
                     </Card>

@@ -90,7 +90,7 @@ export default function ShipmentDetailPage() {
                                 {shipment.status}
                             </Badge>
                         </h1>
-                        <p className="text-muted-foreground">Gestionado por Vorian Freight</p>
+                        <p className="text-muted-foreground">Gestionado por Vorian Global</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">

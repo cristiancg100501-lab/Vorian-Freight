@@ -24,12 +24,12 @@ export function RevenueChart({ data }: RevenueChartProps) {
   const { resolvedTheme } = useTheme();
   
   // Choose colors based on theme, similar to stripe/premium look
-  const barColor = resolvedTheme === "dark" ? "#818cf8" : "#4f46e5"; // indigo-400 / indigo-600
-  const barHoverColor = resolvedTheme === "dark" ? "#a5b4fc" : "#4338ca"; // indigo-300 / indigo-700
-  const gridColor = resolvedTheme === "dark" ? "#334155" : "#e2e8f0"; // slate-700 / slate-200
-  const textColor = resolvedTheme === "dark" ? "#94a3b8" : "#64748b"; // slate-400 / slate-500
-  const tooltipBg = resolvedTheme === "dark" ? "#1e293b" : "#ffffff"; // slate-800 / white
-  const tooltipBorder = resolvedTheme === "dark" ? "#334155" : "#e2e8f0"; // slate-700 / slate-200
+  const barColor = resolvedTheme === "dark" ? "#ffffff" : "#121212"; // white / carbon
+  const barHoverColor = resolvedTheme === "dark" ? "#e5e5e5" : "#333333"; // light gray / lighter carbon
+  const gridColor = resolvedTheme === "dark" ? "#333333" : "#e5e5e5";
+  const textColor = resolvedTheme === "dark" ? "#a3a3a3" : "#737373"; // neutral grays
+  const tooltipBg = resolvedTheme === "dark" ? "#121212" : "#ffffff";
+  const tooltipBorder = resolvedTheme === "dark" ? "#333333" : "#e5e5e5";
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
