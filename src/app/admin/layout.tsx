@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   alt="Vorian Global Logo" 
                   width={185} 
                   height={55} 
-                  className="object-contain dark:invert-0 invert animate-pulse relative" 
+                  className="object-contain dark:invert invert-0 animate-pulse relative" 
                   priority 
                   unoptimized 
                 />

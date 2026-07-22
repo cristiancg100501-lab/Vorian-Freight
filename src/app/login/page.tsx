@@ -126,7 +126,7 @@ export default function Home() {
               width={120} 
               height={50} 
               alt="Loading" 
-              className="relative animate-pulse object-contain dark:invert-0 invert"
+              className="relative animate-pulse object-contain invert"
               unoptimized
             />
           </div>
@@ -211,10 +211,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500 bg-background">
+    <div className="min-h-screen w-full text-white relative overflow-hidden bg-black">
       {/* Background with dynamic map */}
       <div className="absolute inset-0 h-full w-full">
-        <LoginMap theme={resolvedTheme} key={resolvedTheme} />
+        <LoginMap theme="dark" key="dark" />
       </div>
       
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
@@ -224,7 +224,7 @@ export default function Home() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[440px] relative"
         >
-          <div className="relative rounded-[2rem] border border-border/10 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-500 bg-background/70 text-foreground">
+          <div className="relative rounded-[2rem] border border-zinc-800/80 shadow-2xl backdrop-blur-xl overflow-hidden transition-all duration-500 bg-[#121212]/95 text-white">
             <div className="p-8 md:p-12">
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -238,7 +238,7 @@ export default function Home() {
                   height={45}
                   alt="Vorian Logistics Logo"
                   className={cn(
-                    "transition-all duration-300 dark:invert-0 invert object-contain", 
+                    "transition-all duration-300 invert object-contain", 
                     !mounted && "opacity-0"
                   )}
                   priority
@@ -251,10 +251,10 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                <h1 className="text-3xl font-bold tracking-tight text-white">
                   Bienvenido
                 </h1>
-                <p className="text-muted-foreground mt-2 font-medium text-sm">
+                <p className="text-zinc-400 mt-2 font-medium text-sm">
                   Inicia sesión para acceder a tu panel de control.
                 </p>
               </motion.div>
@@ -266,7 +266,7 @@ export default function Home() {
                   transition={{ delay: 0.4 }}
                   className="space-y-2"
                 >
-                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-zinc-400 ml-1">
                     Email o RUT
                   </Label>
                   <Input
@@ -276,7 +276,7 @@ export default function Home() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nombre@empresa.com o 12.345.678-9"
                     required
-                    className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground/45 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
+                    className="h-12 rounded-xl border-zinc-800 bg-zinc-950/50 px-4 text-white placeholder:text-zinc-500 focus:border-zinc-700 focus:ring-zinc-800 backdrop-blur-sm transition-all duration-300 shadow-sm"
                   />
                 </motion.div>
                 
@@ -287,10 +287,10 @@ export default function Home() {
                   className="space-y-2"
                 >
                   <div className="flex justify-between items-center px-1">
-                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-zinc-400">
                       Contraseña
                     </Label>
-                    <Link href="#" className="flex hover:underline opacity-60 hover:opacity-100 text-[10px] font-bold uppercase tracking-widest text-primary transition-all">
+                    <Link href="#" className="flex hover:underline opacity-60 hover:opacity-100 text-[10px] font-bold uppercase tracking-widest text-zinc-300 transition-all">
                       ¿Olvidaste?
                     </Link>
                   </div>
@@ -302,12 +302,12 @@ export default function Home() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="h-12 rounded-xl border-border bg-background px-4 pr-12 text-foreground placeholder:text-muted-foreground/45 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
+                      className="h-12 rounded-xl border-zinc-800 bg-zinc-950/50 px-4 pr-12 text-white placeholder:text-zinc-500 focus:border-zinc-700 focus:ring-zinc-800 backdrop-blur-sm transition-all duration-300 shadow-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -320,7 +320,7 @@ export default function Home() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="text-destructive font-semibold text-xs px-1"
+                      className="text-red-400 font-semibold text-xs px-1"
                     >
                       {error}
                     </motion.p>
@@ -334,11 +334,11 @@ export default function Home() {
                 >
                   <Button
                     type="submit"
-                    className="w-full h-14 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
+                    className="w-full h-14 rounded-xl font-bold text-sm bg-white hover:bg-zinc-200 text-black shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="h-5 w-5 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
+                      <div className="h-5 w-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                     ) : (
                       <>
                         Entrar
@@ -354,13 +354,13 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="border-t border-border bg-muted/40 p-6 text-center backdrop-blur-md"
+              className="border-t border-zinc-800/80 bg-zinc-950/40 p-6 text-center backdrop-blur-md"
             >
-              <p className="text-xs text-muted-foreground font-semibold tracking-wide">
+              <p className="text-xs text-zinc-400 font-semibold tracking-wide">
                 ¿Aún no eres parte?{" "}
                 <Link
                   href="/signup"
-                  className="font-bold text-primary hover:text-primary/80 transition-colors underline underline-offset-4"
+                  className="font-bold text-white hover:text-zinc-200 transition-colors underline underline-offset-4"
                 >
                   Crea una cuenta
                 </Link>
@@ -373,4 +373,3 @@ export default function Home() {
     </div>
   );
 }
-
