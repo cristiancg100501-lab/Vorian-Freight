@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Truck, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import VorianWhiteLogo from "@/assets/vorianwhite.png";
+import VorianLogo from "@/assets/vorian_logo.png";
 
 import dynamic from 'next/dynamic';
 const LoginMap = dynamic(() => import('@/components/login-map').then(mod => mod.LoginMap), { 
@@ -122,7 +122,7 @@ export default function Home() {
           <div className="relative">
             <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full" />
             <Image 
-              src={VorianWhiteLogo} 
+              src={VorianLogo} 
               width={120} 
               height={50} 
               alt="Loading" 
@@ -233,7 +233,7 @@ export default function Home() {
                 className="flex justify-center mb-8"
               >
                 <Image
-                  src={VorianWhiteLogo}
+                  src={VorianLogo}
                   width={160}
                   height={45}
                   alt="Vorian Logistics Logo"
