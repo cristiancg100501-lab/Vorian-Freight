@@ -157,6 +157,10 @@ export function Header() {
         .limit(5);
       if (!error && data) {
         setUnreadRequests(data);
+        const hasUnread = data.some(req => req.status === "Nuevo" || !req.status);
+        if (hasUnread) {
+          setHasNewNotifications(true);
+        }
       }
     };
     fetchRecentRequests();

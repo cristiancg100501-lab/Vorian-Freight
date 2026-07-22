@@ -118,6 +118,22 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
   useEffect(() => {
     if (role !== 'admin') return;
 
+    const checkUnreadContacts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('contact_requests')
+          .select('id')
+          .eq('status', 'Nuevo')
+          .limit(1);
+        if (!error && data && data.length > 0) {
+          setUnreadContacts(true);
+        }
+      } catch (err) {
+        console.error('Error checking unread contacts:', err);
+      }
+    };
+    checkUnreadContacts();
+
     const channel = supabase
       .channel('contact-alerts')
       .on(
