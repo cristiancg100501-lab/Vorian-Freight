@@ -191,4 +191,20 @@ html {
     80% { transform: translate(1px, -1px); }
     100% { transform: translate(0); }
   }
+
+  @keyframes bell-ring {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(12deg); }
+    30% { transform: rotate(-12deg); }
+    45% { transform: rotate(8deg); }
+    60% { transform: rotate(-8deg); }
+    75% { transform: rotate(4deg); }
+    90% { transform: rotate(-4deg); }
+  }
+
+  .animate-bell-ring {
+    animation: bell-ring 2s ease-in-out infinite;
+    transform-origin: top center;
+    display: inline-block;
+  }
 }

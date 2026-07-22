@@ -299,12 +299,11 @@ export function Header() {
       {role === "admin" ? (
         <DropdownMenu onOpenChange={(open) => { if (open) setHasNewNotifications(false); }}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground relative">
-              <Bell className="h-5 w-5" />
-              {hasNewNotifications && (
-                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+            <Button variant="ghost" size="icon" className={`rounded-full relative transition-all duration-300 ${hasNewNotifications ? 'text-red-500 hover:text-red-600 bg-red-500/10' : 'text-muted-foreground hover:text-foreground'}`}>
+              <Bell className={`h-5 w-5 ${hasNewNotifications ? 'animate-bell-ring' : ''}`} />
+              {hasNewNotifications && unreadRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold border border-background shadow-sm animate-pulse">
+                  {unreadRequests.length}
                 </span>
               )}
               <span className="sr-only">Notificaciones</span>
