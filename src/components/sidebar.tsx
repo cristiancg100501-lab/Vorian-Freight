@@ -25,7 +25,8 @@ import {
   CreditCard,
   Zap,
   MessageCircle,
-  ShieldCheck
+  ShieldCheck,
+  Inbox
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -52,6 +53,7 @@ const adminNavItems: NavItem[] = [
   { group: "GENERAL", href: "/admin/verificaciones", icon: ShieldCheck, label: "Verificaciones" },
   { group: "GENERAL", href: "/admin/finances", icon: CreditCard, label: "Finanzas" },
   { group: "GENERAL", href: "/admin/soporte", icon: MessageCircle, label: "Soporte (Chat)" },
+  { group: "GENERAL", href: "/admin/contactos", icon: Inbox, label: "Contacto Ventas" },
   { group: "OTROS", href: "/admin/rates/tolls-map", icon: Map, label: "Mapa de Pórticos" },
   { group: "OTROS", href: "/admin/rates/tolls", icon: Waypoints, label: "Gestión de Peajes (TAG)" },
   { group: "OTROS", href: "/admin/rates/avo", icon: Waypoints, label: "Gestión AVO" },
@@ -111,6 +113,37 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [unreadSupport, setUnreadSupport] = useState(false);
+  const [unreadContacts, setUnreadContacts] = useState(false);
+
+  useEffect(() => {
+    if (role !== 'admin') return;
+
+    const channel = supabase
+      .channel('contact-alerts')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'contact_requests',
+        },
+        () => {
+          setUnreadContacts(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, role]);
+
+  // Clear unread badge if we navigate to it
+  useEffect(() => {
+    if (pathname === '/admin/contactos') {
+      setUnreadContacts(false);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     setMounted(true);
@@ -184,6 +217,12 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
                                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                                 </span>
                             )}
+                            {item.label === "Contacto Ventas" && unreadContacts && (
+                                <span className="absolute right-2 top-2 flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            )}
                             <span className="sr-only">{item.label}</span>
                         </Link>
                 </TooltipTrigger>
@@ -205,6 +244,12 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
             <item.icon className={cn("h-4 w-4 transition-all duration-300 group-hover:scale-110", isActive && "drop-shadow-md")} />
             {item.label}
             {item.label === "Soporte (Chat)" && unreadSupport && (
+                <span className="ml-auto flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+            )}
+            {item.label === "Contacto Ventas" && unreadContacts && (
                 <span className="ml-auto flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>

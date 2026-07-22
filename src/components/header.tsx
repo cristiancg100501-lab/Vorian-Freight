@@ -19,6 +19,7 @@ import {
 import { Button } from "./ui/button";
 import { Bell, Moon, Sun, Package, Truck, Lock, CheckCircle2, Award, Brain } from "lucide-react";
 import { useSupabase, useUser } from "./providers/supabase-provider";
+import Link from "next/link";
 import { useSupabaseDoc } from "@/hooks/supabase-hooks";
 import Image from "next/image";
 import { useTheme } from "next-themes";
@@ -141,6 +142,41 @@ export function Header() {
 
   // Determinar insignia activa
   const role = userProfile ? (userProfile as any).role : null;
+
+  const [unreadRequests, setUnreadRequests] = useState<any[]>([]);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
+
+  useEffect(() => {
+    if (!user || !supabase || role !== "admin") return;
+
+    const fetchRecentRequests = async () => {
+      const { data, error } = await supabase
+        .from("contact_requests")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (!error && data) {
+        setUnreadRequests(data);
+      }
+    };
+    fetchRecentRequests();
+
+    const channel = supabase
+      .channel("admin-contact-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "contact_requests" },
+        async (payload) => {
+          setHasNewNotifications(true);
+          setUnreadRequests(prev => [payload.new, ...prev.slice(0, 4)]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, supabase, role]);
   const badge = completedTrips !== null && role
     ? ((role === "client" || role === "customer") ? getCustomerBadge(completedTrips) : role === "company" ? getCompanyBadge(completedTrips) : null)
     : null;
@@ -260,10 +296,56 @@ export function Header() {
         </div>
       )}
 
-      <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
-        <Bell className="h-5 w-5" />
-        <span className="sr-only">Notificaciones</span>
-      </Button>
+      {role === "admin" ? (
+        <DropdownMenu onOpenChange={(open) => { if (open) setHasNewNotifications(false); }}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground relative">
+              <Bell className="h-5 w-5" />
+              {hasNewNotifications && (
+                <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              )}
+              <span className="sr-only">Notificaciones</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 p-2">
+            <DropdownMenuLabel className="font-semibold text-xs flex justify-between items-center px-2 py-1.5">
+              <span>Nuevas Solicitudes de Venta</span>
+              {unreadRequests.length > 0 && <span className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full font-bold">{unreadRequests.length}</span>}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {unreadRequests.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">No hay solicitudes recientes.</div>
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto space-y-1">
+                {unreadRequests.map((req) => (
+                  <DropdownMenuItem key={req.id} asChild className="p-2 cursor-pointer rounded-lg hover:bg-muted/50 transition-colors">
+                    <Link href="/admin/contactos" className="flex flex-col gap-1 items-start w-full">
+                      <div className="flex justify-between w-full text-xs">
+                        <span className="font-bold text-foreground truncate max-w-[150px]">{req.company}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(req.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground truncate w-full">{req.name} ({req.role})</div>
+                      <div className="text-[10px] bg-primary/10 text-primary border border-border px-1.5 py-0.5 rounded-md mt-1">{req.volume}</div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="text-center justify-center font-bold text-xs p-2 text-primary cursor-pointer hover:bg-muted/50 rounded-lg">
+              <Link href="/admin/contactos" className="w-full text-center">Ver todos los contactos</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
+          <Bell className="h-5 w-5" />
+          <span className="sr-only">Notificaciones</span>
+        </Button>
+      )}
 
       {/* Insignia / Badge con Dialog de Rangos */}
       {badge && badge.name !== "Sin Rango" && (
