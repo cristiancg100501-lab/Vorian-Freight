@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageTransition } from "@/components/page-transition";
 import Image from "next/image";
 import VorianLogo from "@/assets/vorian_logo.png";
+import VorianWhiteLogo from "@/assets/vorianwhite.png";
+import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -20,6 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [minLoadingTimeElapsed, setMinLoadingTimeElapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -89,11 +92,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <div className="relative mb-6">
                 <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
                 <Image 
-                  src={VorianLogo} 
+                  src={resolvedTheme === 'dark' ? VorianWhiteLogo : VorianLogo} 
                   alt="Vorian Global Logo" 
                   width={185} 
                   height={55} 
-                  className="object-contain dark:invert invert-0 animate-pulse relative" 
+                  className="object-contain animate-pulse relative" 
                   priority 
                   unoptimized 
                 />
