@@ -8,8 +8,7 @@ import Link from "next/link";
 import { Truck, AlertCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import blueVorianLogo from "@/assets/bluevorian.png";
-import VorianNewLogo from "@/assets/vorian_new.png";
+import VorianLogo from "@/assets/vorian_logo.png";
 
 import dynamic from 'next/dynamic';
 const LoginMap = dynamic(() => import('@/components/login-map').then(mod => mod.LoginMap), { 
@@ -123,11 +122,11 @@ export default function Home() {
           <div className="relative">
             <div className="absolute inset-0 bg-white/10 blur-2xl rounded-full" />
             <Image 
-              src={VorianNewLogo} 
+              src={VorianLogo} 
               width={120} 
               height={50} 
               alt="Loading" 
-              className="relative animate-pulse object-contain"
+              className="relative animate-pulse object-contain dark:invert-0 invert"
               unoptimized
             />
           </div>
@@ -212,10 +211,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500 bg-white">
+    <div className="min-h-screen w-full text-foreground relative overflow-hidden transition-colors duration-500 bg-background">
       {/* Background with dynamic map */}
       <div className="absolute inset-0 h-full w-full">
-        <LoginMap theme="light" key="light" />
+        <LoginMap theme={resolvedTheme} key={resolvedTheme} />
       </div>
       
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center p-6">
@@ -231,15 +230,15 @@ export default function Home() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="flex justify-center mb-10"
+                className="flex justify-center mb-8"
               >
                 <Image
-                  src={blueVorianLogo}
-                  width={180}
-                  height={75}
+                  src={VorianLogo}
+                  width={160}
+                  height={45}
                   alt="Vorian Logistics Logo"
                   className={cn(
-                    "transition-all duration-300 drop-shadow-md", 
+                    "transition-all duration-300 dark:invert-0 invert object-contain", 
                     !mounted && "opacity-0"
                   )}
                   priority
@@ -277,7 +276,7 @@ export default function Home() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="nombre@empresa.com o 12.345.678-9"
                     required
-                    className="h-12 rounded-xl border-border bg-background/50 px-4 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
+                    className="h-12 rounded-xl border-border bg-background px-4 text-foreground placeholder:text-muted-foreground/45 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
                   />
                 </motion.div>
                 
@@ -303,7 +302,7 @@ export default function Home() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="h-12 rounded-xl border-border bg-background/50 px-4 pr-12 text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
+                      className="h-12 rounded-xl border-border bg-background px-4 pr-12 text-foreground placeholder:text-muted-foreground/45 focus:border-primary focus:ring-1 focus:ring-primary backdrop-blur-sm transition-all duration-300 shadow-sm"
                     />
                     <button
                       type="button"
@@ -335,11 +334,11 @@ export default function Home() {
                 >
                   <Button
                     type="submit"
-                    className="w-full h-14 rounded-xl font-bold text-sm bg-foreground hover:bg-foreground/90 text-background shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
+                    className="w-full h-14 rounded-xl font-bold text-sm bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
                     disabled={isLoading}
                   >
                     {isLoading ? (
-                      <div className="h-5 w-5 border-2 border-background/20 border-t-background rounded-full animate-spin" />
+                      <div className="h-5 w-5 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
                     ) : (
                       <>
                         Entrar
@@ -355,7 +354,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="border-t border-border/50 bg-muted/30 p-6 text-center backdrop-blur-md"
+              className="border-t border-border bg-muted/40 p-6 text-center backdrop-blur-md"
             >
               <p className="text-xs text-muted-foreground font-semibold tracking-wide">
                 ¿Aún no eres parte?{" "}
