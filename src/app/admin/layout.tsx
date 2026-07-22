@@ -10,8 +10,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageTransition } from "@/components/page-transition";
 import Image from "next/image";
-import VorianNewLogo from "@/assets/vorian_new.png";
-import VorianFreightIcon from "@/assets/vorianfreight.png";
+import VorianLogo from "@/assets/vorian_logo.png";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -87,24 +86,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   />
                 </svg>
                 
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
                 <Image 
-                  src={VorianNewLogo} 
-                  alt="Vorian Global Light" 
-                  width={65} 
-                  height={65} 
-                  className="object-contain block dark:hidden" 
+                  src={VorianLogo} 
+                  alt="Vorian Global Logo" 
+                  width={185} 
+                  height={55} 
+                  className="object-contain dark:invert-0 invert animate-pulse relative" 
                   priority 
                   unoptimized 
                 />
-                <Image 
-                  src={VorianFreightIcon} 
-                  alt="Vorian Global Dark" 
-                  width={65} 
-                  height={65} 
-                  className="object-contain hidden dark:block" 
-                  priority 
-                  unoptimized 
-                />
+              </div>
               </div>
               
               <div className="flex flex-col items-center gap-2">
