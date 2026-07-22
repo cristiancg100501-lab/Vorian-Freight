@@ -51,10 +51,13 @@ export default function AdminContactosPage() {
         contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.rut || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.giro || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (contact.message || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesStatus = statusFilter === "all" || contact.status === statusFilter;
-      const matchesRole = roleFilter === "all" || contact.role.includes(roleFilter) || contact.role === roleFilter;
+      const contactProfile = contact.profile || contact.role || "";
+      const matchesRole = roleFilter === "all" || contactProfile.includes(roleFilter) || contactProfile === roleFilter;
 
       return matchesSearch && matchesStatus && matchesRole;
     });
@@ -127,7 +130,7 @@ export default function AdminContactosPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Leads y Contactos de Ventas</h1>
         <p className="text-muted-foreground">
-          Gestione las solicitudes de demostración y contacto recibidas desde la landing page.
+          Gestione las solicitudes de demostración y contacto recibidas desde la página de contacto.
         </p>
       </div>
 
@@ -167,7 +170,7 @@ export default function AdminContactosPage() {
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Buscar por empresa, nombre..." 
+                placeholder="Buscar por empresa, RUT, giro..." 
                 className="pl-10 bg-background"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -191,10 +194,9 @@ export default function AdminContactosPage() {
                 onChange={(e) => setRoleFilter(e.target.value)}
                 className="bg-background border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="all">Todos los Roles</option>
-                <option value="Cliente">Cliente (Carga)</option>
-                <option value="Transportista">Transportista (Flota)</option>
-                <option value="Otro">Otro</option>
+                <option value="all">Todos los Perfiles</option>
+                <option value="Cliente">Cliente</option>
+                <option value="Transportista">Transportista</option>
               </select>
               <div className="text-xs text-muted-foreground font-semibold md:ml-2">
                 Mostrando {filteredContacts.length} solicitudes
@@ -209,8 +211,9 @@ export default function AdminContactosPage() {
               <thead className="text-xs text-muted-foreground uppercase bg-muted/10 border-b">
                 <tr>
                   <th scope="col" className="px-6 py-4">Empresa / Nombre</th>
+                  <th scope="col" className="px-6 py-4">RUT / Giro</th>
                   <th scope="col" className="px-6 py-4">Contacto</th>
-                  <th scope="col" className="px-6 py-4">Rol / Volumen</th>
+                  <th scope="col" className="px-6 py-4">Perfil / Volumen</th>
                   <th scope="col" className="px-6 py-4">Estado</th>
                   <th scope="col" className="px-6 py-4">Fecha</th>
                   <th scope="col" className="px-6 py-4 text-right">Acciones</th>
@@ -219,7 +222,7 @@ export default function AdminContactosPage() {
               <tbody className="divide-y">
                 {isLoading && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
                         <p className="text-muted-foreground font-medium">Cargando solicitudes...</p>
@@ -229,7 +232,7 @@ export default function AdminContactosPage() {
                 )}
                 {!isLoading && filteredContacts.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                       <div className="flex flex-col items-center gap-2 opacity-50">
                         <Mail className="h-10 w-10" />
                         <p className="font-semibold">No se encontraron solicitudes.</p>
@@ -242,6 +245,10 @@ export default function AdminContactosPage() {
                     <td className="px-6 py-4">
                       <div className="font-bold text-foreground">{contact.company}</div>
                       <div className="text-xs text-muted-foreground">{contact.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs font-semibold text-foreground">{contact.rut || "No provisto"}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[150px]">{contact.giro || "No provisto"}</div>
                     </td>
                     <td className="px-6 py-4 space-y-0.5">
                       <div className="text-xs flex items-center gap-1.5">
@@ -256,7 +263,7 @@ export default function AdminContactosPage() {
                     <td className="px-6 py-4">
                       <div className="text-xs font-semibold text-foreground flex items-center gap-1">
                         <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                        {contact.role}
+                        {contact.profile || contact.role}
                       </div>
                       <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-0.5">
                         {contact.volume}
@@ -278,7 +285,7 @@ export default function AdminContactosPage() {
                       {new Date(contact.created_at).toLocaleDateString()} <br/>
                       {new Date(contact.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
+                    <td className="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -332,6 +339,14 @@ export default function AdminContactosPage() {
                     {new Date(selectedContact.created_at).toLocaleString()}
                   </div>
                 </div>
+                <div className="space-y-1 col-span-2 md:col-span-1">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">RUT de la Empresa</div>
+                  <div className="text-sm font-semibold text-foreground">{selectedContact.rut || "No provisto"}</div>
+                </div>
+                <div className="space-y-1 col-span-2 md:col-span-1">
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Giro Comercial</div>
+                  <div className="text-sm font-semibold text-foreground">{selectedContact.giro || "No provisto"}</div>
+                </div>
                 <div className="space-y-1">
                   <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Email corporativo</div>
                   <a href={`mailto:${selectedContact.email}`} className="text-sm text-primary hover:underline font-medium block">
@@ -345,14 +360,14 @@ export default function AdminContactosPage() {
                   </a>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Cargo / Rol</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Perfil</div>
                   <div className="text-sm font-semibold text-foreground flex items-center gap-1">
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    {selectedContact.role}
+                    {selectedContact.profile || selectedContact.role}
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Volumen mensual</div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Volumen de envíos</div>
                   <div className="text-sm font-semibold text-foreground flex items-center gap-1">
                     <BarChart className="h-4 w-4 text-muted-foreground" />
                     {selectedContact.volume}

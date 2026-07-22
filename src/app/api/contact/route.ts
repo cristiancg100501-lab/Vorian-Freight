@@ -5,10 +5,10 @@ import { Resend } from 'resend';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, company, email, phone, role, volume, message } = body;
+    const { name, company, email, phone, profile, volume, message, rut, giro } = body;
 
     // Validation
-    if (!name || !company || !email || !phone || !role || !volume) {
+    if (!name || !company || !email || !phone || !profile || !volume || !rut || !giro) {
       return NextResponse.json({ error: 'Todos los campos excepto el mensaje son obligatorios.' }, { status: 400 });
     }
 
@@ -23,7 +23,9 @@ export async function POST(req: Request) {
           company,
           email,
           phone,
-          role,
+          rut,
+          giro,
+          profile,
           volume,
           message,
           status: 'Nuevo'
@@ -52,14 +54,16 @@ export async function POST(req: Request) {
           subject: `💼 Nueva Solicitud de Ventas: ${company}`,
           html: `
             <h2>Nueva Solicitud de Ventas Recibida</h2>
-            <p>Se ha registrado un nuevo lead desde el formulario de la landing page:</p>
+            <p>Se ha registrado un nuevo lead desde la página de contacto:</p>
             <table border="1" cellpadding="8" style="border-collapse: collapse; border-color: #ddd; width: 100%; max-width: 600px;">
               <tr><td><strong>Nombre:</strong></td><td>${name}</td></tr>
               <tr><td><strong>Empresa:</strong></td><td>${company}</td></tr>
+              <tr><td><strong>RUT:</strong></td><td>${rut}</td></tr>
+              <tr><td><strong>Giro Comercial:</strong></td><td>${giro}</td></tr>
               <tr><td><strong>Email:</strong></td><td>${email}</td></tr>
               <tr><td><strong>Teléfono:</strong></td><td>${phone}</td></tr>
-              <tr><td><strong>Cargo/Rol:</strong></td><td>${role}</td></tr>
-              <tr><td><strong>Volumen Mensual:</strong></td><td>${volume} envíos/mes</td></tr>
+              <tr><td><strong>Perfil:</strong></td><td>${profile}</td></tr>
+              <tr><td><strong>Volumen de Envíos:</strong></td><td>${volume}</td></tr>
               ${message ? `<tr><td><strong>Mensaje:</strong></td><td>${message}</td></tr>` : ''}
             </table>
             <br/>

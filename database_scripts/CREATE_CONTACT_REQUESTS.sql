@@ -1,5 +1,5 @@
 -- CREATE_CONTACT_REQUESTS.sql
--- Script para crear la tabla de solicitudes de contacto / leads
+-- Script para crear la tabla de solicitudes de contacto / leads con RUT, Giro y Perfil
 
 CREATE TABLE IF NOT EXISTS public.contact_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS public.contact_requests (
     company TEXT NOT NULL,
     email TEXT NOT NULL,
     phone TEXT NOT NULL,
-    role TEXT NOT NULL,
+    rut TEXT NOT NULL,
+    giro TEXT NOT NULL,
+    profile TEXT NOT NULL,
     volume TEXT NOT NULL,
     message TEXT,
     status TEXT NOT NULL DEFAULT 'Nuevo',
@@ -18,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.contact_requests (
 ALTER TABLE public.contact_requests ENABLE ROW LEVEL SECURITY;
 
 -- Crear política para permitir inserciones públicas anónimas
+DROP POLICY IF EXISTS "Permitir inserciones publicas anonimas" ON public.contact_requests;
 CREATE POLICY "Permitir inserciones publicas anonimas" 
 ON public.contact_requests 
 FOR INSERT 
@@ -25,6 +28,7 @@ TO public
 WITH CHECK (true);
 
 -- Crear política para permitir a los administradores ver todas las solicitudes
+DROP POLICY IF EXISTS "Permitir administradores ver todas las solicitudes" ON public.contact_requests;
 CREATE POLICY "Permitir administradores ver todas las solicitudes" 
 ON public.contact_requests 
 FOR SELECT 
@@ -37,6 +41,7 @@ USING (
 );
 
 -- Crear política para permitir a los administradores actualizar las solicitudes
+DROP POLICY IF EXISTS "Permitir administradores actualizar solicitudes" ON public.contact_requests;
 CREATE POLICY "Permitir administradores actualizar solicitudes" 
 ON public.contact_requests 
 FOR UPDATE 
@@ -55,6 +60,7 @@ WITH CHECK (
 );
 
 -- Crear política para permitir a los administradores eliminar solicitudes
+DROP POLICY IF EXISTS "Permitir administradores eliminar solicitudes" ON public.contact_requests;
 CREATE POLICY "Permitir administradores eliminar solicitudes" 
 ON public.contact_requests 
 FOR DELETE 
@@ -66,5 +72,6 @@ USING (
     )
 );
 
--- Habilitar la replicación en tiempo real para esta tabla
-alter publication supabase_realtime add table public.contact_requests;
+-- Habilitar la replicación en tiempo real para esta tabla si no está agregada
+-- (El siguiente comando es idempotente si se ejecuta en consola)
+-- alter publication supabase_realtime add table public.contact_requests;

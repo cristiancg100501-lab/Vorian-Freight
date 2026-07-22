@@ -24,54 +24,7 @@ export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Form states for sales contact request
-  const [formLoading, setFormLoading] = useState(false);
-  const [formSuccess, setFormSuccess] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [formData, setFormData] = useState({
-    name: "",
-    company: "",
-    email: "",
-    phone: "",
-    role: "",
-    volume: "",
-    message: ""
-  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormLoading(true);
-    setFormError("");
-
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Ocurrió un error al enviar el formulario.");
-      }
-      
-      setFormSuccess(true);
-      setFormData({
-        name: "",
-        company: "",
-        email: "",
-        phone: "",
-        role: "",
-        volume: "",
-        message: ""
-      });
-    } catch (err: any) {
-      console.error(err);
-      setFormError(err.message || "Error de conexión.");
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -136,12 +89,12 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2">
               Iniciar sesión
             </Link>
-             <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 py-5 font-bold shadow-md transition-all hover:scale-105 active:scale-95 group flex items-center gap-2">
-               <a href="#contacto" onClick={(e) => scrollTo(e, "contacto")}>
+             <Link href="/contacto">
+               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 py-5 font-bold shadow-md transition-all hover:scale-105 active:scale-95 group flex items-center gap-2">
                  Hablar con ventas
                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-               </a>
-             </Button>
+               </Button>
+             </Link>
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -178,11 +131,11 @@ export default function LandingPage() {
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-foreground">
                   Iniciar sesión
                 </Link>
-                 <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-6 text-lg font-semibold">
-                   <a href="#contacto" onClick={(e) => { scrollTo(e, "contacto"); setMobileMenuOpen(false); }}>
+                 <Link href="/contacto" onClick={() => setMobileMenuOpen(false)}>
+                   <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-6 text-lg font-semibold">
                      Hablar con ventas
-                   </a>
-                 </Button>
+                   </Button>
+                 </Link>
               </div>
             </motion.div>
           )}
@@ -667,190 +620,7 @@ export default function LandingPage() {
         {/* FAQ Section */}
         <FAQ />
 
-        {/* Contact Section */}
-        <section id="contacto" className="py-20 md:py-32 bg-background relative overflow-hidden border-t border-border">
-          <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
-          <div className="container mx-auto px-4 max-w-6xl relative z-10">
-            <div className="flex flex-col lg:flex-row gap-16 items-stretch">
-              {/* Left Column: Text & Trust factors */}
-              <div className="w-full lg:w-5/12 flex flex-col justify-between">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-border text-primary text-xs font-semibold uppercase tracking-wider mb-6">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Ventas y Alianzas
-                  </div>
-                  <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
-                    Hablemos de tus desafíos logísticos
-                  </h2>
-                  <p className="text-lg text-muted-foreground mb-8">
-                    Completa el formulario y un especialista se pondrá en contacto contigo en menos de 1 hora para presentarte una demo personalizada.
-                  </p>
-                </div>
 
-                <div className="space-y-6 mt-8">
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">💬</div>
-                    <div>
-                      <div className="font-bold text-foreground">Soporte Inmediato</div>
-                      <div className="text-sm text-muted-foreground">info@vorianglobal.com</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">📍</div>
-                    <div>
-                      <div className="font-bold text-foreground">Oficina Principal</div>
-                      <div className="text-sm text-muted-foreground">Santiago, Chile</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-green-500/10 text-green-500 flex items-center justify-center font-bold">⚡</div>
-                  <div>
-                    <div className="font-bold text-foreground">Garantía de Respuesta</div>
-                    <div className="text-sm text-muted-foreground">Respondemos en menos de 60 minutos</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Interactive Form */}
-              <div className="w-full lg:w-7/12">
-                <div className="bg-card border border-border rounded-[2rem] p-8 md:p-10 shadow-2xl relative">
-                  {formSuccess ? (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="text-center py-16 flex flex-col items-center justify-center"
-                    >
-                      <div className="w-20 h-20 rounded-full bg-green-500/10 text-green-500 flex items-center justify-center text-4xl mb-6 shadow-inner animate-bounce">
-                        ✓
-                      </div>
-                      <h3 className="text-2xl font-bold text-foreground mb-4">¡Solicitud Recibida!</h3>
-                      <p className="text-muted-foreground max-w-sm mx-auto mb-8">
-                        Hemos registrado tus datos correctamente. Uno de nuestros ejecutivos de cuentas te contactará en breve.
-                      </p>
-                      <Button onClick={() => setFormSuccess(false)} variant="outline" className="rounded-full px-6">
-                        Enviar otro mensaje
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">Nombre Completo *</label>
-                          <input 
-                            type="text" 
-                            required
-                            placeholder="Ej. Juan Pérez"
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">Nombre de Empresa *</label>
-                          <input 
-                            type="text" 
-                            required
-                            placeholder="Ej. Distribuidora del Sur"
-                            value={formData.company}
-                            onChange={(e) => setFormData({...formData, company: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">Email Corporativo *</label>
-                          <input 
-                            type="email" 
-                            required
-                            placeholder="juan@empresa.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">Teléfono de Contacto *</label>
-                          <input 
-                            type="tel" 
-                            required
-                            placeholder="+56 9 1234 5678"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">¿Cuál es tu rol? *</label>
-                          <select 
-                            required
-                            value={formData.role}
-                            onChange={(e) => setFormData({...formData, role: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          >
-                            <option value="">Selecciona una opción</option>
-                            <option value="Generador de Carga / Cliente">Generador de Carga (Cliente)</option>
-                            <option value="Transportista / Empresa Logística">Transportista (Flota)</option>
-                            <option value="Otro">Otro</option>
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground">Volumen de envíos mensuales *</label>
-                          <select 
-                            required
-                            value={formData.volume}
-                            onChange={(e) => setFormData({...formData, volume: e.target.value})}
-                            className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
-                          >
-                            <option value="">Selecciona una opción</option>
-                            <option value="1 a 10 envíos">1 a 10 envíos / mes</option>
-                            <option value="11 a 50 envíos">11 a 50 envíos / mes</option>
-                            <option value="50+ envíos">Más de 50 envíos / mes</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground">Mensaje o comentarios adicionales</label>
-                        <textarea 
-                          rows={4}
-                          placeholder="¿En qué podemos ayudarte?"
-                          value={formData.message}
-                          onChange={(e) => setFormData({...formData, message: e.target.value})}
-                          className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm resize-none"
-                        />
-                      </div>
-
-                      {formError && (
-                        <div className="text-sm text-red-500 font-semibold bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
-                          {formError}
-                        </div>
-                      )}
-
-                      <Button 
-                        type="submit" 
-                        disabled={formLoading}
-                        className="w-full h-12 rounded-xl text-base font-bold shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-                      >
-                        {formLoading ? (
-                          <>
-                            <span className="w-5 h-5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
-                            Procesando solicitud...
-                          </>
-                        ) : (
-                          "Enviar Solicitud de Demo"
-                        )}
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Galactic CTA Section */}
         <GalacticCTA />

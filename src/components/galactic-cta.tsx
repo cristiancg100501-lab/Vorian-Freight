@@ -55,7 +55,7 @@ export function GalacticCTA() {
                 Comenzar ahora
               </Button>
             </Link>
-            <Link href="#contacto">
+            <Link href="/contacto">
               <Button variant="outline" className="h-16 px-10 rounded-full text-lg font-bold border-zinc-700 hover:bg-zinc-800 text-white transition-all">
                 Contactar Ventas
               </Button>

@@ -327,7 +327,7 @@ export function Header() {
                         <span className="font-bold text-foreground truncate max-w-[150px]">{req.company}</span>
                         <span className="text-[10px] text-muted-foreground">{new Date(req.created_at).toLocaleDateString()}</span>
                       </div>
-                      <div className="text-[11px] text-muted-foreground truncate w-full">{req.name} ({req.role})</div>
+                      <div className="text-[11px] text-muted-foreground truncate w-full">{req.name} ({req.profile || req.role})</div>
                       <div className="text-[10px] bg-primary/10 text-primary border border-border px-1.5 py-0.5 rounded-md mt-1">{req.volume}</div>
                     </Link>
                   </DropdownMenuItem>
