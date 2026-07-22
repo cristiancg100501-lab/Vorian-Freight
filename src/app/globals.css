@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 0 0% 12%; /* Carbon */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
+    --background: 210 20% 98%; /* Soft slate/zinc-50 */
+    --foreground: 224 71.4% 4.1%; /* Dark slate/carbon */
+    --card: 0 0% 100%; /* Pure White */
+    --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
-    --primary: 0 0% 12%; /* Carbon */
-    --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 12%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 220 13% 18%; /* Carbon */
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 13% 18%;
+    --muted: 210 20% 95%; /* Soft slate-100 */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Slate-500 */
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 13% 18%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 12%;
+    --border: 220 13% 91%; /* Slate-200 */
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
     --radius: 1rem;
   }
  
@@ -51,25 +51,25 @@
   }
 
   .dark .light-theme-override {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 12%;
+    --background: 210 20% 98%;
+    --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
+    --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
-    --primary: 0 0% 12%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 12%;
+    --popover-foreground: 224 71.4% 4.1%;
+    --primary: 220 13% 18%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 13% 18%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 13% 18%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 12%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
   }
 
   * {
@@ -77,15 +77,15 @@
   }
 
   body {
-    background: linear-gradient(135deg, #ffffff 0%, #f8faff 50%, #f0f4f8 100%);
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
     background-attachment: fixed;
     color: hsl(var(--foreground));
     min-height: 100vh;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .dark body {
-    background: #121212;
+    background: hsl(var(--background));
     background-attachment: fixed;
   }
 }

@@ -27,7 +27,7 @@ const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function Footer() {
   return (
-    <footer className="bg-[#101010] border-t border-zinc-800 pt-20 pb-10">
+    <footer className="bg-muted/60 border-t border-border pt-20 pb-10">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
           {/* Brand Column */}
@@ -38,21 +38,21 @@ export function Footer() {
                   src={VorianLogo}
                   alt="Vorian Global Logo"
                   fill
-                  className="object-contain"
+                  className="object-contain dark:invert-0 invert"
                 />
               </div>
             </Link>
-            <p className="text-zinc-400 mb-8 max-w-sm">
+            <p className="text-muted-foreground mb-8 max-w-sm">
               Revolucionando la logística terrestre B2B. Conectamos generadores de carga con una red certificada de transportistas mediante inteligencia artificial.
             </p>
             <div className="flex gap-4">
-              <Link href="#" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+              <Link href="#" className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                 <LinkedinIcon className="w-5 h-5" />
               </Link>
-              <Link href="#" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+              <Link href="#" className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                 <TwitterIcon className="w-5 h-5" />
               </Link>
-              <Link href="#" className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors">
+              <Link href="#" className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
                 <InstagramIcon className="w-5 h-5" />
               </Link>
             </div>
@@ -60,32 +60,32 @@ export function Footer() {
 
           {/* Links Columns */}
           <div>
-            <h4 className="text-white font-bold mb-6">Plataforma</h4>
+            <h4 className="text-foreground font-bold mb-6">Plataforma</h4>
             <ul className="space-y-4">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Rastreo en vivo</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Match Inteligente</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Pagos Automatizados</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Red Certificada</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Rastreo en vivo</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Match Inteligente</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Pagos Automatizados</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Red Certificada</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-6">Empresa</h4>
+            <h4 className="text-foreground font-bold mb-6">Empresa</h4>
             <ul className="space-y-4">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Sobre Nosotros</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Blog</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Casos de Éxito</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Contacto</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Sobre Nosotros</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Blog</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Casos de Éxito</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contacto</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-white font-bold mb-6">Únete</h4>
+            <h4 className="text-foreground font-bold mb-6">Únete</h4>
             <ul className="space-y-4 mb-6">
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Para Transportistas</Link></li>
-              <li><Link href="#" className="text-zinc-400 hover:text-white transition-colors">Para Generadores</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Para Transportistas</Link></li>
+              <li><Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Para Generadores</Link></li>
             </ul>
-            <Link href="/login" className="inline-flex items-center gap-2 text-white font-semibold hover:text-zinc-300 transition-colors group">
+            <Link href="/login" className="inline-flex items-center gap-2 text-foreground font-semibold hover:text-zinc-300 transition-colors group">
               Regístrate ahora
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -93,13 +93,13 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-zinc-500 text-sm">
+        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-muted-foreground text-sm">
             © {new Date().getFullYear()} Vorian Global. Todos los derechos reservados.
           </p>
           <div className="flex gap-6 text-sm">
-            <Link href="#" className="text-zinc-500 hover:text-zinc-300 transition-colors">Términos de Servicio</Link>
-            <Link href="#" className="text-zinc-500 hover:text-zinc-300 transition-colors">Política de Privacidad</Link>
+            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Términos de Servicio</Link>
+            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</Link>
           </div>
         </div>
       </div>

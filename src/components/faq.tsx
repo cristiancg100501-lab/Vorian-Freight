@@ -31,14 +31,14 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="py-24 bg-[#171717]">
+    <section className="py-24 bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col md:flex-row gap-16 lg:gap-24">
           <div className="w-full md:w-1/3">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
               Preguntas Frecuentes
             </h2>
-            <p className="text-zinc-400 text-lg mb-8">
+            <p className="text-muted-foreground text-lg mb-8">
               Todo lo que necesitas saber sobre cómo Vorian Global transforma tu logística.
             </p>
             <div className="hidden md:block w-24 h-1 bg-zinc-500 rounded-full"></div>
@@ -48,15 +48,15 @@ export function FAQ() {
             {faqs.map((faq, i) => (
               <div 
                 key={i} 
-                className="bg-[#252525] border border-zinc-800 rounded-2xl overflow-hidden transition-colors hover:border-zinc-700"
+                className="bg-card border border-border rounded-2xl overflow-hidden transition-colors hover:border-border/80 hover:shadow-sm transition-all"
               >
                 <button
                   onClick={() => setOpenIndex(openIndex === i ? null : i)}
                   className="w-full text-left px-6 py-6 flex justify-between items-center focus:outline-none"
                 >
-                  <span className="text-white font-bold text-lg pr-8">{faq.question}</span>
+                  <span className="text-foreground font-bold text-lg pr-8">{faq.question}</span>
                   <ChevronDown 
-                    className={`w-6 h-6 text-zinc-500 transition-transform duration-300 flex-shrink-0 ${openIndex === i ? "rotate-180" : ""}`} 
+                    className={`w-6 h-6 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${openIndex === i ? "rotate-180" : ""}`} 
                   />
                 </button>
                 <AnimatePresence>
@@ -67,7 +67,7 @@ export function FAQ() {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="px-6 pb-6 text-zinc-400 leading-relaxed border-t border-zinc-800/50 mt-2 pt-4">
+                      <div className="px-6 pb-6 text-muted-foreground leading-relaxed border-t border-border/50 mt-2 pt-4">
                         {faq.answer}
                       </div>
                     </motion.div>

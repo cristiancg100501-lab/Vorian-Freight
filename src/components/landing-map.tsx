@@ -75,36 +75,54 @@ export function LandingMap({ theme }: { theme?: string }) {
               "line-cap": "round"
             },
             paint: {
-              "line-color": "#ffffff",
+              "line-color": isDark ? "#ffffff" : "#020617",
               "line-width": 4,
-              "line-opacity": 0.8
+              "line-opacity": isDark ? 0.8 : 0.9
             }
           });
 
           // Add Origin and Destination custom HTML markers
-          const createLabelMarker = (text: string, color: string, colorClass: string) => {
+          const createLabelMarker = (text: string, bgColorClass: string, textColorClass: string, dotColor: string, dotBorderColor: string) => {
             const el = document.createElement('div');
             el.className = 'flex flex-col items-center pointer-events-none';
             el.innerHTML = `
-              <div class="bg-${colorClass}-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg mb-1 whitespace-nowrap">${text}</div>
-              <div class="w-4 h-4 rounded-full bg-${colorClass}-500 border-4 border-[#101010] shadow-[0_0_10px_rgba(34,197,94,0.4)]" style="background-color: ${color}; border-color: #1a1a1a;"></div>
+              <div class="${bgColorClass} ${textColorClass} text-[10px] font-bold px-2 py-1 rounded shadow-lg mb-1 whitespace-nowrap">${text}</div>
+              <div class="w-4 h-4 rounded-full border-4 shadow-md" style="background-color: ${dotColor}; border-color: ${dotBorderColor};"></div>
             `;
             return el;
           };
 
+          const originLabelBg = isDark ? "bg-zinc-800" : "bg-slate-950";
+          const originLabelText = "text-white";
+          const originDotColor = isDark ? "#ffffff" : "#020617";
+          const originDotBorder = isDark ? "#1a1a1a" : "#ffffff";
+
+          const destLabelBg = isDark ? "bg-green-600" : "bg-white border border-slate-950";
+          const destLabelText = isDark ? "text-white" : "text-slate-950";
+          const destDotColor = isDark ? "#22c55e" : "#ffffff";
+          const destDotBorder = isDark ? "#1a1a1a" : "#020617";
+
           // Origin
-          new mapboxgl.Marker({ element: createLabelMarker('Origen', '#ffffff', 'zinc'), anchor: 'bottom' })
+          new mapboxgl.Marker({ 
+            element: createLabelMarker('Origen', originLabelBg, originLabelText, originDotColor, originDotBorder), 
+            anchor: 'bottom' 
+          })
             .setLngLat(coords[0] as [number, number])
             .addTo(map);
 
           // Destination
-          new mapboxgl.Marker({ element: createLabelMarker('Destino', '#22c55e', 'green'), anchor: 'bottom' })
+          new mapboxgl.Marker({ 
+            element: createLabelMarker('Destino', destLabelBg, destLabelText, destDotColor, destDotBorder), 
+            anchor: 'bottom' 
+          })
             .setLngLat(coords[coords.length - 1] as [number, number])
             .addTo(map);
 
           // Create the moving Truck marker
           const truckEl = document.createElement('div');
-          truckEl.className = 'w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.8)]';
+          truckEl.className = isDark 
+            ? 'w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.8)]' 
+            : 'w-8 h-8 rounded-full bg-white text-black border-2 border-slate-950 flex items-center justify-center shadow-lg';
           truckEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11h1"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`;
           
           const truckMarker = new mapboxgl.Marker({ element: truckEl, anchor: 'center' })
