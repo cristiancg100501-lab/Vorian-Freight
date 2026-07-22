@@ -136,12 +136,12 @@ export default function LandingPage() {
             <Link href="/login" className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2">
               Iniciar sesión
             </Link>
-             <a href="#contacto" onClick={(e) => scrollTo(e, "contacto")}>
-               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 py-5 font-bold shadow-md transition-all hover:scale-105 active:scale-95 group flex items-center gap-2">
+             <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 py-5 font-bold shadow-md transition-all hover:scale-105 active:scale-95 group flex items-center gap-2">
+               <a href="#contacto" onClick={(e) => scrollTo(e, "contacto")}>
                  Hablar con ventas
                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-               </Button>
-             </a>
+               </a>
+             </Button>
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -178,11 +178,11 @@ export default function LandingPage() {
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium text-foreground">
                   Iniciar sesión
                 </Link>
-                 <a href="#contacto" onClick={(e) => { scrollTo(e, "contacto"); setMobileMenuOpen(false); }}>
-                   <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-6 text-lg font-semibold">
+                 <Button asChild className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full py-6 text-lg font-semibold">
+                   <a href="#contacto" onClick={(e) => { scrollTo(e, "contacto"); setMobileMenuOpen(false); }}>
                      Hablar con ventas
-                   </Button>
-                 </a>
+                   </a>
+                 </Button>
               </div>
             </motion.div>
           )}
