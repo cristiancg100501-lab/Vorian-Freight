@@ -126,7 +126,7 @@ export default function Home() {
               width={120} 
               height={50} 
               alt="Loading" 
-              className="relative animate-pulse object-contain"
+              className="relative animate-pulse object-contain brightness-0 invert"
               unoptimized
             />
           </div>
@@ -238,7 +238,7 @@ export default function Home() {
                   height={45}
                   alt="Vorian Logistics Logo"
                   className={cn(
-                    "transition-all duration-300 object-contain", 
+                    "transition-all duration-300 brightness-0 dark:invert invert-0 object-contain", 
                     !mounted && "opacity-0"
                   )}
                   priority
