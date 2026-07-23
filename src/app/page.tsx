@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, BarChart3, Map } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, BarChart3, Map, Sun, Moon, Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VorianLogo from "@/assets/vorian_logo.png";
 import { FAQ } from "@/components/faq";
@@ -20,9 +20,14 @@ const LandingMap = dynamic(() => import('@/components/landing-map').then(mod => 
 });
 
 export default function LandingPage() {
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
 
 
@@ -95,6 +100,49 @@ export default function LandingPage() {
                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                </Button>
              </Link>
+             
+             {/* Theme Switcher Desktop Capsule */}
+             {!mounted ? (
+               <div className="w-[100px] h-9 bg-card/40 border border-border/50 rounded-full animate-pulse" />
+             ) : (
+               <div className={`flex items-center border p-0.5 gap-0.5 rounded-full transition-all ${
+                 isScrolled ? "bg-card/90 border-border/80" : "bg-card/40 border-border/50"
+               }`}>
+                 <button 
+                   onClick={() => setTheme("light")} 
+                   className={`p-1.5 rounded-full transition-all ${
+                     theme === "light" 
+                       ? "bg-foreground text-background shadow-md scale-105" 
+                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                   }`}
+                   title="Modo Claro"
+                 >
+                   <Sun className="w-3.5 h-3.5" />
+                 </button>
+                 <button 
+                   onClick={() => setTheme("dark")} 
+                   className={`p-1.5 rounded-full transition-all ${
+                     theme === "dark" 
+                       ? "bg-foreground text-background shadow-md scale-105" 
+                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                   }`}
+                   title="Modo Oscuro"
+                 >
+                   <Moon className="w-3.5 h-3.5" />
+                 </button>
+                 <button 
+                   onClick={() => setTheme("system")} 
+                   className={`p-1.5 rounded-full transition-all ${
+                     theme === "system" 
+                       ? "bg-foreground text-background shadow-md scale-105" 
+                       : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                   }`}
+                   title="Sistema"
+                 >
+                   <Laptop className="w-3.5 h-3.5" />
+                 </button>
+               </div>
+             )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -137,6 +185,48 @@ export default function LandingPage() {
                    </Button>
                  </Link>
               </div>
+              
+              {/* Mobile Menu Theme Row */}
+              {mounted && (
+                <div className="flex flex-col gap-2 pt-2 border-t border-border/80">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tema del sitio</p>
+                  <div className="flex items-center bg-accent/40 border border-border/40 rounded-full p-0.5 gap-0.5 w-full">
+                    <button 
+                      onClick={() => setTheme("light")} 
+                      className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                        theme === "light" 
+                          ? "bg-foreground text-background shadow-md" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Sun className="w-4 h-4" />
+                      Claro
+                    </button>
+                    <button 
+                      onClick={() => setTheme("dark")} 
+                      className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                        theme === "dark" 
+                          ? "bg-foreground text-background shadow-md" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Moon className="w-4 h-4" />
+                      Oscuro
+                    </button>
+                    <button 
+                      onClick={() => setTheme("system")} 
+                      className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                        theme === "system" 
+                          ? "bg-foreground text-background shadow-md" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Laptop className="w-4 h-4" />
+                      Sistema
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
