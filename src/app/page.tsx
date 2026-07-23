@@ -61,7 +61,7 @@ export default function LandingPage() {
               alt="Vorian Global" 
               width={150} 
               height={42} 
-              className="object-contain brightness-0 dark:invert invert-0"
+              className="object-contain dark:invert-0 invert"
             />
           </Link>
 

@@ -110,7 +110,7 @@ export default function ContactSalesPage() {
             alt="Vorian Global Logo" 
             width={130} 
             height={36} 
-            className="object-contain brightness-0 dark:invert invert-0"
+            className="object-contain dark:invert-0 invert"
           />
         </Link>
         <Link href="/">

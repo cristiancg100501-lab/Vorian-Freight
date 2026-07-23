@@ -38,7 +38,7 @@ export function Footer() {
                   src={VorianLogo}
                   alt="Vorian Global Logo"
                   fill
-                  className="object-contain brightness-0 dark:invert invert-0"
+                  className="object-contain dark:invert-0 invert"
                 />
               </div>
             </Link>
