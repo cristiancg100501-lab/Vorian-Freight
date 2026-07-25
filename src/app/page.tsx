@@ -246,7 +246,7 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 text-muted-foreground text-sm font-medium mb-8 border border-border/50"
           >
             <span className="flex h-2 w-2 rounded-full bg-green-500 shadow-sm"></span>
-            La evolución del transporte terrestre
+            Operación logística de confianza con control total
           </motion.div>
 
           <motion.h1
@@ -255,7 +255,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
             className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground max-w-4xl mb-6 leading-tight"
           >
-            Logística <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">inteligente</span> para tu empresa
+            Tu socio logístico con <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">trazabilidad</span> en tiempo real
           </motion.h1>
 
           <motion.p
@@ -264,8 +264,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
           >
-            Conectamos cargas con transportistas de manera eficiente, segura y transparente.
-            Gestiona tu flota o tus envíos desde una plataforma unificada.
+            Gestionamos tus despachos terrestres de forma personalizada con transportistas certificados,
+            permitiéndote a ti y a tus clientes monitorear la ruta en tiempo real.
           </motion.p>
 
           <motion.div
@@ -274,9 +274,9 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
             className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
           >
-            <Link href="/login">
+            <Link href="/contacto">
               <Button className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-semibold bg-white text-black hover:bg-zinc-200 hover:scale-105 transition-all shadow-xl shadow-white/5">
-                Crea tu cuenta gratis <ArrowRight className="ml-2 h-5 w-5" />
+                Cotizar con un ejecutivo <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="#como-funciona">
@@ -461,8 +461,8 @@ export default function LandingPage() {
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Gestión ultra eficiente</h3>
-                  <p className="text-muted-foreground mb-8">Digitaliza procesos, asigna cargas en segundos y mejora tus márgenes operativos con inteligencia artificial.</p>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Operación gestionada y segura</h3>
+                  <p className="text-muted-foreground mb-8">Coordinamos tus despachos con transportistas certificados para garantizar un servicio confiable, puntual y con total trazabilidad.</p>
                   
                   {/* Decorative element: Stats Bars */}
                   <div className="mt-auto flex flex-col gap-4">
@@ -498,8 +498,8 @@ export default function LandingPage() {
               >
                 <div className="relative z-10 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Match Inteligente</h3>
-                    <p className="text-muted-foreground text-sm">IA que conecta tu carga con el transportista ideal en milisegundos.</p>
+                    <h3 className="text-xl font-bold text-foreground mb-2">Transporte Verificado</h3>
+                    <p className="text-muted-foreground text-sm">Operaciones garantizadas exclusivamente con nuestra red de transportistas y conductores de alta confianza.</p>
                   </div>
                   
                   {/* Decorative Real UI element */}
@@ -511,14 +511,14 @@ export default function LandingPage() {
                        </div>
                        <div className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 border border-border">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                          99% Match
+                          Certificado
                        </div>
                     </div>
                     <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                        <motion.div 
                          className="bg-primary h-1.5 rounded-full"
                          initial={{ width: 0 }}
-                         whileInView={{ width: "99%" }}
+                         whileInView={{ width: "100%" }}
                          viewport={{ once: true }}
                          transition={{ duration: 1.5, delay: 0.8 }}
                        ></motion.div>
@@ -583,7 +583,7 @@ export default function LandingPage() {
                   <div className="relative h-full bg-card rounded-[2rem] border border-border shadow-2xl p-6 flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="text-foreground font-bold mb-6 flex items-center justify-between z-10">
-                      Buscando Transportista...
+                      Asignando Operación...
                       <div className="flex gap-1">
                         <motion.div animate={{ height: [4, 14, 4] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 bg-green-500 rounded-full"></motion.div>
                         <motion.div animate={{ height: [4, 20, 4] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 bg-green-500 rounded-full"></motion.div>
@@ -636,7 +636,7 @@ export default function LandingPage() {
                           <div>
                             <div className="font-bold text-foreground text-lg">Carlos R.</div>
                             <div className="text-xs text-green-400 font-bold flex items-center gap-1 mt-0.5">
-                              ✓ Match Perfecto (99%)
+                              ✓ Operación Asignada
                             </div>
                           </div>
                         </div>
@@ -665,25 +665,25 @@ export default function LandingPage() {
                   Una plataforma. <br />Infinitas posibilidades.
                 </h2>
                 <p className="text-lg text-muted-foreground mb-10">
-                  Ya sea que necesites enviar carga o tengas camiones disponibles, Vorian Global centraliza toda la operación para que te enfoques en crecer tu negocio.
+                  Coordinamos tus envíos terrestres de forma personalizada y centralizamos toda la trazabilidad y auditoría para que mantengas el control absoluto.
                 </p>
-
+ 
                 <div className="space-y-8">
                   {[
                     {
                       step: "01",
-                      title: "Publica tu carga o disponibilidad",
-                      desc: "Sube los detalles de tu requerimiento en segundos a través de una interfaz intuitiva."
+                      title: "Cotización personalizada",
+                      desc: "Envíanos tus requerimientos de carga por correo o formulario y cotizamos con nuestro proveedor certificado."
                     },
                     {
                       step: "02",
-                      title: "Match inteligente",
-                      desc: "Nuestro sistema conecta automáticamente la carga con el transportista ideal según ruta y capacidad."
+                      title: "Despacho y Registro",
+                      desc: "Creamos tu envío de forma manual en la plataforma y asignamos al cliente y al chofer al viaje."
                     },
                     {
                       step: "03",
-                      title: "Viaje monitoreado y pago seguro",
-                      desc: "Sigue el trayecto en tiempo real y gestiona la documentación de entrega sin fricciones."
+                      title: "Monitoreo en Vivo",
+                      desc: "Sigue la ubicación exacta del conductor en tiempo real en el mapa con reportes de entrega automáticos."
                     }
                   ].map((item, i) => (
                     <div key={i} className="flex gap-6">

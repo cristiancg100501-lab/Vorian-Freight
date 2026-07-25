@@ -36,6 +36,7 @@ import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { useTheme } from "next-themes";
 import VorianWhiteLogo from "@/assets/vorianwhite.png";
+import { useSupabaseDoc } from "@/hooks/supabase-hooks";
 
 type NavItem = {
   href: string;
@@ -114,6 +115,20 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
   const [mounted, setMounted] = useState(false);
   const [unreadSupport, setUnreadSupport] = useState(false);
   const [unreadContacts, setUnreadContacts] = useState(false);
+
+  const { data: globalSettings, isLoading: isSettingsLoading } = useSupabaseDoc("settings", "global");
+  const isQuotingEnabled = !isSettingsLoading && globalSettings ? (globalSettings as any).quoting_enabled !== false : false;
+  const isLoadFinderEnabled = !isSettingsLoading && globalSettings ? (globalSettings as any).load_finder_enabled !== false : false;
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!isQuotingEnabled && item.label === "Crear Envío") {
+      return false;
+    }
+    if (!isLoadFinderEnabled && item.label === "Buscar Cargas") {
+      return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     if (role !== 'admin') return;
@@ -322,9 +337,9 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
         <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
           <nav className={cn("grid items-start text-sm font-medium gap-1", isCollapsed ? "justify-center" : "")}>
             {!isCollapsed && <p className="px-3 py-2 text-[10px] font-bold text-white/30 dark:text-black/30 uppercase tracking-[0.2em]">General</p>}
-            {navItems.filter(i => i.group === 'GENERAL').map(renderNavItem)}
+            {filteredNavItems.filter(i => i.group === 'GENERAL').map(renderNavItem)}
             {!isCollapsed && <p className="px-3 py-2 mt-4 text-[10px] font-bold text-white/30 dark:text-black/30 uppercase tracking-[0.2em]">Otros</p>}
-            {navItems.filter(i => i.group === 'OTROS').map(renderNavItem)}
+            {filteredNavItems.filter(i => i.group === 'OTROS').map(renderNavItem)}
              <div className="mt-4 pt-4 border-t border-white/10 dark:border-black/5">
                  {isCollapsed ? (
                     <Tooltip>

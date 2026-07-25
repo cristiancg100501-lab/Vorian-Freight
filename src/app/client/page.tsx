@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/providers/supabase-provider";
-import { useSupabaseCollection } from "@/hooks/supabase-hooks";
+import { useSupabaseCollection, useSupabaseDoc } from "@/hooks/supabase-hooks";
 import Link from "next/link";
 import { PriorityBoostModal } from "@/components/priority-boost-modal";
 import {
@@ -35,6 +35,9 @@ export default function ClientShipmentsPage() {
   }, [user]);
 
   const { data: clientShipments, isLoading } = useSupabaseCollection("shipments", filterShipments);
+  
+  const { data: globalSettings } = useSupabaseDoc("settings", "global");
+  const isQuotingEnabled = globalSettings ? (globalSettings as any).quoting_enabled !== false : false;
 
   return (
     <Card className="bg-card border text-card-foreground">
@@ -46,12 +49,14 @@ export default function ClientShipmentsPage() {
               Vea el historial de todos sus envíos de carga.
             </CardDescription>
           </div>
-          <Link href="/client/shipments/new">
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Crear Nuevo Envío
-            </Button>
-          </Link>
+          {isQuotingEnabled && (
+            <Link href="/client/shipments/new">
+              <Button>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Crear Nuevo Envío
+              </Button>
+            </Link>
+          )}
         </div>
       </CardHeader>
       <CardContent>

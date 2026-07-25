@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/components/providers/supabase-provider";
-import { useSupabaseCollection } from "@/hooks/supabase-hooks";
+import { useSupabaseCollection, useSupabaseDoc } from "@/hooks/supabase-hooks";
 import {
   Card,
   CardHeader,
@@ -63,6 +63,9 @@ export default function CustomerDashboard() {
   }, [user]);
 
   const { data: shipments, isLoading } = useSupabaseCollection("shipments", filterShipments);
+
+  const { data: globalSettings } = useSupabaseDoc("settings", "global");
+  const isQuotingEnabled = globalSettings ? (globalSettings as any).quoting_enabled !== false : false;
 
   useEffect(() => {
     if (shipments && shipments.length > 0 && !selectedShipment) {
@@ -156,12 +159,14 @@ export default function CustomerDashboard() {
           </h1>
           <p className="text-muted-foreground mt-1">Este es tu centro de control logístico.</p>
         </div>
-        <Link href="/customer/new">
-          <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/25 transition-all">
-            <Plus className="w-5 h-5 mr-2" />
-            Cotizar Nuevo Envío
-          </Button>
-        </Link>
+        {isQuotingEnabled && (
+          <Link href="/customer/new">
+            <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/25 transition-all">
+              <Plus className="w-5 h-5 mr-2" />
+              Cotizar Nuevo Envío
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* KPIs */}
@@ -387,9 +392,11 @@ export default function CustomerDashboard() {
                   <p className="font-semibold text-muted-foreground">Sin envíos activos</p>
                   <p className="text-sm text-muted-foreground/60 mt-1">Crea tu primer envío para empezar a rastrear.</p>
                 </div>
-                <Link href="/customer/new">
-                  <Button variant="outline" size="sm">Crear Envío</Button>
-                </Link>
+                {isQuotingEnabled && (
+                  <Link href="/customer/new">
+                    <Button variant="outline" size="sm">Crear Envío</Button>
+                  </Link>
+                )}
               </div>
             )}
           </CardContent>

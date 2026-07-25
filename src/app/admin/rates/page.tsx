@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, CheckCircle, Car, Bike, Truck, Fuel, RefreshCw, KeyRound, LineChart as LineChartIcon, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, TrendingUp, Zap, AlertCircle, DollarSign } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
     AreaChart,
     Area,
@@ -162,6 +163,10 @@ export default function AdminRatesPage() {
     const [costRampla, setCostRampla] = useState("450");
     const [opCostHr, setOpCostHr] = useState("4500");
     const [riskBuffer, setRiskBuffer] = useState("1.15");
+
+    // Feature Toggles
+    const [quotingEnabled, setQuotingEnabled] = useState(true);
+    const [loadFinderEnabled, setLoadFinderEnabled] = useState(true);
 
     // Table state
     const [tableSearchTerm, setTableSearchTerm] = useState("");
@@ -332,6 +337,8 @@ export default function AdminRatesPage() {
             setOpCostHr((globalSettings as any).costo_oportunidad_hr?.toString() || "4500");
             setRiskBuffer((globalSettings as any).risk_buffer?.toString() || "1.15");
             setCostoOportunidadHr((globalSettings as any).costo_oportunidad_hr?.toString() || "4500");
+            setQuotingEnabled((globalSettings as any).quoting_enabled !== false);
+            setLoadFinderEnabled((globalSettings as any).load_finder_enabled !== false);
 
             // Cargar historial
             supabase.from("settings_history").select("*").order("changed_at", { ascending: false }).limit(5)
@@ -432,6 +439,8 @@ export default function AdminRatesPage() {
             r_base: parseFloat(rBase) || 2.5,
             cost_rampla: parseFloat(costRampla) || 450,
             risk_buffer: parseFloat(riskBuffer) || 1.15,
+            quoting_enabled: quotingEnabled,
+            load_finder_enabled: loadFinderEnabled,
         };
 
         try {
@@ -490,6 +499,35 @@ export default function AdminRatesPage() {
                                         </Button>
                                     </div>
                                  </div>
+
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t mt-6">
+                                     <div className="space-y-4">
+                                         <h3 className="text-sm font-bold flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Configuración de Módulos (Feature Toggles)</h3>
+                                         <p className="text-xs text-muted-foreground">Desactiva temporalmente módulos específicos de la plataforma para clientes y transportistas de confianza.</p>
+                                     </div>
+                                     <div className="space-y-4">
+                                         <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                                             <div className="space-y-0.5">
+                                                 <Label className="text-sm font-bold">Cotizador para Clientes</Label>
+                                                 <p className="text-xs text-muted-foreground text-[11px]">Permite a los clientes cotizar y crear sus propios envíos automáticamente.</p>
+                                             </div>
+                                             <Switch 
+                                                 checked={quotingEnabled} 
+                                                 onCheckedChange={setQuotingEnabled} 
+                                             />
+                                         </div>
+                                         <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                                             <div className="space-y-0.5">
+                                                 <Label className="text-sm font-bold">Buscador de Cargas (Transportistas)</Label>
+                                                 <p className="text-xs text-muted-foreground text-[11px]">Permite a los transportistas buscar y postular a cargas disponibles en el sistema.</p>
+                                             </div>
+                                             <Switch 
+                                                 checked={loadFinderEnabled} 
+                                                 onCheckedChange={setLoadFinderEnabled} 
+                                             />
+                                         </div>
+                                     </div>
+                                  </div>
 
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t">
                                     <div className="space-y-4">
