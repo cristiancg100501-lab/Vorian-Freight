@@ -28,6 +28,7 @@ export default function ManagedShipmentPage() {
     // Form State
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [pickup, setPickup] = useState({ address: '', coords: null as any });
     const [delivery, setDelivery] = useState({ address: '', coords: null as any });
     const [pickupDate, setPickupDate] = useState<Date | undefined>(new Date());
@@ -38,6 +39,7 @@ export default function ManagedShipmentPage() {
     // Data State
     const [customers, setCustomers] = useState<any[]>([]);
     const [drivers, setDrivers] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<any[]>([]);
     const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([]);
     const [deliverySuggestions, setDeliverySuggestions] = useState<any[]>([]);
     const [routeDetails, setRouteDetails] = useState({ distance: 0, duration: 0, geometry: null as any });
@@ -50,6 +52,7 @@ export default function ManagedShipmentPage() {
             if (usersData) {
                 setCustomers(usersData.filter((u: any) => u.role === 'customer' || u.role === 'client'));
                 setDrivers(usersData.filter((u: any) => u.role === 'driver'));
+                setCompanies(usersData.filter((u: any) => u.role === 'company'));
             }
         };
         fetchData();
@@ -117,8 +120,8 @@ export default function ManagedShipmentPage() {
             const { data, error: insertError } = await supabase.from('shipments').insert({
                 id: customId,
                 customer_id: selectedCustomerId,
-                driverId: selectedDriverId || null,
-                carrierId: selectedDriverId || null,
+                driverId: selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null,
+                carrierId: selectedCompanyId && selectedCompanyId !== 'none' ? selectedCompanyId : (selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null),
                 originAddress: pickup.address,
                 pickup_latitude: pickup.coords[1],
                 pickup_longitude: pickup.coords[0],
@@ -184,12 +187,25 @@ export default function ManagedShipmentPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
+                                <label className="text-sm font-semibold">Empresa Transportista (Carrier)</label>
+                                <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                                    <SelectTrigger className="h-12">
+                                        <SelectValue placeholder="Asignar a Empresa Transportista" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Sin Asignar (Asignación manual posterior)</SelectItem>
+                                        {companies.map(comp => <SelectItem key={comp.id} value={comp.id}>{comp.name || comp.email}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
                                 <label className="text-sm font-semibold">Chofer de Confianza (Opcional)</label>
                                 <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
                                     <SelectTrigger className="h-12">
-                                        <SelectValue placeholder="Asignar Chofer" />
+                                        <SelectValue placeholder="Asignar Chofer Directo" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="none">Sin Asignar</SelectItem>
                                         {drivers.map(d => <SelectItem key={d.id} value={d.id}>{d.name || d.email}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
