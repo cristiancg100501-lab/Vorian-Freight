@@ -46,6 +46,10 @@ export function Header() {
   const { data: companyProfile } = useSupabaseDoc("companyProfiles", user?.id);
   const { data: clientProfile } = useSupabaseDoc("clientProfiles", user?.id);
 
+  // Estado para notificaciones de cliente / mandante
+  const [clientNotifications, setClientNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   // Consultar envíos completados
   useEffect(() => {
     if (!user || !supabase) return;
@@ -181,6 +185,53 @@ export function Header() {
       supabase.removeChannel(channel);
     };
   }, [user, supabase, role]);
+
+  // Cargar y escuchar notificaciones del cliente / usuario en tiempo real
+  useEffect(() => {
+    if (!user || !supabase || role === "admin") return;
+
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("userId", user.id)
+        .order("createdAt", { ascending: false })
+        .limit(10);
+
+      if (data) {
+        setClientNotifications(data);
+        setUnreadCount(data.filter((n: any) => !n.read).length);
+      }
+    };
+
+    fetchNotifications();
+
+    const channel = supabase
+      .channel(`user-notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `userId=eq.${user.id}` },
+        (payload) => {
+          setClientNotifications((prev) => [payload.new, ...prev.slice(0, 9)]);
+          setUnreadCount((count) => count + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, supabase, role]);
+
+  const markNotificationsAsRead = async () => {
+    if (!user || !supabase || unreadCount === 0) return;
+    setUnreadCount(0);
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("userId", user.id)
+      .eq("read", false);
+  };
   const badge = completedTrips !== null && role
     ? ((role === "client" || role === "customer") ? getCustomerBadge(completedTrips) : role === "company" ? getCompanyBadge(completedTrips) : null)
     : null;
@@ -344,10 +395,51 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground">
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notificaciones</span>
-        </Button>
+        <DropdownMenu onOpenChange={(open) => { if (open) markNotificationsAsRead(); }}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className={`rounded-full relative transition-all duration-300 ${unreadCount > 0 ? 'text-blue-500 hover:text-blue-600 bg-blue-500/10' : 'text-muted-foreground hover:text-foreground'}`}>
+              <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'animate-bell-ring' : ''}`} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-blue-600 text-white text-[9px] font-bold border border-background shadow-sm animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+              <span className="sr-only">Notificaciones</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 p-2">
+            <DropdownMenuLabel className="font-semibold text-xs flex justify-between items-center px-2 py-1.5">
+              <span>Mis Notificaciones</span>
+              {unreadCount > 0 && (
+                <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold">
+                  {unreadCount} nuevas
+                </span>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {clientNotifications.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">No tienes notificaciones recientes.</div>
+            ) : (
+              <div className="max-h-[320px] overflow-y-auto space-y-1">
+                {clientNotifications.map((notif) => (
+                  <DropdownMenuItem key={notif.id} asChild className={cn("p-2.5 cursor-pointer rounded-lg hover:bg-muted/50 transition-colors", !notif.read && "bg-blue-500/5 font-medium")}>
+                    <Link href={notif.shipmentId ? `/client/shipments/${notif.shipmentId}` : "/client/shipments"} className="flex flex-col gap-1 items-start w-full">
+                      <div className="flex justify-between w-full text-xs">
+                        <span className="font-bold text-foreground truncate max-w-[190px]">{notif.title}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{notif.createdAt ? new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-snug">{notif.message}</div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="text-center justify-center font-bold text-xs p-2 text-primary cursor-pointer hover:bg-muted/50 rounded-lg">
+              <Link href="/client/shipments" className="w-full text-center">Ver todos mis envíos</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       {/* Insignia / Badge con Dialog de Rangos */}

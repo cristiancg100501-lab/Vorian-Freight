@@ -9,16 +9,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY!);
+// Radio de detección para geocerca (en metros)
+const GEOFENCE_RADIUS_METERS = 500;
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-
-        // Security / Validate request comes from Supabase Webhook
-        // (In a real production environment, you should verify a secret token here)
-
         const { type, table, record } = body;
 
         if (table !== 'driverProfiles' || type !== 'UPDATE') {
@@ -33,7 +29,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'No coordinates found' }, { status: 200 });
         }
 
-        // Parse to float just in case Supabase sends strings
         driverLat = typeof driverLat === 'string' ? parseFloat(driverLat) : driverLat;
         driverLng = typeof driverLng === 'string' ? parseFloat(driverLng) : driverLng;
 
@@ -44,12 +39,18 @@ export async function POST(req: Request) {
                 id, 
                 status, 
                 clientId, 
+                customer_id,
+                driverId,
                 carrierId,
+                originAddress,
                 destinationAddress,
-                details,
-                userProfiles!shipment_client_fkey(email, fullName)
+                pickup_latitude,
+                pickup_longitude,
+                delivery_latitude,
+                delivery_longitude,
+                details
             `)
-            .eq('carrierId', driverId)
+            .or(`driverId.eq.${driverId},carrierId.eq.${driverId}`)
             .in('status', ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'])
             .single();
 
@@ -57,7 +58,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: 'No active shipment found for driver' }, { status: 200 });
         }
 
-        // 1.1 Obtener datos del chofer para el correo
+        // Obtener ID del cliente (mandante)
+        const clientId = shipment.clientId || shipment.customer_id;
+        if (!clientId) {
+            return NextResponse.json({ message: 'No client associated with shipment' }, { status: 200 });
+        }
+
+        // Obtener datos del perfil del cliente (email y nombre)
+        const { data: clientUser } = await supabase
+            .from('userProfiles')
+            .select('email, firstName, lastName')
+            .eq('id', clientId)
+            .single();
+
+        const clientEmail = clientUser?.email;
+        const clientName = clientUser?.firstName ? `${clientUser.firstName} ${clientUser.lastName || ''}`.trim() : 'Cliente Vorian';
+
+        if (!clientEmail) {
+            return NextResponse.json({ message: 'Client has no email configured' }, { status: 200 });
+        }
+
+        // Obtener datos del chofer para el correo
         const { data: driverData } = await supabase
             .from('driverProfiles')
             .select('vehiclePlate, id')
@@ -66,81 +87,118 @@ export async function POST(req: Request) {
         
         const { data: driverUser } = await supabase
             .from('userProfiles')
-            .select('fullName')
+            .select('firstName, lastName')
             .eq('id', driverId)
             .single();
 
-        // Si ya enviamos el correo para esta carga, abortamos.
-        if (shipment.details?.arrival_email_sent === true) {
-            return NextResponse.json({ message: 'Arrival email already sent for this shipment' }, { status: 200 });
-        }
+        const driverFullName = driverUser?.firstName ? `${driverUser.firstName} ${driverUser.lastName || ''}`.trim() : 'Asignado';
 
-        const destCoords = shipment.details?.destinationCoords;
-        if (!destCoords || typeof destCoords.lat !== 'number' || typeof destCoords.lng !== 'number') {
-            return NextResponse.json({ message: 'Shipment has no valid destination coordinates' }, { status: 200 });
-        }
-
-        // 2. Calcular la distancia usando Turf.js
         const driverPoint = turf.point([driverLng, driverLat]);
-        const destPoint = turf.point([destCoords.lng, destCoords.lat]);
-        
-        const distanceKm = turf.distance(driverPoint, destPoint, { units: 'kilometers' });
-        const distanceMeters = distanceKm * 1000;
+        const status = shipment.status;
+        const details = shipment.details || {};
 
-        // 3. Evaluar Geocerca (300 metros)
-        if (distanceMeters <= 300) {
-            
-            // 4. Enviar Correo Electrónico usando Resend
-            const clientEmail = shipment.userProfiles?.email || 'admin@vorianglobal.com'; // Fallback a admin si no hay email
-            const clientName = shipment.userProfiles?.fullName || 'Cliente de Vorian';
-            
-            try {
-                const { data: emailData, error: emailError } = await resend.emails.send({
-                    from: 'Vorian Logistics <info@vorianglobal.com>', // Usa el dominio verificado en Resend
-                    to: [clientEmail],
-                    subject: `🚨 Aviso de Llegada: Su carga #${shipment.id.substring(0, 8)} está por arribar`,
-                    react: ArrivalEmailTemplate({
-                        clientName: clientName,
-                        shipmentId: shipment.id,
-                        destinationAddress: shipment.destinationAddress,
-                        driverName: driverUser?.fullName || 'Asignado',
-                        vehiclePlate: driverData?.vehiclePlate || 'S/P'
-                    })
-                });
+        let triggerEmailType: 'pickup_arrival' | 'delivery_arrival' | null = null;
+        let targetAddress = '';
 
-                if (emailError) {
-                    console.error("Resend Error:", emailError);
-                    return NextResponse.json({ error: 'Failed to send email via Resend' }, { status: 500 });
-                }
+        // --- EVALUAR GEOFENCE DE RECOGIDA (PICKUP) ---
+        const pickupStates = ['ACCEPTED', 'EN_ROUTE_TO_PICKUP'];
+        if (pickupStates.includes(status) && shipment.pickup_longitude && shipment.pickup_latitude) {
+            const pickupPoint = turf.point([shipment.pickup_longitude, shipment.pickup_latitude]);
+            const distPickupMeters = turf.distance(driverPoint, pickupPoint, { units: 'kilometers' }) * 1000;
 
-                // 5. Marcar en Base de Datos que el correo fue enviado
-                const updatedDetails = {
-                    ...shipment.details,
-                    arrival_email_sent: true
-                };
-
-                await supabase
-                    .from('shipments')
-                    .update({ details: updatedDetails })
-                    .eq('id', shipment.id);
-
-                return NextResponse.json({ 
-                    success: true, 
-                    message: `Email sent gracefully to ${clientEmail} (Distance: ${Math.round(distanceMeters)}m)` 
-                }, { status: 200 });
-
-            } catch (err) {
-                console.error("Email processing failed:", err);
-                return NextResponse.json({ error: 'Email processing failed' }, { status: 500 });
+            if (distPickupMeters <= GEOFENCE_RADIUS_METERS && !details.pickup_arrival_email_sent) {
+                triggerEmailType = 'pickup_arrival';
+                targetAddress = shipment.originAddress || 'Punto de recogida';
             }
-        } else {
-            return NextResponse.json({ 
-                message: `Driver updated, but is too far (${Math.round(distanceMeters)}m away). No email sent.` 
-            }, { status: 200 });
         }
+
+        // --- EVALUAR GEOFENCE DE ENTREGA (DELIVERY) ---
+        const deliveryStates = ['IN_TRANSIT'];
+        if (!triggerEmailType && deliveryStates.includes(status)) {
+            let destLng = shipment.delivery_longitude;
+            let destLat = shipment.delivery_latitude;
+
+            if (!destLng && details.destinationCoords) {
+                destLng = details.destinationCoords.lng;
+                destLat = details.destinationCoords.lat;
+            }
+
+            if (destLng && destLat) {
+                const deliveryPoint = turf.point([destLng, destLat]);
+                const distDeliveryMeters = turf.distance(driverPoint, deliveryPoint, { units: 'kilometers' }) * 1000;
+
+                if (distDeliveryMeters <= GEOFENCE_RADIUS_METERS && !details.delivery_arrival_email_sent) {
+                    triggerEmailType = 'delivery_arrival';
+                    targetAddress = shipment.destinationAddress || 'Punto de entrega';
+                }
+            }
+        }
+
+        if (!triggerEmailType) {
+            return NextResponse.json({ message: 'Driver updated, outside geofence radius or notification already sent.' }, { status: 200 });
+        }
+
+        // --- DISPARAR EMAIL VÍA RESEND Y NOTIFICACIÓN IN-APP ---
+        const resendApiKey = process.env.RESEND_API_KEY;
+        const shipmentCode = shipment.id.substring(0, 8);
+
+        const isPickup = triggerEmailType === 'pickup_arrival';
+        const subject = isPickup
+            ? `🚨 ¡El camión está cerca del origen! (Envío #${shipmentCode})`
+            : `🚨 ¡El camión está cerca del destino! (Envío #${shipmentCode})`;
+
+        const notifTitle = isPickup ? `🚛 Camión cerca del punto de recogida` : `🏁 Camión cerca del punto de entrega`;
+        const notifMsg = isPickup
+            ? `El transportista está a menos de 500 metros del origen (${targetAddress}). Aliste la carga y el PIN de recogida.`
+            : `El transportista está a menos de 500 metros del destino (${targetAddress}). Aliste la recepción y el PIN de entrega.`;
+
+        // 1. Insertar notificación In-App
+        await supabase.from('notifications').insert({
+            userId: clientId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'geofence',
+            shipmentId: shipment.id,
+            read: false
+        });
+
+        // 2. Enviar Correo vía Resend
+        if (resendApiKey) {
+            const resend = new Resend(resendApiKey);
+
+            await resend.emails.send({
+                from: 'Vorian Freight <info@vorianglobal.com>',
+                to: [clientEmail],
+                subject: subject,
+                react: ArrivalEmailTemplate({
+                    clientName: clientName,
+                    shipmentId: shipment.id,
+                    destinationAddress: targetAddress,
+                    driverName: driverFullName,
+                    vehiclePlate: driverData?.vehiclePlate || 'S/P'
+                })
+            });
+        }
+
+        // 3. Marcar en BD para no duplicar correos por esta misma llegada
+        const updatedDetails = {
+            ...details,
+            ...(isPickup ? { pickup_arrival_email_sent: true } : { delivery_arrival_email_sent: true })
+        };
+
+        await supabase
+            .from('shipments')
+            .update({ details: updatedDetails })
+            .eq('id', shipment.id);
+
+        return NextResponse.json({
+            success: true,
+            type: triggerEmailType,
+            message: `Notificación y correo de aproximación enviado a ${clientEmail}`
+        }, { status: 200 });
 
     } catch (error: any) {
-        console.error("Webhook Error:", error.message);
-        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+        console.error("Geofence Webhook Error:", error.message);
+        return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
     }
 }

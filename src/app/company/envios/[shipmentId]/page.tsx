@@ -203,6 +203,17 @@ export default function ShipmentDetailPage() {
                 }).catch(err => console.error("Error trigger push:", err));
             }
 
+            // Enviar notificación in-app y correo electrónico al cliente (Mandante)
+            fetch('/api/notifications/notify-status-change', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shipmentId,
+                    newStatus: selectedDriverId === "none" ? "PENDING" : "ACCEPTED",
+                    previousStatus: s.status,
+                })
+            }).catch(err => console.error("Error trigger status email:", err));
+
             setIsAssignDialogOpen(false);
         } catch (error) {
             console.error("Error assigning driver:", error);
