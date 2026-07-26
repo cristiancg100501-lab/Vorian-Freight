@@ -184,23 +184,23 @@ export default function NewUserAdminPage() {
                 </Select>
             </div>
             
-            {role === 'company' ? (
+            {(role === 'company' || role === 'client' || role === 'customer') ? (
               <div className="space-y-6">
                 <div className="p-4 border rounded-md space-y-4 bg-muted/50">
                   <h4 className="font-semibold text-base">1. Datos de la Empresa</h4>
                   <div>
-                    <Label htmlFor="companyName">Nombre de la Empresa</Label>
-                    <Input id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Ej: Transportes Rápidos S.A." required={role === 'company'} className="mt-1 bg-background"/>
+                    <Label htmlFor="companyName">Nombre de la Empresa (Razón Social)</Label>
+                    <Input id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Ej: Vorian Logistics S.A." required className="mt-1 bg-background"/>
                   </div>
                   <div>
                       <Label htmlFor="rut">RUT de la Empresa</Label>
-                      <Input id="rut" type="text" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="Ej: 76.123.456-7" required={role === 'company'} className="mt-1" />
+                      <Input id="rut" type="text" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="Ej: 76.123.456-7" required className="mt-1" />
                   </div>
                   <div>
                       <Label htmlFor="address">Dirección de la Empresa</Label>
-                      <Input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ej: Av. Principal 123, Ciudad" required={role === 'company'} className="mt-1" />
+                      <Input id="address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Ej: Av. Principal 123, Ciudad" required className="mt-1" />
                   </div>
-                  <VehicleSelector selected={vehicleTypes} onSelect={handleCompanyVehicleSelect} isMultiSelect />
+                  {role === 'company' && <VehicleSelector selected={vehicleTypes} onSelect={handleCompanyVehicleSelect} isMultiSelect />}
                 </div>
 
                 <div className="p-4 border rounded-md space-y-4 bg-muted/50">

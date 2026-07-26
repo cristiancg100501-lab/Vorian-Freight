@@ -365,8 +365,19 @@ export default function Home() {
                   Crea una cuenta
                 </Link>
               </p>
+              <p className="text-[11px] text-zinc-500 mt-2">
+                Al ingresar o registrarte, aceptas nuestros{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-zinc-400 hover:text-white underline transition-colors"
+                >
+                  Términos y Condiciones
+                </Link>
+              </p>
             </motion.div>
           </div>
+
           
         </motion.div>
       </main>

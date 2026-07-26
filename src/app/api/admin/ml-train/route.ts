@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/api-auth';
 
 const ML_ENGINE_URL = process.env.ML_ENGINE_URL || 'http://localhost:8000';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
     // 1. Obtener TODOS los logs de pricing (aceptados Y rechazados)
     //    Los rechazados = quoted_at existente y was_customer_accepted = false
     const { data: logs, error: fetchError } = await supabaseAdmin

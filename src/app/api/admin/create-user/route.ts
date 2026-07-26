@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/api-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { sanitize } from '@/lib/validation';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // 1. Rate Limiting (Máx 5 creaciones de usuario por minuto por IP)
+  const rateLimitError = checkRateLimit(request, { limit: 5, windowMs: 60 * 1000 });
+  if (rateLimitError) return rateLimitError;
+
   try {
+    // 2. Verify admin authorization
+    const auth = await requireAdmin(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const body = await request.json();
     const { 
-        email, 
         password, 
         role, 
         firstName, 
@@ -18,14 +31,13 @@ export async function POST(request: Request) {
         licensePlate
     } = body;
 
+    const email = sanitize.email(body.email);
+
     if (!email || !password || !role) {
-        return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+        return NextResponse.json({ error: 'Faltan campos obligatorios o el email es inválido' }, { status: 400 });
     }
 
     // 1. Crear usuario en Auth
-    console.log('--- ADMIN CREATE USER START ---');
-    console.log('Email:', email);
-    console.log('Role:', role);
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -55,7 +67,7 @@ export async function POST(request: Request) {
       email,
       firstName: firstName || "",
       lastName: lastName || "",
-      name: `${firstName || ""} ${lastName || ""}`.trim(),
+      name: (role === 'company' || role === 'client' || role === 'customer') ? (companyName || "").trim() : `${firstName || ""} ${lastName || ""}`.trim(),
       role: role,
       rut: rut || null,
       address: address || null,
@@ -96,13 +108,28 @@ export async function POST(request: Request) {
         rut: rut || "",
         address: address || "",
         vehicleTypes: vehicleTypes || ["Auto"],
-        updatedAt: new Date().toISOString(),
       };
       console.log('Upserting companyProfiles:', companyData);
       const { error: companyError } = await supabaseAdmin.from("companyProfiles").upsert(companyData);
       if (companyError) {
           console.error('Error en companyProfiles:', companyError);
           throw companyError;
+      }
+    }
+
+    if (role === "client" || role === "customer") {
+      const clientData = {
+        id: newUserId,
+        userId: newUserId,
+        companyName: companyName || "",
+        rut: rut || "",
+        address: address || "",
+      };
+      console.log('Upserting clientProfiles:', clientData);
+      const { error: clientError } = await supabaseAdmin.from("clientProfiles").upsert(clientData);
+      if (clientError) {
+          console.error('Error en clientProfiles:', clientError);
+          throw clientError;
       }
     }
 

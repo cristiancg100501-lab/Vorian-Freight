@@ -64,8 +64,7 @@ const adminNavItems: NavItem[] = [
 ];
 
 const clientNavItems: NavItem[] = [
-    { group: "GENERAL", href: "/client/shipments", icon: Package, label: "Mis Envíos" },
-    { group: "GENERAL", href: "/client/shipments/new", icon: PlusCircle, label: "Crear Envío" },
+    { group: "GENERAL", href: "/client/shipments", icon: List, label: "Mis Envíos" },
     { group: "OTROS", href: "/client/perfil", icon: Building2, label: "Perfil Corporativo" },
 ];
 
@@ -77,7 +76,6 @@ const driverNavItems: NavItem[] = [
 
 const companyNavItems: NavItem[] = [
     { group: "GENERAL", href: "/company", icon: LayoutDashboard, label: "Dashboard" },
-    { group: "GENERAL", href: "/company/shipments", icon: Package, label: "Buscar Cargas" },
     { group: "GENERAL", href: "/company/envios", icon: List, label: "Mis Envíos" },
     { group: "GENERAL", href: "/company/conductores", icon: Users, label: "Mis Conductores" },
     { group: "GENERAL", href: "/company/flota", icon: Truck, label: "Gestión de Flota" },
@@ -291,7 +289,7 @@ export function Sidebar({ role, isCollapsed, setCollapsed }: { role: string; isC
   }
 
   return (
-    <div className={cn("hidden md:block p-4 relative z-40", isCollapsed && "p-2")}>
+    <div className={cn("hidden md:block p-4 relative z-40 h-full", isCollapsed && "p-2")}>
       <TooltipProvider>
       <div 
         className={cn(

@@ -146,8 +146,7 @@ export default function CompanyProfilePage() {
                     rut,
                     address,
                     vehicleTypes,
-                    logoUrl: finalLogoUrl,
-                    updatedAt: new Date().toISOString()
+                    logoUrl: finalLogoUrl
                 })
                 .eq("id", user.id);
             if (companyError) throw companyError;
@@ -157,6 +156,7 @@ export default function CompanyProfilePage() {
                 .update({
                     firstName,
                     lastName,
+                    name: companyName,
                     updatedAt: new Date().toISOString()
                 })
                 .eq("id", user.id);

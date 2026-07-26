@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Main Layout Elements */}
       {mounted && (
         <>
-          <div className={cn("hidden md:block border-r bg-background transition-all duration-300", isSidebarCollapsed ? "w-[80px]" : "w-[220px] lg:w-[280px]")}>
+          <div className={cn("hidden md:block border-r bg-background transition-all duration-300 h-full", isSidebarCollapsed ? "w-[80px]" : "w-[220px] lg:w-[280px]")}>
             <Sidebar role="admin" isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed} />
           </div>
           

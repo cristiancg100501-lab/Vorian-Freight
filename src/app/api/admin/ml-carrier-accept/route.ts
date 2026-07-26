@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/api-auth';
 
 // Called fire-and-forget from company/shipments page when a carrier accepts a load.
 // Links the shipment back to its pricing_ml_log and marks was_carrier_accepted = true.
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdmin(request);
+    if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
     const { shipment_id } = await request.json();
     if (!shipment_id) {
       return NextResponse.json({ error: 'Missing shipment_id' }, { status: 400 });

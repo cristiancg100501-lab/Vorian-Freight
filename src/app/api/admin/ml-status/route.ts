@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAdmin } from '@/lib/api-auth';
 
 const ML_ENGINE_URL = process.env.ML_ENGINE_URL || 'http://localhost:8000';
 const TRAIN_THRESHOLD = 10;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   // Consultar conteo de logs en paralelo con el health check del motor
   const [healthResult, countsResult] = await Promise.allSettled([
     fetch(`${ML_ENGINE_URL}/health`, {

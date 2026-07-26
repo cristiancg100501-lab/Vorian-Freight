@@ -1,15 +1,30 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { sanitize } from '@/lib/validation';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate Limiting (Máximo 3 formularios de contacto por IP cada 5 minutos para evitar spam bots)
+  const rateLimitError = checkRateLimit(req, { limit: 3, windowMs: 5 * 60 * 1000 });
+  if (rateLimitError) return rateLimitError;
+
   try {
     const body = await req.json();
-    const { name, company, email, phone, profile, volume, message, rut, giro } = body;
+
+    const name = sanitize.string(body.name, 100);
+    const company = sanitize.string(body.company, 100);
+    const email = sanitize.email(body.email);
+    const phone = sanitize.string(body.phone, 30);
+    const profile = sanitize.string(body.profile, 50);
+    const volume = sanitize.string(body.volume, 50);
+    const message = sanitize.string(body.message, 1000) || '';
+    const rut = sanitize.string(body.rut, 20);
+    const giro = sanitize.string(body.giro, 100);
 
     // Validation
     if (!name || !company || !email || !phone || !profile || !volume || !rut || !giro) {
-      return NextResponse.json({ error: 'Todos los campos excepto el mensaje son obligatorios.' }, { status: 400 });
+      return NextResponse.json({ error: 'Todos los campos excepto el mensaje son obligatorios o contienen datos no válidos.' }, { status: 400 });
     }
 
     // 1. Insert into Supabase (contact_requests)

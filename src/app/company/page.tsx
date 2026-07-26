@@ -207,11 +207,6 @@ export default function CompanyDashboardPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-semibold">Dashboard de Empresa</h1>
-                <Link href="/company/shipments">
-                    <Button variant="default" className="shadow-lg">
-                        Buscar Cargas <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </Link>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

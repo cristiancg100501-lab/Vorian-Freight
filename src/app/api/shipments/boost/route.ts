@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { requireAuth } from '@/lib/api-auth';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
+        const auth = await requireAuth(req);
+        if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
         const body = await req.json();
         const { shipmentId, boostAmount } = body;
 
         if (!shipmentId || !boostAmount || typeof boostAmount !== 'number' || boostAmount <= 0) {
             return NextResponse.json({ error: 'shipmentId y boostAmount (positivo) son requeridos' }, { status: 400 });
+        }
+        if (boostAmount > 5_000_000) {
+            return NextResponse.json({ error: 'El monto máximo de bono es $5.000.000 CLP' }, { status: 400 });
         }
 
         // 1. Obtener el envío actual

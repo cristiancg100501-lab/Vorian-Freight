@@ -13,7 +13,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import dynamic from 'next/dynamic';
-const Map = dynamic(() => import('@/components/map'), { 
+const VorianMap = dynamic<any>(() => import('@/components/map'), { 
   ssr: false,
   loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-muted rounded-xl animate-pulse"><span className="text-muted-foreground font-medium">Cargando mapa interactivo...</span></div>
 });
@@ -49,10 +49,23 @@ export default function ManagedShipmentPage() {
     useEffect(() => {
         const fetchData = async () => {
             const { data: usersData } = await supabase.from("userProfiles").select("id, name, role, email");
+            const { data: clientsData } = await supabase.from("clientProfiles").select("id, companyName");
+            
             if (usersData) {
-                setCustomers(usersData.filter((u: any) => u.role === 'customer' || u.role === 'client'));
+                const clientNameMap = new Map(clientsData?.map(c => [c.id, c.companyName]) || []);
+                const mappedCustomers = usersData
+                    .filter((u: any) => u.role === 'customer' || u.role === 'client')
+                    .map((u: any) => ({
+                        ...u,
+                        name: clientNameMap.get(u.id) || u.name
+                    }));
+
+                setCustomers(mappedCustomers);
                 setDrivers(usersData.filter((u: any) => u.role === 'driver'));
-                setCompanies(usersData.filter((u: any) => u.role === 'company'));
+            }
+            const { data: companiesData } = await supabase.from("companyProfiles").select("id, companyName");
+            if (companiesData) {
+                setCompanies(companiesData);
             }
         };
         fetchData();
@@ -116,29 +129,57 @@ export default function ManagedShipmentPage() {
 
         const customId = `MNG-${Date.now().toString().slice(-6)}`;
 
+        const clientPriceVal = parseFloat(manualClientPrice);
+        const carrierCostVal = parseFloat(manualCarrierCost);
+        const commissionVal = clientPriceVal - carrierCostVal;
+
         try {
             const { data, error: insertError } = await supabase.from('shipments').insert({
                 id: customId,
-                customer_id: selectedCustomerId,
+                clientId: selectedCustomerId,
                 driverId: selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null,
                 carrierId: selectedCompanyId && selectedCompanyId !== 'none' ? selectedCompanyId : (selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null),
+                
+                // Address fields (only columns that exist in the schema)
                 originAddress: pickup.address,
                 pickup_latitude: pickup.coords[1],
                 pickup_longitude: pickup.coords[0],
                 destinationAddress: delivery.address,
                 delivery_latitude: delivery.coords[1],
                 delivery_longitude: delivery.coords[0],
+                
+                // Date fields
                 pickup_date: pickupDate?.toISOString(),
-                carrier_cost: parseFloat(manualCarrierCost),
-                client_price: parseFloat(manualClientPrice),
+                createdAt: new Date().toISOString(),
+                
+                // Financial fields
+                carrier_cost: carrierCostVal,
+                client_price: clientPriceVal,
+                estimatedPrice: clientPriceVal,
+                
+                client_iva: Math.round(clientPriceVal * 0.19),
+                client_total: Math.round(clientPriceVal * 1.19),
+                
+                carrier_payment: carrierCostVal,
+                carrier_iva: Math.round(carrierCostVal * 0.19),
+                carrier_total: Math.round(carrierCostVal * 1.19),
+                
+                vorian_commission: commissionVal,
+                vorian_iva: Math.round(commissionVal * 0.19),
+                vorian_total: Math.round(commissionVal * 1.19),
+                
+                // Meta fields
                 itemDescription: description,
                 status: 'ACCEPTED',
                 equipment: 'Dry van',
                 serviceType: 'FTL',
                 bookingMethod: 'instant',
-                estimatedPrice: parseFloat(manualClientPrice),
-                estimated_price: parseFloat(manualClientPrice),
-                createdAt: new Date().toISOString(),
+                details: {
+                    equipment: 'Dry van',
+                    serviceType: 'FTL',
+                    pickupDate: pickupDate?.toISOString(),
+                    itemDescription: description
+                }
             }).select();
 
             if (insertError) {
@@ -194,7 +235,7 @@ export default function ManagedShipmentPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">Sin Asignar (Asignación manual posterior)</SelectItem>
-                                        {companies.map(comp => <SelectItem key={comp.id} value={comp.id}>{comp.name || comp.email}</SelectItem>)}
+                                        {companies.map(comp => <SelectItem key={comp.id} value={comp.id}>{comp.companyName || "Empresa Sin Nombre"}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -329,7 +370,7 @@ export default function ManagedShipmentPage() {
                 {/* Mapa y Resumen */}
                 <div className="space-y-6">
                     <Card className="h-[400px] overflow-hidden">
-                        <Map 
+                        <VorianMap 
                             route={routeDetails.geometry} 
                             origin={pickup.coords} 
                             destination={delivery.coords} 
