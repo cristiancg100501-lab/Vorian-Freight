@@ -74,6 +74,13 @@ CREATE POLICY "company_read_assigned_shipments"
   TO authenticated
   USING ("carrierId"::text = auth.uid()::text);
 
+DROP POLICY IF EXISTS "company_update_assigned_shipments" ON public.shipments;
+CREATE POLICY "company_update_assigned_shipments"
+  ON public.shipments FOR UPDATE
+  TO authenticated
+  USING ("carrierId"::text = auth.uid()::text)
+  WITH CHECK ("carrierId"::text = auth.uid()::text);
+
 -- ─── 3. location_history (Acceso para usuarios autenticados) ─
 ALTER TABLE public.location_history ENABLE ROW LEVEL SECURITY;
 

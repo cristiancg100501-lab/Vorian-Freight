@@ -215,9 +215,9 @@ export default function ShipmentDetailPage() {
             }).catch(err => console.error("Error trigger status email:", err));
 
             setIsAssignDialogOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error assigning driver:", error);
-            alert("Error al asignar el conductor.");
+            alert(`Error al asignar el conductor: ${error.message || error.details || "Error desconocido"}`);
         } finally {
             setIsAssigning(false);
         }

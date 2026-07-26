@@ -139,6 +139,17 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
               if (dist <= GEOFENCE_RADIUS_M && !geofenceTriggered.current.has('pickup')) {
                 geofenceTriggered.current.add('pickup');
                 setGeofenceAlert({ type: 'pickup', address: shipment.originAddress || 'Punto de recogida' });
+
+                // Disparar correo electrónico y notificación in-app de llegada a origen
+                fetch('/api/notifications/notify-status-change', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    shipmentId,
+                    newStatus: 'ARRIVED_AT_PICKUP',
+                    previousStatus: status,
+                  })
+                }).catch(err => console.error("Error sending arrival notification email:", err));
               }
             }
 
@@ -147,6 +158,17 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
               if (dist <= GEOFENCE_RADIUS_M && !geofenceTriggered.current.has('delivery')) {
                 geofenceTriggered.current.add('delivery');
                 setGeofenceAlert({ type: 'delivery', address: shipment.destinationAddress || 'Punto de entrega' });
+
+                // Disparar correo electrónico y notificación in-app de llegada a destino
+                fetch('/api/notifications/notify-status-change', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    shipmentId,
+                    newStatus: 'ARRIVED_AT_DROPOFF',
+                    previousStatus: status,
+                  })
+                }).catch(err => console.error("Error sending arrival notification email:", err));
               }
             }
           }
