@@ -674,6 +674,15 @@ export default function CustomerTrackingPage() {
                       ))}
                     </div>
 
+                    {/* Signal Status Badge */}
+                    <div className="rounded-xl border p-3 bg-muted/10 flex items-center justify-between">
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-muted-foreground">Estado del GPS del Conductor</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Cobertura en tiempo real</p>
+                      </div>
+                      <SignalIndicator lastUpdatedMs={lastGpsUpdate} />
+                    </div>
+
                     {/* Extras / Observations */}
                     {selected?.details?.extraServices?.length > 0 && (
                       <div className="rounded-xl border p-3 bg-muted/10">

@@ -126,12 +126,14 @@ export function Header() {
   };
 
 
-  let displayName = userProfile ? ((userProfile as any).name || `${(userProfile as any).firstName || ''} ${(userProfile as any).lastName || ''}`.trim()) : "Cargando...";
+  let displayName = userProfile 
+    ? ((userProfile as any).company_name || (userProfile as any).companyName || (userProfile as any).name || `${(userProfile as any).firstName || ''} ${(userProfile as any).lastName || ''}`.trim()) 
+    : "Cargando...";
   
-  if (companyProfile && (companyProfile as any).companyName) {
-    displayName = (companyProfile as any).companyName;
-  } else if (clientProfile && (clientProfile as any).companyName) {
-    displayName = (clientProfile as any).companyName;
+  if (companyProfile && ((companyProfile as any).company_name || (companyProfile as any).companyName)) {
+    displayName = (companyProfile as any).company_name || (companyProfile as any).companyName;
+  } else if (clientProfile && ((clientProfile as any).company_name || (clientProfile as any).companyName)) {
+    displayName = (clientProfile as any).company_name || (clientProfile as any).companyName;
   }
 
   let displayRole = userProfile ? (userProfile as any).role.charAt(0).toUpperCase() + (userProfile as any).role.slice(1) : "";

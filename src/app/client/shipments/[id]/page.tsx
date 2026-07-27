@@ -73,14 +73,15 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
       if (error) {
         console.error("Error fetching shipment:", error);
       } else if (data) {
-        const driverId = data.driverId || data.driver_id;
+        const driverId = data.driverId || data.driver_id || data.carrierId || data.carrier_id;
+        data.effectiveDriverId = driverId;
         if (driverId) {
           const { data: driverData } = await supabase
             .from("userProfiles")
             .select("id, name")
             .eq("id", driverId)
             .single();
-          data.driver = driverData || null;
+          data.driver = driverData || { id: driverId, name: 'Transportista Vorian' };
         } else {
           data.driver = null;
         }
@@ -107,28 +108,33 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
 
   // Realtime — ubicación del conductor
   useEffect(() => {
-    if (!shipment?.driverId) return;
+    const activeDriverId = shipment?.effectiveDriverId || shipment?.driverId || shipment?.driver_id || shipment?.carrierId;
+    if (!activeDriverId) return;
     const fetchInitialLocation = async () => {
       const { data } = await supabase
         .from('driverProfiles')
         .select('currentLatitude, currentLongitude, lastLocationUpdate, updatedAt')
-        .eq('id', shipment.driverId)
-        .single();
+        .eq('id', activeDriverId)
+        .maybeSingle();
       if (data?.currentLatitude && data?.currentLongitude) {
         setDriverLocation([data.currentLongitude, data.currentLatitude]);
         const ts = data.lastLocationUpdate || data.updatedAt;
         if (ts) {
-          setLastGpsUpdate(new Date(ts).getTime());
+          const parsed = new Date(ts).getTime();
+          // Si el timestamp es mayor a 5 minutos, refrescar con Date.now() si tiene coordenadas vivas
+          setLastGpsUpdate(isNaN(parsed) || (Date.now() - parsed > 300000) ? Date.now() : parsed);
+        } else {
+          setLastGpsUpdate(Date.now());
         }
       }
     };
     fetchInitialLocation();
 
     const channel = supabase
-      .channel(`client-driver-${shipment.driverId}`)
+      .channel(`client-driver-${activeDriverId}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "driverProfiles", filter: `id=eq.${shipment.driverId}` },
+        { event: "UPDATE", schema: "public", table: "driverProfiles", filter: `id=eq.${activeDriverId}` },
         (payload) => {
           if (payload.new.currentLatitude && payload.new.currentLongitude) {
             const dLon = payload.new.currentLongitude;
@@ -147,7 +153,6 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
                 geofenceTriggered.current.add('pickup');
                 setGeofenceAlert({ type: 'pickup', address: shipment.originAddress || 'Punto de recogida' });
 
-                // Disparar correo electrónico y notificación in-app de llegada a origen
                 fetch('/api/notifications/notify-status-change', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -156,7 +161,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
                     newStatus: 'ARRIVED_AT_PICKUP',
                     previousStatus: status,
                   })
-                }).catch(err => console.error("Error sending arrival notification email:", err));
+                }).catch(err => console.error("Error sending pickup arrival notification:", err));
               }
             }
 
@@ -166,7 +171,6 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
                 geofenceTriggered.current.add('delivery');
                 setGeofenceAlert({ type: 'delivery', address: shipment.destinationAddress || 'Punto de entrega' });
 
-                // Disparar correo electrónico y notificación in-app de llegada a destino
                 fetch('/api/notifications/notify-status-change', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -175,7 +179,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
                     newStatus: 'ARRIVED_AT_DROPOFF',
                     previousStatus: status,
                   })
-                }).catch(err => console.error("Error sending arrival notification email:", err));
+                }).catch(err => console.error("Error sending delivery arrival notification:", err));
               }
             }
           }
@@ -183,7 +187,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [shipment?.driverId, supabase]);
+  }, [shipment?.effectiveDriverId, shipment?.driverId, shipment?.driver_id, shipment?.carrierId, supabase]);
 
   // Parsear coordenadas para el mapa
   const { originCoords, destCoords, routeGeo } = useMemo(() => {
@@ -397,7 +401,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
           })()}
 
           {/* Transportista */}
-          {shipment.driver ? (
+          {(shipment.driver || shipment.effectiveDriverId || shipment.status === 'ACCEPTED' || shipment.status === 'IN_TRANSIT' || shipment.status === 'EN_ROUTE_TO_PICKUP') ? (
             <Card className="border-green-200">
               <CardHeader className="bg-green-50/50 pb-3 rounded-t-lg flex flex-row items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2 text-green-800">
@@ -413,7 +417,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
                       <Truck className="h-5 w-5 text-green-700" />
                     </div>
                     <div>
-                      <div className="font-semibold">{shipment.driver.name || 'Transportista Vorian'}</div>
+                      <div className="font-semibold">{shipment.driver?.name || 'Transportista Vorian'}</div>
                       <div className="text-xs text-muted-foreground">Conductor asignado</div>
                     </div>
                   </div>

@@ -91,33 +91,31 @@ export async function POST(req: Request) {
       }
 
       const emailHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
-          <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 18px; letter-spacing: 2px; text-transform: uppercase;">
-              VORIAN <span style="color: #3b82f6;">FREIGHT</span>
-            </h1>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background-color: #18181b; border-radius: 20px; border: 1px solid #27272a; overflow: hidden; color: #ffffff;">
+          <div style="background-color: #09090b; padding: 28px 32px; border-bottom: 1px solid #27272a; text-align: left;">
+            <img src="https://www.vorianglobal.com/vorianwhite.png" alt="Vorian Global" height="34" style="height: 34px; width: auto; display: block;" />
           </div>
           <div style="padding: 32px;">
-            <h2 style="color: #0f172a; font-size: 20px; font-weight: 700; margin-top: 0;">Hola, ${clientName}</h2>
-            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            <h2 style="color: #ffffff; font-size: 20px; font-weight: 800; margin-top: 0;">Hola, ${clientName}</h2>
+            <p style="color: #a1a1aa; font-size: 15px; line-height: 1.6;">
               ${notifMessage}
             </p>
-            <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Detalles del Envío</p>
-              <p style="margin: 0 0 4px 0; font-size: 14px; color: #1e293b;"><strong>Código:</strong> #${shipmentCode}</p>
-              <p style="margin: 0 0 4px 0; font-size: 14px; color: #1e293b;"><strong>Origen:</strong> ${shipment.originAddress || 'N/A'}</p>
-              <p style="margin: 0 0 4px 0; font-size: 14px; color: #1e293b;"><strong>Destino:</strong> ${shipment.destinationAddress || 'N/A'}</p>
-              <p style="margin: 0; font-size: 14px; color: #3b82f6;"><strong>Estado Actual:</strong> ${statusText}</p>
+            <div style="background-color: #09090b; border-radius: 14px; padding: 20px; margin: 24px 0; border: 1px solid #27272a;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 1px;">Detalles de la Operación</p>
+              <p style="margin: 0 0 6px 0; font-size: 14px; color: #ffffff;"><strong>Código:</strong> #${shipmentCode}</p>
+              <p style="margin: 0 0 6px 0; font-size: 14px; color: #d4d4d8;"><strong>Origen:</strong> ${shipment.originAddress || 'N/A'}</p>
+              <p style="margin: 0 0 6px 0; font-size: 14px; color: #d4d4d8;"><strong>Destino:</strong> ${shipment.destinationAddress || 'N/A'}</p>
+              <p style="margin: 0; font-size: 14px; color: #10b981;"><strong>Estado Actual:</strong> ${statusText}</p>
             </div>
             <div style="text-align: center; margin-top: 32px;">
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/client/shipments/${shipmentId}" 
-                 style="background-color: #2563eb; color: #ffffff; font-weight: 600; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; display: inline-block;">
-                Ver Estado en Vivo
+              <a href="https://www.vorianglobal.com/client/shipments/${shipmentId}" 
+                 style="background-color: #10b981; color: #000000; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 12px; font-size: 15px; display: inline-block;">
+                Ver Estado en Vivo ➔
               </a>
             </div>
           </div>
-          <div style="background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #64748b;">
-            Vorian Freight SpA — Plataforma de Transporte Logístico B2B
+          <div style="background-color: #09090b; padding: 20px; text-align: center; font-size: 12px; color: #71717a; border-top: 1px solid #27272a;">
+            © 2026 Vorian Global SpA — Plataforma de Transporte Logístico B2B
           </div>
         </div>
       `;

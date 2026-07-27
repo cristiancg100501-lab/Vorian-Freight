@@ -26,12 +26,15 @@ export async function POST(request: NextRequest) {
         rut, 
         address,
         companyName,
+        companyId,
+        employmentType,
         vehicleType,
         vehicleTypes,
         licensePlate
     } = body;
 
     const email = sanitize.email(body.email);
+    const sanitizedRut = sanitize.rut(rut);
 
     if (!email || !password || !role) {
         return NextResponse.json({ error: 'Faltan campos obligatorios o el email es inválido' }, { status: 400 });
@@ -43,17 +46,12 @@ export async function POST(request: NextRequest) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { firstName, lastName, role }
     });
 
     if (authError) {
       console.error('Error en Auth Admin:', authError);
-      // Si el usuario ya existe en Auth, intentamos obtener su ID
-      if (authError.message.includes('already registered')) {
-          const { data: existingUser } = await supabaseAdmin.from('userProfiles').select('id').eq('email', email).single();
-          if (existingUser) {
-              return NextResponse.json({ error: 'El usuario ya existe con este correo electrónico.' }, { status: 400 });
-          }
+      if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+        return NextResponse.json({ error: 'El usuario ya existe con este correo electrónico.' }, { status: 400 });
       }
       throw authError;
     }
@@ -61,30 +59,124 @@ export async function POST(request: NextRequest) {
     console.log('Usuario Auth creado:', newUserId);
 
     // 2. Asegurar perfil en userProfiles
-    // NOTA: El trigger podría haber creado ya el perfil. Usamos upsert.
-    const profileData = {
+    const finalCompanyName = companyName ? companyName.trim() : "";
+    const baseProfileData: Record<string, any> = {
       id: newUserId,
       email,
       firstName: firstName || "",
       lastName: lastName || "",
-      name: (role === 'company' || role === 'client' || role === 'customer') ? (companyName || "").trim() : `${firstName || ""} ${lastName || ""}`.trim(),
       role: role,
-      rut: rut || null,
+      rut: sanitizedRut || null,
       address: address || null,
       updatedAt: new Date().toISOString(),
     };
     
-    console.log('Upserting userProfiles:', profileData);
-    const { error: profileError } = await supabaseAdmin.from("userProfiles").upsert(profileData);
+    // Intentar upsert solo con columnas seguras (sin name/company_name)
+    let { error: profileError } = await supabaseAdmin.from("userProfiles").upsert(baseProfileData);
 
     if (profileError) {
-        console.error('Error en userProfiles:', profileError);
-        throw profileError;
+      // Si falla incluso con campos mínimos, abortar
+      console.error('Error definitivo en userProfiles:', profileError);
+      throw profileError;
     }
 
-    // 3. Crear perfiles específicos según el rol
+    // Intentar actualizar columnas opcionales por separado (company_name, companyName)
+    // Si no existen en el schema, se ignoran sin romper el flujo
+    if (finalCompanyName) {
+      await supabaseAdmin.from("userProfiles")
+        .update({ company_name: finalCompanyName })
+        .eq("id", newUserId)
+        .then(({ error }) => {
+          if (error) console.warn("company_name no disponible en schema:", error.message);
+        });
+    }
+
+    // 3. Crear o asociar a la tabla unificada de Empresas (companies & company_members)
+    if (role === "company" || role === "customer") {
+      const companyType = role === "company" ? "CARRIER" : "CUSTOMER";
+      let companyId: string | null = null;
+
+      try {
+        // Verificar si ya existe una empresa con ese RUT
+        if (sanitizedRut) {
+          const { data: existingComp } = await supabaseAdmin
+            .from("companies")
+            .select("id")
+            .eq("rut", sanitizedRut.trim())
+            .maybeSingle();
+
+          if (existingComp) {
+            companyId = existingComp.id;
+          }
+        }
+
+        // Si no existe, crear la entidad de Empresa en `companies`
+        if (!companyId && finalCompanyName) {
+          const { data: newComp, error: compErr } = await supabaseAdmin
+            .from("companies")
+            .insert({
+              company_name: finalCompanyName,
+              trade_name: finalCompanyName,
+              rut: sanitizedRut ? sanitizedRut.trim() : null,
+              type: companyType,
+              address: address || null,
+              email: email,
+              verification_status: 'APPROVED',
+            })
+            .select("id")
+            .maybeSingle();
+
+          if (compErr) {
+            console.warn("Tabla companies no lista o error secundario:", compErr.message);
+          } else if (newComp) {
+            companyId = newComp.id;
+          }
+        }
+
+        // Vincular el usuario persona a la empresa en `company_members`
+        if (companyId) {
+          await supabaseAdmin.from("company_members").upsert({
+            company_id: companyId,
+            user_id: newUserId,
+            member_role: 'OWNER',
+            is_active: true,
+          }, { onConflict: 'company_id,user_id' });
+        }
+      } catch (e: any) {
+        console.warn("Falló inserción en tablas B2B opcionales (empresas/miembros):", e?.message || e);
+      }
+
+      // Compatibilidad con tablas anteriores
+      if (role === "company") {
+        const { error: compErr } = await supabaseAdmin.from("companyProfiles").upsert({
+          id: newUserId,
+          userId: newUserId,
+          companyName: finalCompanyName,
+          rut: sanitizedRut || "",
+          address: address || "",
+          vehicleTypes: vehicleTypes || ["Auto"],
+        });
+        if (compErr) {
+          console.error("Error en companyProfiles:", compErr);
+          throw compErr;
+        }
+      } else {
+        const { error: cliErr } = await supabaseAdmin.from("clientProfiles").upsert({
+          id: newUserId,
+          userId: newUserId,
+          companyName: finalCompanyName,
+          rut: sanitizedRut || "",
+          address: address || "",
+        });
+        if (cliErr) {
+          console.error("Error en clientProfiles:", cliErr);
+          throw cliErr;
+        }
+      }
+    }
+
     if (role === "driver") {
-      const driverData = {
+      const driverData: Record<string, any> = {
         id: newUserId,
         userId: newUserId,
         vehicleType: vehicleType || "Auto",
@@ -92,44 +184,25 @@ export async function POST(request: NextRequest) {
         isAvailable: false,
         updatedAt: new Date().toISOString(),
       };
-      console.log('Upserting driverProfiles:', driverData);
-      const { error: driverError } = await supabaseAdmin.from("driverProfiles").upsert(driverData);
-      if (driverError) {
-          console.error('Error en driverProfiles:', driverError);
-          throw driverError;
-      }
-    }
 
-    if (role === "company") {
-      const companyData = {
-        id: newUserId,
-        userId: newUserId,
-        companyName: companyName || "",
-        rut: rut || "",
-        address: address || "",
-        vehicleTypes: vehicleTypes || ["Auto"],
-      };
-      console.log('Upserting companyProfiles:', companyData);
-      const { error: companyError } = await supabaseAdmin.from("companyProfiles").upsert(companyData);
-      if (companyError) {
-          console.error('Error en companyProfiles:', companyError);
-          throw companyError;
+      const { error: drvErr } = await supabaseAdmin.from("driverProfiles").upsert(driverData);
+      if (drvErr) {
+        console.error("Error en driverProfiles:", drvErr);
+        throw drvErr;
       }
-    }
 
-    if (role === "client" || role === "customer") {
-      const clientData = {
-        id: newUserId,
-        userId: newUserId,
-        companyName: companyName || "",
-        rut: rut || "",
-        address: address || "",
-      };
-      console.log('Upserting clientProfiles:', clientData);
-      const { error: clientError } = await supabaseAdmin.from("clientProfiles").upsert(clientData);
-      if (clientError) {
-          console.error('Error en clientProfiles:', clientError);
-          throw clientError;
+      if (companyId) {
+        try {
+          await supabaseAdmin.from("userProfiles").update({ company_id: companyId }).eq("id", newUserId);
+          await supabaseAdmin.from("company_members").upsert({
+            company_id: companyId,
+            user_id: newUserId,
+            member_role: 'MEMBER',
+            is_active: true,
+          }, { onConflict: 'company_id,user_id' });
+        } catch (e: any) {
+          console.warn("Omitiendo vinculo B2B opcional:", e);
+        }
       }
     }
 
@@ -138,10 +211,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('DETALLE DE ERROR CAPTURADO:', error);
+    const errorMsg = error.message || error.msg || error.error_description || 'Error en la base de datos al crear el usuario';
+    const detailsMsg = error.details || error.hint || error.code || '';
     return NextResponse.json({ 
-        error: error.message || 'Error en la base de datos al crear el usuario',
-        details: error.details || error.hint || '',
+        error: errorMsg,
+        details: detailsMsg,
         code: error.code || 'UNKNOWN'
-    }, { status: 500 });
+    }, { status: 400 });
   }
 }

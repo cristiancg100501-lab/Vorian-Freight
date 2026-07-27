@@ -16,68 +16,84 @@ export function ArrivalEmailTemplate({
   vehiclePlate = "S/P",
 }: ArrivalEmailTemplateProps) {
   return (
-    <div style={{ backgroundColor: '#f8fafc', padding: '40px 20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02)', border: '1px solid #f1f5f9' }}>
+    <div style={{ backgroundColor: '#09090b', padding: '40px 20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', backgroundColor: '#18181b', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)', border: '1px solid #27272a' }}>
             
             {/* Header / Logo Section */}
-            <div style={{ backgroundColor: '#000000', padding: '32px', textAlign: 'center' }}>
-                <h1 style={{ color: '#ffffff', margin: 0, fontSize: '20px', fontWeight: 300, letterSpacing: '4px', textTransform: 'uppercase' }}>
-                    VORIAN <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>LOGISTICS</span>
-                </h1>
+            <div style={{ backgroundColor: '#09090b', padding: '32px 40px', borderBottom: '1px solid #27272a', textAlign: 'left' }}>
+                <table width="100%" border={0} cellPadding={0} cellSpacing={0}>
+                  <tr>
+                    <td>
+                      <img 
+                        src="https://www.vorianglobal.com/vorianwhite.png" 
+                        alt="Vorian Global Logo" 
+                        height="36" 
+                        style={{ height: '36px', width: 'auto', display: 'block' }} 
+                      />
+                    </td>
+                    <td align="right">
+                      <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '6px 14px', borderRadius: '100px', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                        ● APROXIMÁNDOSE
+                      </span>
+                    </td>
+                  </tr>
+                </table>
             </div>
 
             {/* Content Body */}
             <div style={{ padding: '40px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <div style={{ display: 'inline-block', backgroundColor: '#eff6ff', color: '#3b82f6', padding: '8px 16px', borderRadius: '100px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '16px' }}>
-                        ● ARRIVANDO
-                    </div>
-                    <h2 style={{ color: '#0f172a', fontSize: '24px', fontWeight: '800', margin: '0 0 8px 0' }}>¡Ya estamos cerca!</h2>
-                    <p style={{ color: '#64748b', fontSize: '16px', margin: 0 }}>Hola {clientName}, tu carga está a menos de 300 metros.</p>
+                <div style={{ marginBottom: '32px' }}>
+                    <h2 style={{ color: '#ffffff', fontSize: '24px', fontWeight: '800', margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
+                      ¡Transportista cerca del punto!
+                    </h2>
+                    <p style={{ color: '#a1a1aa', fontSize: '15px', margin: 0, lineHeight: '1.5' }}>
+                      Hola <strong style={{ color: '#ffffff' }}>{clientName}</strong>, el vehículo logístico se encuentra a menos de 500 metros del lugar indicado.
+                    </p>
                 </div>
 
-                {/* Info Tiles - The "Glass" Grid */}
-                <div style={{ display: 'table', width: '100%', borderCollapse: 'separate', borderSpacing: '12px', margin: '0 -12px 32px -12px' }}>
+                {/* Info Grid Tiles */}
+                <div style={{ display: 'table', width: '100%', borderCollapse: 'separate', borderSpacing: '8px', margin: '0 -8px 24px -8px' }}>
                     <div style={{ display: 'table-row' }}>
-                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <p style={{ margin: '0 0 4px 0', color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Patente</p>
-                            <p style={{ margin: 0, color: '#1e293b', fontSize: '16px', fontWeight: 'bold' }}>{vehiclePlate}</p>
+                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#09090b', padding: '18px 20px', borderRadius: '16px', border: '1px solid #27272a' }}>
+                            <p style={{ margin: '0 0 4px 0', color: '#71717a', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>ID de Envío</p>
+                            <p style={{ margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, fontFamily: 'monospace' }}>#{shipmentId.substring(0, 8)}</p>
                         </div>
-                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <p style={{ margin: '0 0 4px 0', color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ID Carga</p>
-                            <p style={{ margin: 0, color: '#1e293b', fontSize: '16px', fontWeight: 'bold' }}>#{shipmentId.substring(0, 8)}</p>
+                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#09090b', padding: '18px 20px', borderRadius: '16px', border: '1px solid #27272a' }}>
+                            <p style={{ margin: '0 0 4px 0', color: '#71717a', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Patente Vehículo</p>
+                            <p style={{ margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700 }}>{vehiclePlate}</p>
                         </div>
                     </div>
                     <div style={{ display: 'table-row' }}>
-                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <p style={{ margin: '0 0 4px 0', color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conductor</p>
-                            <p style={{ margin: 0, color: '#1e293b', fontSize: '16px', fontWeight: 'bold' }}>{driverName}</p>
+                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#09090b', padding: '18px 20px', borderRadius: '16px', border: '1px solid #27272a' }}>
+                            <p style={{ margin: '0 0 4px 0', color: '#71717a', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>Conductor</p>
+                            <p style={{ margin: 0, color: '#ffffff', fontSize: '15px', fontWeight: 600 }}>{driverName}</p>
                         </div>
-                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <p style={{ margin: '0 0 4px 0', color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>ETA</p>
-                            <p style={{ margin: 0, color: '#10b981', fontSize: '16px', fontWeight: 'bold' }}>&lt; 2 min</p>
+                        <div style={{ display: 'table-cell', width: '50%', backgroundColor: '#09090b', padding: '18px 20px', borderRadius: '16px', border: '1px solid #27272a' }}>
+                            <p style={{ margin: '0 0 4px 0', color: '#71717a', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Distancia Estimada</p>
+                            <p style={{ margin: 0, color: '#10b981', fontSize: '15px', fontWeight: 800 }}>&lt; 500 metros</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Destination Bar */}
-                <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f1f5f9', marginBottom: '32px' }}>
-                    <p style={{ margin: '0 0 8px 0', color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>📍 Punto de Entrega</p>
-                    <p style={{ margin: 0, color: '#475569', fontSize: '14px', lineHeight: '1.4' }}>{destinationAddress}</p>
+                <div style={{ backgroundColor: '#09090b', padding: '20px', borderRadius: '16px', border: '1px solid #27272a', marginBottom: '32px' }}>
+                    <p style={{ margin: '0 0 6px 0', color: '#10b981', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>📍 Dirección del Punto</p>
+                    <p style={{ margin: 0, color: '#e4e4e7', fontSize: '14px', lineHeight: '1.4', fontWeight: 500 }}>{destinationAddress}</p>
                 </div>
 
                 {/* CTA Button */}
                 <div style={{ textAlign: 'center' }}>
-                    <a href={`https://vorianglobal.com/tracking/${shipmentId}`} style={{ display: 'block', backgroundColor: '#3b82f6', color: '#ffffff', padding: '18px 32px', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', textDecoration: 'none', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
-                        Gestionar descarga en vivo
+                    <a href={`https://www.vorianglobal.com/client/shipments/${shipmentId}`} style={{ display: 'inline-block', width: '100%', boxSizing: 'border-box', backgroundColor: '#10b981', color: '#000000', padding: '16px 28px', borderRadius: '14px', fontSize: '15px', fontWeight: 800, textDecoration: 'none', textAlign: 'center', letterSpacing: '0.5px' }}>
+                        Ver Seguimiento en Vivo ➔
                     </a>
                 </div>
             </div>
 
             {/* Footer */}
-            <div style={{ backgroundColor: '#f8fafc', padding: '24px 40px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
-                <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px' }}>
-                    Recibes este aviso por ser el contacto logístico de este envío.<br/>© 2026 Vorian Global S.A.
+            <div style={{ backgroundColor: '#09090b', padding: '24px 40px', borderTop: '1px solid #27272a', textAlign: 'center' }}>
+                <p style={{ margin: 0, color: '#71717a', fontSize: '12px', lineHeight: '1.5' }}>
+                    Notificación automática de estado logístico en tiempo real.<br/>
+                    <strong style={{ color: '#a1a1aa' }}>© 2026 Vorian Global SpA</strong> — Todos los derechos reservados.
                 </p>
             </div>
         </div>

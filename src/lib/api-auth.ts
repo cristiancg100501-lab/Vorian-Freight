@@ -14,10 +14,31 @@ type AuthResult =
  */
 export async function requireAuth(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  let token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  // Fallback a cookies de sesión de Supabase si no viene header Bearer
+  if (!token) {
+    const allCookies = req.cookies.getAll();
+    for (const cookie of allCookies) {
+      if (cookie.name.includes('-auth-token') || cookie.name.endsWith('-access-token')) {
+        try {
+          const raw = decodeURIComponent(cookie.value);
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            token = parsed[0];
+          } else {
+            token = parsed.access_token ?? parsed;
+          }
+        } catch {
+          token = cookie.value;
+        }
+        if (token && typeof token === 'string' && token.length > 20) break;
+      }
+    }
+  }
 
   if (!token) {
-    return { error: 'No autenticado. Incluye Authorization: Bearer <token>', status: 401 };
+    return { error: 'No autenticado. Inicie sesión nuevamente.', status: 401 };
   }
 
   // Crear cliente con el token del usuario (respeta RLS)

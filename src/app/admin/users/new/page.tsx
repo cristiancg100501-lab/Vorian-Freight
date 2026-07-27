@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useSupabase } from "@/components/providers/supabase-provider";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,9 @@ export default function NewUserAdminPage() {
   
   // Driver fields
   const [licensePlate, setLicensePlate] = useState("");
+  const [employmentType, setEmploymentType] = useState("INDEPENDENT");
+  const [carrierCompanyId, setCarrierCompanyId] = useState("");
+  const [carrierCompanies, setCarrierCompanies] = useState<any[]>([]);
 
   // Driver/Company fields
   const [vehicleType, setVehicleType] = useState("Auto");
@@ -37,6 +40,30 @@ export default function NewUserAdminPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const formatRut = (val: string) => {
+    // Eliminar puntos y todo lo que no sea número, k o K o guion
+    let cleaned = val.replace(/[^0-9kK-]/g, '').toUpperCase();
+    
+    // Si contiene más de un guion, dejar solo el último
+    const parts = cleaned.split('-');
+    if (parts.length > 2) {
+      cleaned = parts.join('');
+    }
+
+    // Auto-formatear al escribir si no puso guion y tiene más de 7 caracteres
+    if (!cleaned.includes('-') && cleaned.length > 1) {
+      const body = cleaned.slice(0, -1);
+      const dv = cleaned.slice(-1);
+      cleaned = `${body}-${dv}`;
+    }
+
+    return cleaned;
+  };
+
+  const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRut(formatRut(e.target.value));
+  };
   
   const vehicleOptions = [
     { value: "Auto", label: "Auto", icon: Car },
@@ -99,6 +126,19 @@ export default function NewUserAdminPage() {
     </div>
   );
 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const { data } = await supabase.from("companies").select("id, company_name, rut").eq("type", "CARRIER");
+      if (data && data.length > 0) {
+        setCarrierCompanies(data);
+      } else {
+        const { data: fallback } = await supabase.from("companyProfiles").select("id, companyName");
+        setCarrierCompanies(fallback || []);
+      }
+    };
+    fetchCompanies();
+  }, [supabase]);
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -111,9 +151,15 @@ export default function NewUserAdminPage() {
     }
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
       const response = await fetch('/api/admin/create-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+        },
         body: JSON.stringify({
           email,
           password,
@@ -123,6 +169,8 @@ export default function NewUserAdminPage() {
           rut,
           address,
           companyName,
+          companyId: carrierCompanyId || null,
+          employmentType,
           vehicleType,
           vehicleTypes,
           licensePlate
@@ -175,8 +223,7 @@ export default function NewUserAdminPage() {
                         <SelectValue placeholder="Seleccionar un rol" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="client">Cliente (Broker)</SelectItem>
-                        <SelectItem value="customer">Empresa Mandante (Customer)</SelectItem>
+                        <SelectItem value="customer">Empresa Mandante / Cliente</SelectItem>
                         <SelectItem value="driver">Conductor (Independiente)</SelectItem>
                         <SelectItem value="company">Empresa de Transporte</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
@@ -193,8 +240,8 @@ export default function NewUserAdminPage() {
                     <Input id="companyName" type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Ej: Vorian Logistics S.A." required className="mt-1 bg-background"/>
                   </div>
                   <div>
-                      <Label htmlFor="rut">RUT de la Empresa</Label>
-                      <Input id="rut" type="text" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="Ej: 76.123.456-7" required className="mt-1" />
+                      <Label htmlFor="rut">RUT de la Empresa (Sin puntos, con guion)</Label>
+                      <Input id="rut" type="text" value={rut} onChange={handleRutChange} placeholder="76123456-7" required className="mt-1" maxLength={10} />
                   </div>
                   <div>
                       <Label htmlFor="address">Dirección de la Empresa</Label>
@@ -238,8 +285,8 @@ export default function NewUserAdminPage() {
                     </div>
                 </div>
                  <div>
-                    <Label htmlFor="rut">RUT</Label>
-                    <Input id="rut" type="text" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="Ej: 12.345.678-9" required className="mt-1" />
+                    <Label htmlFor="rut">RUT (Sin puntos, con guion)</Label>
+                    <Input id="rut" type="text" value={rut} onChange={handleRutChange} placeholder="12345678-9" required className="mt-1" maxLength={10} />
                 </div>
                 <div>
                     <Label htmlFor="email">Correo Electrónico</Label>
@@ -257,6 +304,36 @@ export default function NewUserAdminPage() {
                 {role === 'driver' && (
                     <div className="p-4 border rounded-md space-y-4 bg-muted/50">
                         <h4 className="font-semibold text-sm">Perfil de Conductor</h4>
+                        
+                        <div>
+                            <Label htmlFor="employmentType">Modalidad de Trabajo</Label>
+                            <Select onValueChange={setEmploymentType} defaultValue={employmentType}>
+                                <SelectTrigger id="employmentType" className="w-full mt-1 bg-background">
+                                    <SelectValue placeholder="Seleccionar modalidad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="INDEPENDENT">Independiente (Propietario / Freelance)</SelectItem>
+                                    <SelectItem value="EMPLOYEE">Contratado / Empleado de Empresa</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {employmentType === 'EMPLOYEE' && (
+                            <div>
+                                <Label htmlFor="carrierCompany">Empresa de Transporte (Flota / Patrón)</Label>
+                                <Select onValueChange={setCarrierCompanyId} value={carrierCompanyId}>
+                                    <SelectTrigger id="carrierCompany" className="w-full mt-1 bg-background">
+                                        <SelectValue placeholder="Seleccionar Empresa Transportista" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {carrierCompanies.map(c => (
+                                            <SelectItem key={c.id} value={c.id}>{c.company_name || c.companyName || c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         <div>
                             <Label htmlFor="licensePlate">Patente del Vehículo</Label>
                             <Input id="licensePlate" type="text" value={licensePlate} onChange={(e) => setLicensePlate(e.target.value)} placeholder="Ej: ABCD-12" className="mt-1 bg-background"/>

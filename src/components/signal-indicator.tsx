@@ -36,8 +36,8 @@ export function SignalIndicator({ lastUpdatedMs, className, showText = true }: S
 
     const elapsedSeconds = (now - lastUpdatedMs) / 1000;
 
-    if (elapsedSeconds <= 15) {
-      // Excelente (Últimos 15 segundos) -> 4 Barras
+    if (elapsedSeconds <= 60) {
+      // Excelente (Último minuto) -> 4 Barras
       return {
         level: 4,
         label: "Señal Excelente (GPS Vivo)",
@@ -46,8 +46,8 @@ export function SignalIndicator({ lastUpdatedMs, className, showText = true }: S
         barColor: "bg-emerald-500",
         bars: 4,
       };
-    } else if (elapsedSeconds <= 45) {
-      // Buena (15s a 45s) -> 3 Barras
+    } else if (elapsedSeconds <= 300) {
+      // Buena (1 a 5 minutos) -> 3 Barras
       return {
         level: 3,
         label: "Señal Buena",
@@ -56,18 +56,18 @@ export function SignalIndicator({ lastUpdatedMs, className, showText = true }: S
         barColor: "bg-blue-500",
         bars: 3,
       };
-    } else if (elapsedSeconds <= 120) {
-      // Débil (45s a 2 minutos) -> 2 Barras (Ej. zona de túnel o señal moderada)
+    } else if (elapsedSeconds <= 900) {
+      // Débil (5 a 15 minutos) -> 2 Barras
       return {
         level: 2,
         label: "Señal Débil",
-        statusText: `Señal Débil (hace ${Math.round(elapsedSeconds)}s)`,
+        statusText: `Señal Débil (hace ${Math.round(elapsedSeconds / 60)} min)`,
         colorClass: "text-amber-700 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800/50",
         barColor: "bg-amber-500",
         bars: 2,
       };
     } else {
-      // Sin Señal / Desconectado (> 2 minutos sin reportar GPS) -> 0 o 1 Barra
+      // Sin Señal (> 15 minutos sin actualización)
       const elapsedMin = Math.round(elapsedSeconds / 60);
       return {
         level: 0,

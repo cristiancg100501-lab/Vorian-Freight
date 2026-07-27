@@ -250,16 +250,17 @@ export default function Home() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
+                className="text-center"
               >
                 <h1 className="text-3xl font-bold tracking-tight text-white">
-                  Bienvenido
+                  Portal Logístico
                 </h1>
                 <p className="text-zinc-400 mt-2 font-medium text-sm">
-                  Inicia sesión para acceder a tu panel de control.
+                  Plataforma de Transporte y Operaciones B2B
                 </p>
               </motion.div>
 
-              <form onSubmit={handleLogin} className="mt-10 space-y-6">
+              <form onSubmit={handleLogin} className="mt-8 space-y-5">
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -290,9 +291,6 @@ export default function Home() {
                     <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-zinc-400">
                       Contraseña
                     </Label>
-                    <Link href="#" className="flex hover:underline opacity-60 hover:opacity-100 text-[10px] font-bold uppercase tracking-widest text-zinc-300 transition-all">
-                      ¿Olvidaste?
-                    </Link>
                   </div>
                   <div className="relative group">
                     <Input
@@ -320,7 +318,7 @@ export default function Home() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="text-red-400 font-semibold text-xs px-1"
+                      className="text-red-400 font-semibold text-xs px-1 text-center"
                     >
                       {error}
                     </motion.p>
@@ -334,14 +332,14 @@ export default function Home() {
                 >
                   <Button
                     type="submit"
-                    className="w-full h-14 rounded-xl font-bold text-sm bg-white hover:bg-zinc-200 text-black shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
+                    className="w-full h-14 rounded-xl font-bold text-sm bg-emerald-500 hover:bg-emerald-400 text-black shadow-xl hover:-translate-y-0.5 transition-all duration-300 group flex items-center justify-center gap-2"
                     disabled={isLoading}
                   >
                     {isLoading ? (
                       <div className="h-5 w-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                     ) : (
                       <>
-                        Entrar
+                        Ingresar al Sistema
                         <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                       </>
                     )}

@@ -65,6 +65,7 @@ const adminNavItems: NavItem[] = [
 
 const clientNavItems: NavItem[] = [
     { group: "GENERAL", href: "/client/shipments", icon: List, label: "Mis Envíos" },
+    { group: "GENERAL", href: "/client/tracking", icon: Navigation, label: "Seguimiento Real" },
     { group: "OTROS", href: "/client/perfil", icon: Building2, label: "Perfil Corporativo" },
 ];
 

@@ -41,5 +41,17 @@ export const sanitize = {
     const cleaned = input.trim();
     if (cleaned.length === 0 || cleaned.length > 128) return null;
     return cleaned;
+  },
+
+  /**
+   * Formatea y limpia RUT eliminando puntos y dejando formato XXXXXXXX-X.
+   */
+  rut(input: unknown): string | null {
+    if (typeof input !== 'string') return null;
+    const cleaned = input.replace(/[^0-9kK-]/g, '').toUpperCase();
+    if (!cleaned.includes('-') && cleaned.length > 1) {
+      return `${cleaned.slice(0, -1)}-${cleaned.slice(-1)}`;
+    }
+    return cleaned || null;
   }
 };

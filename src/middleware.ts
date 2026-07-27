@@ -21,7 +21,7 @@ const PUBLIC_PATHS = [
 const ROLE_MAP: Array<{ prefix: string; roles: string[] }> = [
   { prefix: '/admin',    roles: ['admin'] },
   { prefix: '/client',   roles: ['client', 'admin'] },
-  { prefix: '/customer', roles: ['customer', 'admin'] },
+  { prefix: '/customer', roles: ['customer', 'client', 'admin'] },
   { prefix: '/company',  roles: ['company', 'admin'] },
   { prefix: '/driver',   roles: ['driver', 'admin'] },
 ];

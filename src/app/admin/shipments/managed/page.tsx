@@ -48,24 +48,40 @@ export default function ManagedShipmentPage() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data: usersData } = await supabase.from("userProfiles").select("id, name, role, email");
+            const { data: usersData } = await supabase.from("userProfiles").select("id, name, company_name, companyName, firstName, lastName, role, email");
             const { data: clientsData } = await supabase.from("clientProfiles").select("id, companyName");
+            const { data: companyProfilesData } = await supabase.from("companyProfiles").select("id, companyName");
             
             if (usersData) {
                 const clientNameMap = new Map(clientsData?.map(c => [c.id, c.companyName]) || []);
                 const mappedCustomers = usersData
                     .filter((u: any) => u.role === 'customer' || u.role === 'client')
-                    .map((u: any) => ({
-                        ...u,
-                        name: clientNameMap.get(u.id) || u.name
-                    }));
+                    .map((u: any) => {
+                        const displayName = clientNameMap.get(u.id) || u.company_name || u.companyName || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
+                        return {
+                            ...u,
+                            name: displayName || u.email
+                        };
+                    });
 
                 setCustomers(mappedCustomers);
-                setDrivers(usersData.filter((u: any) => u.role === 'driver'));
-            }
-            const { data: companiesData } = await supabase.from("companyProfiles").select("id, companyName");
-            if (companiesData) {
-                setCompanies(companiesData);
+                setDrivers(usersData.filter((u: any) => u.role === 'driver').map((u: any) => ({
+                    ...u,
+                    name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email
+                })));
+
+                // Combinar perfiles de empresa de transporte (companyProfiles + userProfiles role=='company')
+                const companyMap = new Map();
+                companyProfilesData?.forEach((c: any) => {
+                    if (c.companyName) companyMap.set(c.id, { id: c.id, companyName: c.companyName });
+                });
+                usersData.filter((u: any) => u.role === 'company').forEach((u: any) => {
+                    const cName = u.company_name || u.companyName || u.name;
+                    if (cName && !companyMap.has(u.id)) {
+                        companyMap.set(u.id, { id: u.id, companyName: cName });
+                    }
+                });
+                setCompanies(Array.from(companyMap.values()));
             }
         };
         fetchData();

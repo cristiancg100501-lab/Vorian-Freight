@@ -100,7 +100,7 @@ export function SignUpForm() {
         }
       }
 
-      if (role === "client") {
+      if (role === "customer") {
         // Wait a bit for the trigger to finish userProfiles creation
         await new Promise(resolve => setTimeout(resolve, 1000));
         
@@ -114,7 +114,7 @@ export function SignUpForm() {
         });
 
         if (clientError) {
-          console.error("Error al insertar perfil de cliente B2B:", clientError);
+          console.error("Error al insertar perfil de cliente:", clientError);
         }
       }
 
@@ -208,17 +208,17 @@ export function SignUpForm() {
           <Label htmlFor="role" className="text-muted-foreground font-medium">
             Soy un
           </Label>
-          <Select onValueChange={setRole} defaultValue="client">
+          <Select onValueChange={setRole} defaultValue="customer">
             <SelectTrigger className="w-full mt-2 bg-background border h-12">
               <SelectValue placeholder="Selecciona un rol" />
             </SelectTrigger>
             <SelectContent className="bg-popover border text-popover-foreground">
-              <SelectItem value="client">Cliente</SelectItem>
+              <SelectItem value="customer">Empresa Mandante / Cliente</SelectItem>
               <SelectItem value="company">Empresa (Transportista)</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {(role === 'company' || role === 'client') && (
+        {(role === 'company' || role === 'customer') && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="companyName" className="text-muted-foreground font-medium">

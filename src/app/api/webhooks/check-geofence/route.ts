@@ -52,7 +52,9 @@ export async function POST(req: Request) {
             `)
             .or(`driverId.eq.${driverId},carrierId.eq.${driverId}`)
             .in('status', ['ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'])
-            .single();
+            .order('createdAt', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
         if (loadError || !shipment) {
             return NextResponse.json({ message: 'No active shipment found for driver' }, { status: 200 });
@@ -67,12 +69,19 @@ export async function POST(req: Request) {
         // Obtener datos del perfil del cliente (email y nombre)
         const { data: clientUser } = await supabase
             .from('userProfiles')
-            .select('email, firstName, lastName')
+            .select('email, firstName, lastName, name')
             .eq('id', clientId)
-            .single();
+            .maybeSingle();
 
-        const clientEmail = clientUser?.email;
-        const clientName = clientUser?.firstName ? `${clientUser.firstName} ${clientUser.lastName || ''}`.trim() : 'Cliente Vorian';
+        let clientEmail = clientUser?.email;
+        const clientName = clientUser?.firstName 
+            ? `${clientUser.firstName} ${clientUser.lastName || ''}`.trim() 
+            : (clientUser?.name || 'Cliente Vorian');
+
+        if (!clientEmail) {
+            const { data: authUser } = await supabase.auth.admin.getUserById(clientId);
+            clientEmail = authUser?.user?.email;
+        }
 
         if (!clientEmail) {
             return NextResponse.json({ message: 'Client has no email configured' }, { status: 200 });
@@ -102,8 +111,15 @@ export async function POST(req: Request) {
 
         // --- EVALUAR GEOFENCE DE RECOGIDA (PICKUP) ---
         const pickupStates = ['ACCEPTED', 'EN_ROUTE_TO_PICKUP'];
-        if (pickupStates.includes(status) && shipment.pickup_longitude && shipment.pickup_latitude) {
-            const pickupPoint = turf.point([shipment.pickup_longitude, shipment.pickup_latitude]);
+        let pickLng = shipment.pickup_longitude;
+        let pickLat = shipment.pickup_latitude;
+        if (!pickLng && details.originCoords) {
+            pickLng = details.originCoords.lng ?? details.originCoords.longitude;
+            pickLat = details.originCoords.lat ?? details.originCoords.latitude;
+        }
+
+        if (pickupStates.includes(status) && pickLng && pickLat) {
+            const pickupPoint = turf.point([pickLng, pickLat]);
             const distPickupMeters = turf.distance(driverPoint, pickupPoint, { units: 'kilometers' }) * 1000;
 
             if (distPickupMeters <= GEOFENCE_RADIUS_METERS && !details.pickup_arrival_email_sent) {
@@ -113,14 +129,14 @@ export async function POST(req: Request) {
         }
 
         // --- EVALUAR GEOFENCE DE ENTREGA (DELIVERY) ---
-        const deliveryStates = ['IN_TRANSIT'];
+        const deliveryStates = ['IN_TRANSIT', 'ARRIVED_AT_PICKUP'];
         if (!triggerEmailType && deliveryStates.includes(status)) {
             let destLng = shipment.delivery_longitude;
             let destLat = shipment.delivery_latitude;
 
             if (!destLng && details.destinationCoords) {
-                destLng = details.destinationCoords.lng;
-                destLat = details.destinationCoords.lat;
+                destLng = details.destinationCoords.lng ?? details.destinationCoords.longitude;
+                destLat = details.destinationCoords.lat ?? details.destinationCoords.latitude;
             }
 
             if (destLng && destLat) {
