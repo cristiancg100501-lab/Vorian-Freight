@@ -22,6 +22,7 @@ interface VorianMapProps {
   drivers?: any[];
   selectedDriver?: any;
   onDriverSelect?: (id: string) => void;
+  hideRoute?: boolean;
 }
 
 const isValidLngLat = (coords: any): coords is [number, number] => {
@@ -34,7 +35,7 @@ const isValidLngLat = (coords: any): coords is [number, number] => {
     );
 };
 
-export default function VorianMap({ route, origin, destination, activeTolls = [], vehicleType = 'camion_rampla', drivers = [], selectedDriver, onDriverSelect }: VorianMapProps) {
+export default function VorianMap({ route, origin, destination, activeTolls = [], vehicleType = 'camion_rampla', drivers = [], selectedDriver, onDriverSelect, hideRoute = false }: VorianMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const tollMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -241,13 +242,15 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
         const currentTheme = themeRef.current;
         
         // --- Layers ---
+        const routeVisibility = hideRoute ? 'none' : 'visible';
+
         if (!mapInstance.getLayer('route-base')) {
             // Fondo de la ruta completo (tenue)
             mapInstance.addLayer({
                 'id': 'route-base',
                 'type': 'line',
                 'source': 'route',
-                'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                'layout': { 'line-join': 'round', 'line-cap': 'round', 'visibility': routeVisibility },
                 'paint': { 
                     'line-color': currentTheme === 'dark' ? '#333333' : '#d1d5db',
                     'line-width': 4, 
@@ -262,7 +265,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'id': 'route-snake-glow',
                 'type': 'line',
                 'source': 'route-snake',
-                'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                'layout': { 'line-join': 'round', 'line-cap': 'round', 'visibility': routeVisibility },
                 'paint': { 
                     'line-color': 'hsl(212, 100%, 48%)',
                     'line-width': 12,
@@ -278,7 +281,7 @@ export default function VorianMap({ route, origin, destination, activeTolls = []
                 'id': 'route-snake-base',
                 'type': 'line',
                 'source': 'route-snake',
-                'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                'layout': { 'line-join': 'round', 'line-cap': 'round', 'visibility': routeVisibility },
                 'paint': { 
                     'line-color': 'hsl(212, 100%, 48%)',
                     'line-width': 4, 

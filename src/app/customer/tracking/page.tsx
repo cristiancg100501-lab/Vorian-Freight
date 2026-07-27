@@ -9,6 +9,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { motion, AnimatePresence } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SignalIndicator } from "@/components/signal-indicator";
 import { 
   ArrowLeft, Package, MapPin, Truck, User, Calendar, DollarSign, 
   Navigation, Phone, MessageSquare, ChevronRight, Clock, 
@@ -539,6 +540,7 @@ export default function CustomerTrackingPage() {
   const [view, setView] = useState<"list" | "detail">("list");
   const [selected, setSelected] = useState<any>(null);
   const [driverName, setDriverName] = useState<string | null>(null);
+  const [lastGpsUpdate, setLastGpsUpdate] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"info" | "chat">("info");
 
   const filterShipments = useCallback((q: any) => {
@@ -551,17 +553,35 @@ export default function CustomerTrackingPage() {
 
   const { data: shipments, isLoading } = useSupabaseCollection("shipments", filterShipments);
 
-  // Fetch driver name when shipment selected
+  // Fetch driver name and initial GPS update when shipment selected
+  const driverId = selected?.driverId || selected?.driver_id;
   useEffect(() => {
     setDriverName(null);
-    if (!selected) return;
-    const dId = selected.driverId || selected.driver_id;
-    if (!dId) return;
-    supabase.rpc("get_user_profiles_by_ids", { user_ids: [dId] })
+    setLastGpsUpdate(null);
+    if (!selected || !driverId) return;
+
+    supabase.rpc("get_user_profiles_by_ids", { user_ids: [driverId] })
       .then(({ data }) => {
         if (data?.[0]) setDriverName(data[0].full_name || data[0].email || "Conductor");
       });
-  }, [selected?.id, supabase]);
+
+    // Subscribirse a las actualizaciones de señal GPS del chofer
+    supabase.from("driverProfiles").select("lastLocationUpdate, updatedAt").eq("id", driverId).single().then(({ data }) => {
+      const ts = data?.lastLocationUpdate || data?.updatedAt;
+      if (ts) {
+        setLastGpsUpdate(new Date(ts).getTime());
+      }
+    });
+
+    const channel = supabase
+      .channel(`cust-driver-signal-${driverId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "driverProfiles", filter: `id=eq.${driverId}` },
+        () => setLastGpsUpdate(Date.now())
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selected?.id, driverId, supabase]);
 
   const handleSelect = (s: any) => {
     setSelected(s);
@@ -764,6 +784,25 @@ export default function CustomerTrackingPage() {
                       <div className="rounded-xl border p-3 bg-muted/10">
                         <p className="text-[9px] font-black uppercase text-muted-foreground mb-1">Observaciones</p>
                         <p className="text-xs text-muted-foreground leading-relaxed">{selected.details.observations}</p>
+                      </div>
+                    )}
+
+                    {/* Conductor & Signal Indicator */}
+                    {driverId && (
+                      <div className="rounded-xl bg-muted/20 border p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[10px] font-black uppercase text-muted-foreground">Conductor</p>
+                          <SignalIndicator lastUpdatedMs={lastGpsUpdate} />
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                            <User className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold">{driverName || "Transportista Vorian"}</p>
+                            <p className="text-[10px] text-muted-foreground">Conductor asignado</p>
+                          </div>
+                        </div>
                       </div>
                     )}
 

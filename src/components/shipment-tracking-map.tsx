@@ -15,9 +15,10 @@ interface ShipmentTrackingMapProps {
   routeGeometry?: any;
   driverLocation: [number, number] | null;
   status: string;
+  showRoute?: boolean;
 }
 
-export default function ShipmentTrackingMap({ origin, destination, routeGeometry, driverLocation, status }: ShipmentTrackingMapProps) {
+export default function ShipmentTrackingMap({ origin, destination, routeGeometry, driverLocation, status, showRoute = false }: ShipmentTrackingMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -77,8 +78,8 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         map.current?.fitBounds(bounds, { padding: 80, duration: 1000 });
       }
 
-      // Dibujar ruta
-      if (routeGeometry) {
+      // Dibujar ruta (solo si showRoute es true)
+      if (showRoute && routeGeometry) {
         const geojson = typeof routeGeometry === 'string' ? JSON.parse(routeGeometry) : routeGeometry;
         map.current?.addSource('route', {
           type: 'geojson',
@@ -162,7 +163,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
 
   // Reaccionar a routeGeometry que llega después del montaje (ej. fallback Mapbox Directions)
   useEffect(() => {
-    if (!map.current || !routeGeometry) return;
+    if (!map.current || !routeGeometry || !showRoute) return;
     
     const addRoute = () => {
       if (!map.current) return;

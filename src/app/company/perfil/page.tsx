@@ -167,7 +167,7 @@ export default function CompanyProfilePage() {
 
         } catch (err: any) {
             console.error("Error updating profile:", err);
-            setError("No se pudo actualizar el perfil. Por favor, verifique sus permisos e inténtelo de nuevo.");
+            setError(err.message || err.details || "No se pudo actualizar el perfil. Por favor, verifique sus permisos e inténtelo de nuevo.");
         } finally {
             setIsSaving(false);
         }

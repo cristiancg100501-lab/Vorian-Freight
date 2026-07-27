@@ -36,6 +36,75 @@ CREATE POLICY "user_own_profile_update"
   USING (id::text = auth.uid()::text)
   WITH CHECK (id::text = auth.uid()::text);
 
+-- ─── 1.1 companyProfiles ────────────────────────────────────
+ALTER TABLE public."companyProfiles" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "admin_full_access_companyProfiles" ON public."companyProfiles";
+CREATE POLICY "admin_full_access_companyProfiles"
+  ON public."companyProfiles" FOR ALL
+  TO authenticated
+  USING (public.auth_user_role() = 'admin')
+  WITH CHECK (public.auth_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "user_own_companyProfile_select" ON public."companyProfiles";
+CREATE POLICY "user_own_companyProfile_select"
+  ON public."companyProfiles" FOR SELECT
+  TO authenticated
+  USING (id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS "user_own_companyProfile_update" ON public."companyProfiles";
+CREATE POLICY "user_own_companyProfile_update"
+  ON public."companyProfiles" FOR UPDATE
+  TO authenticated
+  USING (id::text = auth.uid()::text)
+  WITH CHECK (id::text = auth.uid()::text);
+
+-- ─── 1.2 clientProfiles ────────────────────────────────────
+ALTER TABLE public."clientProfiles" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "admin_full_access_clientProfiles" ON public."clientProfiles";
+CREATE POLICY "admin_full_access_clientProfiles"
+  ON public."clientProfiles" FOR ALL
+  TO authenticated
+  USING (public.auth_user_role() = 'admin')
+  WITH CHECK (public.auth_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "user_own_clientProfile_select" ON public."clientProfiles";
+CREATE POLICY "user_own_clientProfile_select"
+  ON public."clientProfiles" FOR SELECT
+  TO authenticated
+  USING (id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS "user_own_clientProfile_update" ON public."clientProfiles";
+CREATE POLICY "user_own_clientProfile_update"
+  ON public."clientProfiles" FOR UPDATE
+  TO authenticated
+  USING (id::text = auth.uid()::text)
+  WITH CHECK (id::text = auth.uid()::text);
+
+-- ─── 1.3 driverProfiles ────────────────────────────────────
+ALTER TABLE public."driverProfiles" ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "admin_full_access_driverProfiles" ON public."driverProfiles";
+CREATE POLICY "admin_full_access_driverProfiles"
+  ON public."driverProfiles" FOR ALL
+  TO authenticated
+  USING (public.auth_user_role() = 'admin')
+  WITH CHECK (public.auth_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "user_own_driverProfile_select" ON public."driverProfiles";
+CREATE POLICY "user_own_driverProfile_select"
+  ON public."driverProfiles" FOR SELECT
+  TO authenticated
+  USING (id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS "user_own_driverProfile_update" ON public."driverProfiles";
+CREATE POLICY "user_own_driverProfile_update"
+  ON public."driverProfiles" FOR UPDATE
+  TO authenticated
+  USING (id::text = auth.uid()::text)
+  WITH CHECK (id::text = auth.uid()::text);
+
 -- ─── 2. shipments ────────────────────────────────────────────
 ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
 

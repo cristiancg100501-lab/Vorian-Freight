@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin, Truck, CheckCircle, Clock, Package, FileText, Lock, KeyRound, Bell, X } from "lucide-react";
 import ShipmentTrackingMap from "@/components/shipment-tracking-map";
+import { SignalIndicator } from "@/components/signal-indicator";
 
 // Haversine distance in meters between two [lon, lat] points
 function haversineMeters(lon1: number, lat1: number, lon2: number, lat2: number): number {
@@ -49,6 +50,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
 
   const [shipment, setShipment] = useState<any>(null);
   const [driverLocation, setDriverLocation] = useState<[number, number] | null>(null);
+  const [lastGpsUpdate, setLastGpsUpdate] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchedRoute, setFetchedRoute] = useState<any>(null);
 
@@ -109,11 +111,15 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
     const fetchInitialLocation = async () => {
       const { data } = await supabase
         .from('driverProfiles')
-        .select('currentLatitude, currentLongitude')
+        .select('currentLatitude, currentLongitude, lastLocationUpdate, updatedAt')
         .eq('id', shipment.driverId)
         .single();
       if (data?.currentLatitude && data?.currentLongitude) {
         setDriverLocation([data.currentLongitude, data.currentLatitude]);
+        const ts = data.lastLocationUpdate || data.updatedAt;
+        if (ts) {
+          setLastGpsUpdate(new Date(ts).getTime());
+        }
       }
     };
     fetchInitialLocation();
@@ -128,6 +134,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
             const dLon = payload.new.currentLongitude;
             const dLat = payload.new.currentLatitude;
             setDriverLocation([dLon, dLat]);
+            setLastGpsUpdate(Date.now());
 
             // --- Geofence checks ---
             const status = shipment?.status;
@@ -392,20 +399,23 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
           {/* Transportista */}
           {shipment.driver ? (
             <Card className="border-green-200">
-              <CardHeader className="bg-green-50/50 pb-3 rounded-t-lg">
+              <CardHeader className="bg-green-50/50 pb-3 rounded-t-lg flex flex-row items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2 text-green-800">
                   <CheckCircle className="h-4 w-4" />
                   Transportista Asignado
                 </CardTitle>
+                <SignalIndicator lastUpdatedMs={lastGpsUpdate} />
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Truck className="h-5 w-5 text-green-700" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">{shipment.driver.name || 'Transportista Vorian'}</div>
-                    <div className="text-xs text-muted-foreground">Conductor asignado</div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <Truck className="h-5 w-5 text-green-700" />
+                    </div>
+                    <div>
+                      <div className="font-semibold">{shipment.driver.name || 'Transportista Vorian'}</div>
+                      <div className="text-xs text-muted-foreground">Conductor asignado</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
