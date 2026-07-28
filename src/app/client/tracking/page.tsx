@@ -20,7 +20,8 @@ import { PriorityBoostModal } from "@/components/priority-boost-modal";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
-
+import { ShipmentAuditTimeline } from "@/components/audit/shipment-audit-timeline";
+import { GpsReplayControls } from "@/components/audit/gps-replay-map";
 // ─── Inline Chat ──────────────────────────────────────────────────────────────
 function InlineChat({ shipmentId }: { shipmentId: string }) {
   const { user } = useUser();
@@ -115,7 +116,7 @@ const STATUS: Record<string, { label: string; color: string; bg: string }> = {
 const getStatus = (s: string) => STATUS[s] ?? { label: s, color: "text-muted-foreground", bg: "bg-muted" };
 
 // ─── Tracking Map (Inline Mapbox — always visible) ──────────────────────────────────
-function TrackingMap({ shipment }: { shipment: any | null }) {
+function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | null, auditPoint?: any | null, auditHistory?: any[] }) {
   const { resolvedTheme } = useTheme();
   const { supabase } = useSupabase();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -255,63 +256,117 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
     };
   }, [driverId, supabase]);
 
-  // Render and update driver marker on map (smooth move without jumping)
+  const displayLocation = auditPoint ? [Number(auditPoint.longitude), Number(auditPoint.latitude)] as [number, number] : driverLocation;
+
+  // Bouncing truck marker (driver)
   useEffect(() => {
     const m = mapRef.current;
-    if (!m || !driverLocation) return;
-
-    if (!driverMarkerRef.current) {
-      const el = document.createElement("div");
-      el.innerHTML = `
+    if (!m || !displayLocation) return;
+    driverMarkerRef.current?.remove();
+    const el = document.createElement("div");
+    el.innerHTML = `
+      <div style="
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      ">
         <div style="
           position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          border: 3px solid #ffffff;
+          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5), 0 0 0 4px rgba(16, 185, 129, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 44px;
-          height: 44px;
+          color: #ffffff;
         ">
-          <!-- Ripple Radar Ring -->
-          <div style="
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: rgba(16, 185, 129, 0.2);
-            animation: radarRipple 2s infinite ease-out;
-          "></div>
-          
-          <!-- Driver Vehicle Icon -->
-          <div style="
-            position: relative;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #10b981;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-          ">
-            <!-- Truck SVG -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 18H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h8" />
-              <path d="M14 9h5l4 4v5a2 2 0 0 1-2 2h-2" />
-              <circle cx="7.5" cy="18.5" r="2.5" />
-              <circle cx="17.5" cy="18.5" r="2.5" />
-            </svg>
-          </div>
-        </div>`;
-
-      driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
-        .setLngLat(driverLocation)
-        .addTo(m);
-    } else {
-      driverMarkerRef.current.setLngLat(driverLocation);
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="16" height="16" x="4" y="4" rx="2" />
+            <path d="M9 10L12 13L15 10" />
+            <path d="M12 13V7" />
+          </svg>
+        </div>
+        <div style="
+          width: 0;
+          height: 0;
+          border-left: 7px solid transparent;
+          border-right: 7px solid transparent;
+          border-top: 9px solid #10b981;
+          margin-top: -1px;
+        "></div>
+      </div>`;
+    driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+      .setLngLat(displayLocation)
+      .addTo(m);
+    
+    // Auto-pan to follow audit replay
+    if (auditPoint) {
+      m.panTo(displayLocation, { animate: true });
     }
-  }, [driverLocation]);
+    
+    return () => { driverMarkerRef.current?.remove(); };
+  }, [shipment?.id, displayLocation, auditPoint]);
+
+  // Draw Audit History Route
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    
+    // Only attempt to add/update layer if style is loaded
+    if (!m.isStyleLoaded()) {
+      m.once('styledata', updateAuditLine);
+    } else {
+      updateAuditLine();
+    }
+    
+    function updateAuditLine() {
+      if (!m) return;
+      if (m.getSource("audit-route")) {
+        const src = m.getSource("audit-route") as mapboxgl.GeoJSONSource;
+        if (auditHistory && auditHistory.length > 0) {
+          src.setData({
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: auditHistory.map(p => [Number(p.longitude), Number(p.latitude)])
+            }
+          });
+        } else {
+          src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
+        }
+      } else if (auditHistory && auditHistory.length > 0) {
+        m.addSource("audit-route", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: auditHistory.map(p => [Number(p.longitude), Number(p.latitude)])
+            }
+          }
+        });
+        m.addLayer({
+          id: "audit-route-line",
+          type: "line",
+          source: "audit-route",
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: {
+            "line-color": "#3b82f6", // Blue
+            "line-width": 6,
+            "line-opacity": 0.8
+          }
+        });
+      }
+    }
+  }, [auditHistory]);
+
 
 
   // Bouncing origin marker (3D Floating Box Badge 📦)
@@ -437,15 +492,23 @@ function TrackingMap({ shipment }: { shipment: any | null }) {
   return <div ref={mapContainer} className="w-full h-full" />;
 }
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
 // ─── Main page ─────────────────────────────────────────────────────────────────
-export default function CustomerTrackingPage() {
+function ClientTrackingContent() {
   const { user } = useUser();
   const { supabase } = useSupabase();
-  const [view, setView] = useState<"list" | "detail">("list");
+  const searchParams = useSearchParams();
+  const auditParamId = searchParams.get("audit");
+  
+  const [view, setView] = useState<"list" | "detail">(auditParamId ? "detail" : "list");
   const [selected, setSelected] = useState<any>(null);
   const [driverName, setDriverName] = useState<string | null>(null);
   const [lastGpsUpdate, setLastGpsUpdate] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"info" | "chat">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "chat" | "audit">(auditParamId ? "audit" : "info");
+  const [auditPoint, setAuditPoint] = useState<any | null>(null);
+  const [auditHistory, setAuditHistory] = useState<any[]>([]);
 
   const filterShipments = useCallback((q: any) => {
     if (!user) return q;
@@ -506,9 +569,13 @@ export default function CustomerTrackingPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-theme(spacing.16))] -m-6 overflow-hidden relative">
-      {/* Full-screen map — always visible */}
-      <div className="absolute inset-0 z-0">
-        <TrackingMap shipment={selected} />
+      {/* Background Map */}
+      <div className="absolute inset-0 z-0 bg-muted">
+        <TrackingMap 
+            shipment={selected} 
+            auditPoint={auditPoint}
+            auditHistory={auditHistory}
+        />
       </div>
 
       {/* Left floating panel */}
@@ -631,6 +698,14 @@ export default function CustomerTrackingPage() {
                 >
                   <MessageSquare className="h-3.5 w-3.5 inline mr-1" /> Chat
                 </button>
+                <button
+                  onClick={() => setActiveTab("audit")}
+                  className={cn("flex-1 text-xs py-2.5 font-semibold transition-colors border-b-2",
+                    activeTab === "audit" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <FileText className="h-3.5 w-3.5 inline mr-1" /> Auditoría
+                </button>
               </div>
 
               {/* Content */}
@@ -741,9 +816,36 @@ export default function CustomerTrackingPage() {
                       )}
                     </div>
                   </div>
-                                ) : (
+                ) : activeTab === "chat" ? (
                   <div className="h-full">
                     {selected && <InlineChat shipmentId={selected.id} />}
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-8">
+                    {selected && (
+                      <>
+                        <div>
+                          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-primary" />
+                            Registro Inmutable
+                          </h3>
+                          <ShipmentAuditTimeline shipmentId={selected.id} />
+                        </div>
+                        <div className="pt-4 border-t">
+                          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                            <MapPin className="h-5 w-5 text-primary" />
+                            Auditoría de Ruta (GPS Replay)
+                          </h3>
+                          <GpsReplayControls 
+                            shipmentId={selected.id} 
+                            onUpdate={(p, h) => {
+                                setAuditPoint(p);
+                                setAuditHistory(h);
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -767,5 +869,13 @@ export default function CustomerTrackingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ClientTrackingPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+      <ClientTrackingContent />
+    </Suspense>
   );
 }

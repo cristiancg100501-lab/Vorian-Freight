@@ -255,14 +255,23 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
 
   // Manejar ubicación del conductor
   useEffect(() => {
-    if (!map.current || isPending || !driverLocation) return;
+    const isTripActive = ['EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF'].includes(status || '');
+    
+    // Si el mapa no está, el envío está buscando conductor, no hay ubicación o el viaje no está activo
+    if (!map.current || isPending || !driverLocation || !isTripActive) {
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.remove();
+        driverMarkerRef.current = null;
+      }
+      return;
+    }
     
     let animationFrameId: number;
 
     if (!driverMarkerRef.current) {
       // Crear marcador del camión
-      const el = document.createElement('div');
       // Importante: NO usar transition-all porque pelea con requestAnimationFrame y el arrastre del mapa
+      const el = document.createElement('div');
       el.className = 'bg-white p-1.5 rounded-full shadow-xl border-2 border-green-500 flex items-center justify-center';
       el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`;
       
@@ -271,7 +280,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         .addTo(map.current);
         
       // Hacer zoom inicial hacia el conductor y el origen
-      if (['IN_TRANSIT', 'ARRIVED_AT_DROPOFF', 'ARRIVED_AT_PICKUP', 'EN_ROUTE_TO_PICKUP'].includes(status || '')) {
+      if (isTripActive) {
          map.current.flyTo({ center: driverLocation, zoom: 14, speed: 1.5 });
       } else if (origin) {
          const bounds = new mapboxgl.LngLatBounds(origin, origin);
@@ -305,7 +314,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [driverLocation, isPending, origin]);
+  }, [driverLocation, isPending, status, origin]);
 
   return (
     <div className="relative w-full h-full" style={{ minHeight: '200px' }}>

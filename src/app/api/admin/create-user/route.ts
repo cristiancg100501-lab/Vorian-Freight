@@ -80,19 +80,19 @@ export async function POST(request: NextRequest) {
       throw profileError;
     }
 
-    // Intentar actualizar columnas opcionales por separado (company_name, companyName)
+    // Intentar actualizar columnas opcionales por separado
     // Si no existen en el schema, se ignoran sin romper el flujo
     if (finalCompanyName) {
       await supabaseAdmin.from("userProfiles")
-        .update({ company_name: finalCompanyName })
+        .update({ "Company_name": finalCompanyName })
         .eq("id", newUserId)
         .then(({ error }) => {
-          if (error) console.warn("company_name no disponible en schema:", error.message);
+          if (error) console.warn("Company_name no disponible en schema:", error.message);
         });
     }
 
     // 3. Crear o asociar a la tabla unificada de Empresas (companies & company_members)
-    if (role === "company" || role === "customer") {
+    if (role === "company" || role === "customer" || role === "client") {
       const companyType = role === "company" ? "CARRIER" : "CUSTOMER";
       let companyId: string | null = null;
 

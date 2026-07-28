@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package, ImageIcon, Eye, Zap, Clock, Navigation, ArrowRight, Phone, CheckCircle2, XCircle } from "lucide-react";
+import { MapPin, User, Truck, Calendar, DollarSign, PlusCircle, ExternalLink, Package, ImageIcon, Eye, Zap, Clock, Navigation, ArrowRight, Phone, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -60,7 +60,7 @@ export default function CustomerMyShipmentsPage() {
     // 1. Get all shipments booked by this customer
     const filterCustomerShipments = useCallback((q: any) => {
         if (!user) return q;
-        return q.eq("customer_id", user.id).order("createdAt", { ascending: false });
+        return q.or(`customer_id.eq.${user.id},clientId.eq.${user.id}`).order("createdAt", { ascending: false });
     }, [user]);
     const { data: customerShipments, isLoading: isLoadingShipments } = useSupabaseCollection("shipments", filterCustomerShipments);
 
@@ -436,6 +436,13 @@ export default function CustomerMyShipmentsPage() {
                                                 <Link href={`/customer/shipments/${selectedShipmentDetail.id}`} className="w-full">
                                                     <Button className="w-full gap-2">
                                                         <Navigation className="h-4 w-4" /> Rastreo GPS en Mapa
+                                                    </Button>
+                                                </Link>
+                                            )}
+                                            {["COMPLETED", "CANCELLED", "Completed", "Cancelled"].includes(selectedShipmentDetail.status) && (
+                                                <Link href={`/customer/tracking?audit=${selectedShipmentDetail.id}`} className="w-full">
+                                                    <Button className="w-full gap-2" variant="outline">
+                                                        <FileText className="h-4 w-4" /> Ver Auditoría de Envío
                                                     </Button>
                                                 </Link>
                                             )}

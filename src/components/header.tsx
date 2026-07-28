@@ -70,7 +70,7 @@ export function Header() {
         const { count } = await supabase
           .from("shipments")
           .select("id", { count: "exact", head: true })
-          .eq("customer_id", user.id)
+          .or(`customer_id.eq.${user.id},clientId.eq.${user.id}`)
           .eq("status", "COMPLETED");
         if (isMounted) setCompletedTrips(count || 0);
       } else if (role === "company") {

@@ -81,40 +81,54 @@ export function SignUpForm() {
         }
       }
 
-      if (role === "company") {
-        // Wait a bit for the trigger to finish userProfiles creation
+      if (role === "company" || role === "customer" || role === "client") {
+        // Esperamos a que se cree el userProfile mediante el trigger
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        console.log("Intentando crear perfil de empresa (transportista)...");
-        const { error: companyError } = await supabase.from("companyProfiles").insert({
-          id: user.id, // Usually companies use the same ID as userId
-          userId: user.id,
-          companyName: companyName,
-          rut: companyRut,
-          address: "Por completar", // Placeholder
-          vehicleTypes: []
-        });
+        console.log("Intentando crear perfil de empresa B2B...");
+        const companyType = (role === "company") ? "CARRIER" : "CUSTOMER";
 
-        if (companyError) {
-          console.error("Error al insertar perfil de empresa:", companyError);
+        // Insertar en la nueva tabla `companies`
+        const { data: newCompany, error: compError } = await supabase.from("companies").insert({
+          company_name: companyName,
+          trade_name: companyName,
+          rut: companyRut,
+          type: companyType,
+          verification_status: "PENDING"
+        }).select("id").single();
+
+        if (compError) {
+          console.error("Error al insertar en companies:", compError);
+        } else if (newCompany) {
+          // Vincular el usuario a la nueva empresa
+          const { error: memberError } = await supabase.from("company_members").insert({
+            company_id: newCompany.id,
+            user_id: user.id,
+            member_role: "OWNER"
+          });
+          if (memberError) console.error("Error al vincular miembro:", memberError);
         }
-      }
 
-      if (role === "customer") {
-        // Wait a bit for the trigger to finish userProfiles creation
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        console.log("Intentando crear perfil de cliente B2B...");
-        const { error: clientError } = await supabase.from("clientProfiles").insert({
-          id: user.id, 
-          userId: user.id,
-          companyName: companyName,
-          rut: companyRut,
-          address: "Por completar" // Placeholder
-        });
-
-        if (clientError) {
-          console.error("Error al insertar perfil de cliente:", clientError);
+        // Mantener retrocompatibilidad con las tablas antiguas por ahora
+        if (role === "company") {
+          const { error: companyError } = await supabase.from("companyProfiles").insert({
+            id: user.id,
+            userId: user.id,
+            companyName: companyName,
+            rut: companyRut,
+            address: "Por completar",
+            vehicleTypes: []
+          });
+          if (companyError) console.error("Error en companyProfiles:", companyError);
+        } else {
+          const { error: clientError } = await supabase.from("clientProfiles").insert({
+            id: user.id, 
+            userId: user.id,
+            companyName: companyName,
+            rut: companyRut,
+            address: "Por completar"
+          });
+          if (clientError) console.error("Error en clientProfiles:", clientError);
         }
       }
 

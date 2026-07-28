@@ -59,7 +59,7 @@ export default function CustomerDashboard() {
 
   const filterShipments = useCallback((q: any) => {
     if (!user) return q;
-    return q.eq("customer_id", user.id).order("createdAt", { ascending: false });
+    return q.or(`customer_id.eq.${user.id},clientId.eq.${user.id}`).order("createdAt", { ascending: false });
   }, [user]);
 
   const { data: shipments, isLoading } = useSupabaseCollection("shipments", filterShipments);

@@ -48,41 +48,65 @@ export default function ManagedShipmentPage() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const { data: usersData } = await supabase.from("userProfiles").select("id, name, company_name, companyName, firstName, lastName, role, email");
+            const { data: usersData } = await supabase.from("userProfiles").select("id, role, email, firstName, lastName, \"Company_name\"");
             const { data: clientsData } = await supabase.from("clientProfiles").select("id, companyName");
             const { data: companyProfilesData } = await supabase.from("companyProfiles").select("id, companyName");
+            const { data: b2bCompanies } = await supabase.from("companies").select("id, company_name, type");
+            
+            // Map legacy customers
+            const clientNameMap = new Map(clientsData?.map(c => [c.id, c.companyName]) || []);
+            let mappedCustomers: any[] = [];
             
             if (usersData) {
-                const clientNameMap = new Map(clientsData?.map(c => [c.id, c.companyName]) || []);
-                const mappedCustomers = usersData
+                mappedCustomers = usersData
                     .filter((u: any) => u.role === 'customer' || u.role === 'client')
                     .map((u: any) => {
-                        const displayName = clientNameMap.get(u.id) || u.company_name || u.companyName || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
+                        const displayName = clientNameMap.get(u.id) || u.Company_name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
                         return {
                             ...u,
                             name: displayName || u.email
                         };
                     });
 
-                setCustomers(mappedCustomers);
                 setDrivers(usersData.filter((u: any) => u.role === 'driver').map((u: any) => ({
                     ...u,
-                    name: u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email
+                    name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email
                 })));
+            }
 
-                // Combinar perfiles de empresa de transporte (companyProfiles + userProfiles role=='company')
-                const companyMap = new Map();
-                companyProfilesData?.forEach((c: any) => {
-                    if (c.companyName) companyMap.set(c.id, { id: c.id, companyName: c.companyName });
-                });
-                usersData.filter((u: any) => u.role === 'company').forEach((u: any) => {
-                    const cName = u.company_name || u.companyName || u.name;
-                    if (cName && !companyMap.has(u.id)) {
-                        companyMap.set(u.id, { id: u.id, companyName: cName });
+            // Map legacy companies (carriers)
+            const companyMap = new Map();
+            companyProfilesData?.forEach((c: any) => {
+                if (c.companyName) companyMap.set(c.id, { id: c.id, companyName: c.companyName, name: c.companyName });
+            });
+            usersData?.filter((u: any) => u.role === 'company').forEach((u: any) => {
+                const cName = u.Company_name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
+                if (cName && !companyMap.has(u.id)) {
+                    companyMap.set(u.id, { id: u.id, companyName: cName, name: cName });
+                }
+            });
+
+            // Add new B2B Companies
+            if (b2bCompanies) {
+                // Add to customers
+                const b2bCustomers = b2bCompanies.filter(c => c.type === 'CUSTOMER' || c.type === 'BOTH').map(c => ({
+                    id: c.id,
+                    name: c.company_name,
+                    companyName: c.company_name,
+                    role: 'customer'
+                }));
+                mappedCustomers = [...mappedCustomers, ...b2bCustomers];
+
+                // Add to carriers
+                b2bCompanies.filter(c => c.type === 'CARRIER' || c.type === 'BOTH').forEach(c => {
+                    if (!companyMap.has(c.id)) {
+                        companyMap.set(c.id, { id: c.id, companyName: c.company_name, name: c.company_name });
                     }
                 });
-                setCompanies(Array.from(companyMap.values()));
             }
+
+            setCustomers(mappedCustomers);
+            setCompanies(Array.from(companyMap.values()));
         };
         fetchData();
     }, [supabase]);
@@ -153,6 +177,7 @@ export default function ManagedShipmentPage() {
             const { data, error: insertError } = await supabase.from('shipments').insert({
                 id: customId,
                 clientId: selectedCustomerId,
+                customer_id: selectedCustomerId, // Ensure both fields are set for visibility
                 driverId: selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null,
                 carrierId: selectedCompanyId && selectedCompanyId !== 'none' ? selectedCompanyId : (selectedDriverId && selectedDriverId !== 'none' ? selectedDriverId : null),
                 

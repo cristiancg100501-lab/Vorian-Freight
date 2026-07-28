@@ -38,9 +38,9 @@ export default function AdminVerificationsPage() {
       // Refresh local cache
       refetch();
       alert(`Empresa ${newStatus === 'approved' ? 'aprobada' : 'rechazada'} exitosamente.`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating company status:", err);
-      alert("Hubo un error al actualizar el estado.");
+      alert("Error: " + (err.message || "Hubo un error al actualizar el estado."));
     } finally {
       setProcessingId(null);
     }
