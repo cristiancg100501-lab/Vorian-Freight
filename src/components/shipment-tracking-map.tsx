@@ -272,8 +272,18 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
       // Crear marcador del camión
       // Importante: NO usar transition-all porque pelea con requestAnimationFrame y el arrastre del mapa
       const el = document.createElement('div');
-      el.className = 'bg-white p-1.5 rounded-full shadow-xl border-2 border-green-500 flex items-center justify-center';
-      el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>`;
+      el.innerHTML = `
+        <div class="relative flex flex-col items-center justify-center">
+          <div class="relative w-10 h-10 rounded-xl bg-primary border-[3px] border-background shadow-xl flex items-center justify-center text-primary-foreground z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="16" height="16" x="4" y="4" rx="2" />
+              <path d="M9 10L12 13L15 10" />
+              <path d="M12 13V7" />
+            </svg>
+            <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
+          </div>
+          <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-l-transparent border-r-transparent border-t-[7px] border-t-primary -mt-1 z-0"></div>
+        </div>`;
       
       driverMarkerRef.current = new mapboxgl.Marker(el)
         .setLngLat(driverLocation)

@@ -110,6 +110,8 @@ export default function DriverPage() {
   }, [driverProfile]);
 
   // Handle Location Tracking
+  const hasCenteredMap = useRef(false);
+
   useEffect(() => {
     if (isOnline && navigator.geolocation) {
       watchId.current = navigator.geolocation.watchPosition(
@@ -145,8 +147,9 @@ export default function DriverPage() {
             }
 
             // Center map on first location fix
-            if (!location) {
+            if (!hasCenteredMap.current) {
               map.current.flyTo({ center: [longitude, latitude], zoom: 14 });
+              hasCenteredMap.current = true;
             }
           }
         },
@@ -162,12 +165,16 @@ export default function DriverPage() {
         driverMarker.current.remove();
         driverMarker.current = null;
       }
+      hasCenteredMap.current = false;
     }
 
     return () => {
-      if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
+      if (watchId.current) {
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
+      }
     };
-  }, [isOnline, user?.id, location, supabase]);
+  }, [isOnline, user?.id, supabase]);
 
   // No available loads markers needed for now
 

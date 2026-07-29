@@ -37,7 +37,9 @@ CREATE POLICY "select_location_logs"
 
 -- 4. Función de Trigger
 CREATE OR REPLACE FUNCTION log_driver_location()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+SECURITY DEFINER
+AS $$
 DECLARE
     active_shipment_id TEXT;
 BEGIN
@@ -48,7 +50,7 @@ BEGIN
         -- Find active shipment for this driver
         SELECT id INTO active_shipment_id
         FROM public.shipments
-        WHERE ("driverId" = NEW.id OR "carrierId" = NEW.id)
+        WHERE ("driverId"::text = NEW.id::text OR "carrierId"::text = NEW.id::text)
           AND status IN ('ACCEPTED', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT', 'ARRIVED_AT_DROPOFF')
         ORDER BY "createdAt" DESC
         LIMIT 1;

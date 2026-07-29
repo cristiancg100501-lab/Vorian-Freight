@@ -169,15 +169,12 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
 
 
   // Keep theme in a ref to avoid stale closures in Mapbox callbacks
-  const themeRef = useRef(resolvedTheme);
-  useEffect(() => {
-    themeRef.current = resolvedTheme;
-  }, [resolvedTheme]);
+  const [styleReloadCounter, setStyleReloadCounter] = useState(0);
 
   // Init map
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
-    const isDark = themeRef.current === "dark";
+    const isDark = resolvedTheme === "dark";
     const styleUrl = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
     currentStyleRef.current = isDark ? "dark" : "light";
     const center: [number, number] = origin ?? destination ?? [-70.6506, -33.4372];
@@ -189,8 +186,25 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
       attributionControl: false,
     });
     mapRef.current = m;
+    
+    m.on('style.load', () => {
+      setStyleReloadCounter(c => c + 1);
+    });
+
     return () => { m.remove(); mapRef.current = null; };
   }, []);
+
+  // Update style when theme changes
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    const isDark = resolvedTheme === "dark";
+    const targetStyle = isDark ? "dark" : "light";
+    if (currentStyleRef.current !== targetStyle) {
+      currentStyleRef.current = targetStyle;
+      m.setStyle(isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11");
+    }
+  }, [resolvedTheme]);
 
   // Fit bounds to origin and destination without drawing route line
   useEffect(() => {
@@ -263,55 +277,61 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !displayLocation) return;
-    driverMarkerRef.current?.remove();
-    const el = document.createElement("div");
-    el.innerHTML = `
-      <div style="
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      ">
-        <div style="
-          position: relative;
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-          border: 3px solid #ffffff;
-          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5), 0 0 0 4px rgba(16, 185, 129, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="16" height="16" x="4" y="4" rx="2" />
-            <path d="M9 10L12 13L15 10" />
-            <path d="M12 13V7" />
-          </svg>
-        </div>
-        <div style="
-          width: 0;
-          height: 0;
-          border-left: 7px solid transparent;
-          border-right: 7px solid transparent;
-          border-top: 9px solid #10b981;
-          margin-top: -1px;
-        "></div>
-      </div>`;
-    driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
-      .setLngLat(displayLocation)
-      .addTo(m);
+    
+    let animationFrameId: number;
+
+    if (!driverMarkerRef.current) {
+      const el = document.createElement("div");
+      
+      el.innerHTML = `
+        <div class="relative flex flex-col items-center justify-center">
+          <div class="absolute inset-0 rounded-full bg-primary/40 blur-md animate-pulse scale-150"></div>
+          <div class="relative w-12 h-12 rounded-xl bg-primary border-4 border-background shadow-[0_0_15px_rgba(0,0,0,0.3)] flex items-center justify-center text-primary-foreground z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+            </svg>
+            <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
+          </div>
+          <div class="w-0 h-0 border-l-[6px] border-r-[6px] border-l-transparent border-r-transparent border-t-[8px] border-t-primary -mt-1 z-0 relative"></div>
+        </div>`;
+      
+      driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat(displayLocation)
+        .addTo(m);
+    } else {
+      // Smooth interpolation using requestAnimationFrame to avoid panning lag
+      const currentLngLat = driverMarkerRef.current.getLngLat();
+      const start = performance.now();
+      const duration = 800; // ms
+      
+      const animateMarker = (time: number) => {
+        const progress = Math.min((time - start) / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+        
+        const lng = currentLngLat.lng + (displayLocation[0] - currentLngLat.lng) * easeProgress;
+        const lat = currentLngLat.lat + (displayLocation[1] - currentLngLat.lat) * easeProgress;
+        
+        driverMarkerRef.current?.setLngLat([lng, lat]);
+        
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animateMarker);
+        }
+      };
+      
+      animationFrameId = requestAnimationFrame(animateMarker);
+    }
     
     // Auto-pan to follow audit replay
     if (auditPoint) {
       m.panTo(displayLocation, { animate: true });
     }
-    
-    return () => { driverMarkerRef.current?.remove(); };
-  }, [shipment?.id, displayLocation, auditPoint]);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [displayLocation, auditPoint]);
 
   // Draw Audit History Route
   useEffect(() => {
@@ -366,7 +386,7 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
         });
       }
     }
-  }, [auditHistory]);
+  }, [auditHistory, styleReloadCounter]);
 
   // Bouncing origin marker (3D Floating Box Badge 📦)
   useEffect(() => {

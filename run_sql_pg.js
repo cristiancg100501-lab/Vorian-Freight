@@ -8,7 +8,7 @@ async function run() {
   });
 
   await client.connect();
-  const sql = fs.readFileSync('database_scripts/CREATE_DRIVER_LOCATION_LOGS.sql', 'utf8');
+  const sql = fs.readFileSync('database_scripts/FIX_DRIVER_REALTIME.sql', 'utf8');
   
   try {
     await client.query(sql);
