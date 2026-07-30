@@ -610,7 +610,12 @@ function CustomerTrackingContent() {
       </div>
 
       {/* Left floating panel */}
-      <div className="absolute top-6 left-6 bottom-6 w-[340px] z-20 overflow-hidden rounded-2xl shadow-2xl">
+      <div 
+        className={cn(
+          "absolute top-6 left-6 bottom-6 z-20 overflow-hidden rounded-2xl shadow-2xl transition-[width] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]",
+          view === "detail" && activeTab === "audit" ? "w-[450px]" : "w-[340px]"
+        )}
+      >
         <AnimatePresence mode="wait" initial={false}>
           {view === "list" ? (
             <motion.div

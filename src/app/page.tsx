@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, BarChart3, Map, Sun, Moon, Laptop } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, BarChart3, Map, Sun, Moon, Laptop, CheckCircle2, Anchor, Warehouse, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VorianLogo from "@/assets/vorian_logo.png";
 import { FAQ } from "@/components/faq";
@@ -387,93 +387,125 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[280px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min">
               {/* Box 1: Large (2 cols, 1 row) - Tracking */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.5 }}
-                className="md:col-span-2 bg-card rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg"
+                className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col md:flex-row gap-8 items-center"
               >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-zinc-500/20 transition-colors duration-500"></div>
-                <div className="relative z-10 w-full h-full flex flex-col justify-between">
+                <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div>
-                    <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
+                    <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-6 backdrop-blur-sm shadow-sm">
                       <Map className="w-6 h-6" />
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-2">Rastreo en tiempo real</h3>
-                    <p className="text-muted-foreground max-w-sm">Mantén el control total de tus envíos con actualizaciones precisas de ubicación y estado 24/7 en el mapa.</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">Rastreo en tiempo real</h3>
+                    <p className="text-muted-foreground text-lg mb-6">Mantén el control total de tus envíos con actualizaciones precisas de ubicación y estado 24/7. Monitorea cada movimiento de tu flota en un mapa interactivo.</p>
                   </div>
-                  
-                  {/* Decorative element: Mini Map UI */}
-                  <div className="absolute right-0 bottom-0 w-[60%] h-[75%] bg-card rounded-tl-2xl border-t border-l border-border translate-x-8 translate-y-8 group-hover:translate-x-4 group-hover:translate-y-4 transition-transform duration-500 hidden md:block overflow-hidden shadow-2xl">
-                     {/* Fake Map Grid & Routes */}
-                     <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, hsl(var(--foreground) / 0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-                     
-                     {/* Route Line */}
-                     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                       <path d="M 40 140 Q 100 120 120 80 T 220 40" fill="transparent" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" className="text-foreground opacity-30" />
-                     </svg>
-                     
-                     {/* Start Point */}
-                     <div className="absolute left-[30px] top-[130px] w-4 h-4 bg-primary border-2 border-card rounded-full shadow-md z-10"></div>
-                     
-                     {/* Moving Truck / Current Location */}
-                     <div className="absolute left-[110px] top-[70px] z-20">
-                        <div className="w-12 h-12 bg-primary/10 rounded-full absolute -top-4 -left-4 animate-ping"></div>
-                        <div className="w-4 h-4 bg-primary border-2 border-card rounded-full shadow-md relative z-10"></div>
-                     </div>
-                     
-                     {/* Destination Point */}
-                     <div className="absolute left-[210px] top-[30px] w-5 h-5 bg-muted border-2 border-card rounded-full shadow-md z-10 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full"></div>
-                     </div>
-                     
-                     {/* Floating ETA Card */}
-                     <div className="absolute bottom-4 left-4 right-4 bg-muted/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-lg z-30 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-xs">🚚</div>
-                          <div>
-                            <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">En tránsito</div>
-                            <div className="text-xs text-foreground font-bold truncate w-24">Patente XY-99</div>
+                </div>
+                
+                {/* Decorative element: Improved Mini Map UI */}
+                <div className="relative z-10 w-full md:w-1/2 h-64 md:h-72 bg-muted/20 rounded-2xl border border-border overflow-hidden shadow-2xl group-hover:-translate-y-2 group-hover:shadow-3xl transition-all duration-500">
+                   {/* Fake Map Grid & Routes */}
+                   <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, hsl(var(--foreground) / 0.15) 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                   <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--foreground)) 1px, transparent 1px)', backgroundSize: '60px 60px' }}></div>
+                   
+                   {/* Animated Route Line Background */}
+                   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                     <path d="M -20 180 Q 120 160 160 80 T 320 40" fill="transparent" stroke="hsl(var(--muted-foreground))" strokeWidth="6" className="opacity-20" strokeLinecap="round" />
+                   </svg>
+                   
+                   {/* Animated Route Line Active */}
+                   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                     <motion.path 
+                       d="M -20 180 Q 120 160 160 80 T 320 40" 
+                       fill="transparent" 
+                       stroke="hsl(var(--primary))" 
+                       strokeWidth="4" 
+                       strokeDasharray="10 10"
+                       animate={{ strokeDashoffset: [0, -100] }}
+                       transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                       strokeLinecap="round" 
+                     />
+                   </svg>
+                   
+                   {/* Start Point */}
+                   <div className="absolute left-[30px] top-[170px] w-5 h-5 bg-background border-4 border-primary rounded-full shadow-lg z-10"></div>
+                   
+                   {/* Moving Truck / Current Location */}
+                   <motion.div 
+                     className="absolute z-20 flex items-center justify-center -ml-4 -mt-4"
+                     animate={{ 
+                       x: [30, 90, 160, 240, 320], 
+                       y: [170, 155, 80, 60, 40]
+                     }}
+                     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                   >
+                      <div className="w-16 h-16 bg-primary/20 rounded-full absolute animate-ping opacity-50"></div>
+                      <div className="w-8 h-8 bg-primary rounded-full shadow-xl relative z-10 flex items-center justify-center border-2 border-background">
+                        <Truck className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                   </motion.div>
+                   
+                   {/* Destination Point */}
+                   <div className="absolute left-[310px] top-[30px] w-6 h-6 bg-muted border-4 border-card rounded-full shadow-md z-10 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                   </div>
+                   
+                   {/* Floating ETA Card */}
+                   <motion.div 
+                      className="absolute bottom-4 left-4 right-4 md:left-8 md:right-8 bg-card/95 backdrop-blur-md border border-border rounded-xl p-4 shadow-xl z-30 flex items-center justify-between"
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                   >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> En ruta
                           </div>
+                          <div className="text-sm text-foreground font-bold truncate">CX-9020</div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">ETA</div>
-                          <div className="text-xs text-foreground font-bold text-green-400">14:30</div>
-                        </div>
-                     </div>
-                  </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5">Llegada est.</div>
+                        <div className="text-sm text-foreground font-black text-primary">16:45 hrs</div>
+                      </div>
+                   </motion.div>
                 </div>
               </motion.div>
 
-              {/* Box 2: Tall (1 col, 2 rows) - Fleet Management */}
+              {/* Box 2: Small (1 col, 1 row) - Fleet Management */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="row-span-2 bg-gradient-to-b from-card to-muted/20 rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
+                className="md:col-span-1 bg-gradient-to-br from-card to-muted/30 rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
               >
                 <div className="absolute bottom-0 left-0 w-full h-1/2 bg-zinc-500/5 blur-[80px] group-hover:bg-zinc-500/10 transition-colors duration-500"></div>
                 <div className="relative z-10 flex-1 flex flex-col">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Operación gestionada y segura</h3>
-                  <p className="text-muted-foreground mb-8">Coordinamos tus despachos con transportistas certificados para garantizar un servicio confiable, puntual y con total trazabilidad.</p>
+                  <h3 className="text-xl font-bold text-foreground mb-2">Operación gestionada</h3>
+                  <p className="text-muted-foreground text-sm mb-6">Despachos con transportistas certificados para garantizar servicio confiable.</p>
                   
                   {/* Decorative element: Stats Bars */}
-                  <div className="mt-auto flex flex-col gap-4">
+                  <div className="mt-auto flex flex-col gap-4 bg-background/50 rounded-xl p-4 border border-border">
                     {[
                       { label: "Tiempo de Asignación", width: "w-[15%]", color: "bg-primary" },
                       { label: "Costos Operativos", width: "w-[40%]", color: "bg-primary/60" },
                       { label: "Satisfacción", width: "w-[95%]", color: "bg-primary/80" },
                     ].map((stat, i) => (
-                      <div key={i} className="space-y-2">
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{stat.label}</div>
-                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div key={i} className="space-y-1.5">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                           <motion.div 
                             className={`h-full ${stat.color} rounded-full`}
                             initial={{ width: 0 }}
@@ -488,78 +520,244 @@ export default function LandingPage() {
                 </div>
               </motion.div>
 
-              {/* Box 3: Small (1 col, 1 row) - Smart Match */}
+              {/* Box 3: Medium (2 cols, 1 row) - Audit (formerly Box 4) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="bg-card rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col"
+                className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-8"
               >
-                <div className="relative z-10 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Transporte Verificado</h3>
-                    <p className="text-muted-foreground text-sm">Operaciones garantizadas exclusivamente con nuestra red de transportistas y conductores de alta confianza.</p>
+                <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
+                     <ShieldCheck className="w-6 h-6" />
                   </div>
-                  
-                  {/* Decorative Real UI element */}
-                  <div className="mt-6 bg-card rounded-xl border border-border p-4 relative group-hover:-translate-y-1 transition-transform duration-500 shadow-inner">
-                    <div className="flex items-center justify-between mb-3">
-                       <div className="flex -space-x-2">
-                         <div className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-border flex items-center justify-center text-[10px] text-foreground z-10 shadow-sm">📦</div>
-                         <div className="w-8 h-8 rounded-full bg-accent border-2 border-border flex items-center justify-center text-[10px] text-foreground z-0 shadow-sm">🚚</div>
-                       </div>
-                       <div className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 border border-border">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                          Certificado
-                       </div>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                       <motion.div 
-                         className="bg-primary h-1.5 rounded-full"
-                         initial={{ width: 0 }}
-                         whileInView={{ width: "100%" }}
-                         viewport={{ once: true }}
-                         transition={{ duration: 1.5, delay: 0.8 }}
-                       ></motion.div>
-                    </div>
-                  </div>
+                  <h3 className="text-2xl font-bold text-foreground mb-4">Auditoría Inmutable de Rutas</h3>
+                  <p className="text-muted-foreground text-sm mb-6">Historial exacto con telemetría GPS para máxima transparencia ante tus clientes.</p>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-3 text-xs text-foreground font-medium"><div className="w-4 h-4 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-[10px]">✓</div> Datos sellados criptográficamente</li>
+                    <li className="flex items-center gap-3 text-xs text-foreground font-medium"><div className="w-4 h-4 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center text-[10px]">✓</div> Prevención de desvíos</li>
+                  </ul>
+                </div>
+                
+                {/* Decorative Real UI element - Big Map Audit Replay */}
+                <div className="relative z-10 w-full md:w-1/2 h-56 md:h-64 bg-muted/20 rounded-2xl border border-border overflow-hidden shadow-2xl flex flex-col group-hover:scale-[1.02] transition-transform duration-500">
+                   {/* Top Bar */}
+                   <div className="h-10 bg-card border-b border-border flex items-center justify-between px-4 z-20 shadow-sm relative">
+                      <div className="flex items-center gap-3">
+                         <div className="flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[9px] text-red-500 font-bold tracking-widest">REPLAY</span>
+                         </div>
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground">ID: VF-9022A</div>
+                   </div>
+                   
+                   {/* Map Area */}
+                   <div className="flex-1 relative bg-background">
+                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, hsl(var(--foreground) / 0.15) 1px, transparent 0)', backgroundSize: '20px 20px' }}></div>
+                      
+                      {/* Animated Route Line */}
+                      <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                         <motion.path 
+                           d="M 20 180 Q 150 130 250 180 T 450 60" 
+                           fill="transparent" 
+                           stroke="hsl(var(--primary))" 
+                           strokeWidth="3"
+                           initial={{ pathLength: 0 }}
+                           animate={{ pathLength: 1 }}
+                           transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                         />
+                      </svg>
+                      
+                      {/* Moving Truck marker */}
+                      <motion.div 
+                        className="absolute w-6 h-6 bg-card border-2 border-primary rounded-full shadow-lg flex items-center justify-center z-10 -ml-3 -mt-3"
+                        animate={{ 
+                           x: [20, 150, 250, 350, 450], 
+                           y: [180, 145, 180, 120, 60]
+                        }}
+                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                      >
+                         <Truck className="w-3 h-3 text-primary" />
+                      </motion.div>
+                      
+                      {/* Telemetry Floating Box */}
+                      <motion.div 
+                        className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-md border border-border p-2.5 rounded-xl shadow-xl w-40"
+                        animate={{ y: [0, -2, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                         <div className="flex justify-between items-end mb-1.5">
+                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider">Velocidad</span>
+                            <motion.span 
+                               className="text-base font-mono font-bold text-primary"
+                               animate={{ opacity: [1, 0.8, 1] }}
+                               transition={{ duration: 0.5, repeat: Infinity }}
+                            >64 <span className="text-[10px] text-muted-foreground">km/h</span></motion.span>
+                         </div>
+                         <div className="w-full bg-muted rounded-full h-1 mb-1.5 overflow-hidden">
+                            <motion.div className="bg-primary h-1 rounded-full" animate={{ width: ["40%", "45%", "42%", "48%", "40%"] }} transition={{ duration: 4, repeat: Infinity }} />
+                         </div>
+                         <div className="text-[8px] text-muted-foreground font-mono">COORD: -33.45, -70.66</div>
+                      </motion.div>
+                   </div>
                 </div>
               </motion.div>
 
-              {/* Box 4: Small (1 col, 1 row) - Analytics */}
+              {/* Box 4: Small (1 col, 1 row) - Security (formerly Box 3) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="bg-background rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col"
+                className="md:col-span-1 bg-background rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col items-center text-center gap-6 justify-center"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-zinc-800/40 via-transparent to-transparent opacity-50"></div>
-                <div className="relative z-10 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Analítica Avanzada</h3>
-                    <p className="text-muted-foreground text-sm">Visualiza el rendimiento logístico con reportes en tiempo real.</p>
+                <div className="relative z-10 w-full">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Entregas con PIN</h3>
+                  <p className="text-muted-foreground text-sm">Validación estricta para recepción y entrega.</p>
+                </div>
+                
+                {/* Decorative Real UI element - PIN Animation */}
+                <div className="relative z-10 w-full bg-card rounded-2xl border border-border p-4 shadow-2xl flex flex-col items-center gap-4">
+                   <div className="flex gap-2 w-full justify-center">
+                     <div className="w-9 h-10 rounded-xl border-2 border-primary/20 bg-background flex items-center justify-center font-mono text-lg font-bold text-foreground shadow-inner">
+                       <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 0.1 }}>4</motion.span>
+                     </div>
+                     <div className="w-9 h-10 rounded-xl border-2 border-primary/20 bg-background flex items-center justify-center font-mono text-lg font-bold text-foreground shadow-inner">
+                       <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 0.1, delay: 1 }}>8</motion.span>
+                     </div>
+                     <div className="w-9 h-10 rounded-xl border-2 border-primary/20 bg-background flex items-center justify-center font-mono text-lg font-bold text-foreground shadow-inner">
+                       <motion.span animate={{ opacity: [0, 1] }} transition={{ duration: 0.1, delay: 2 }}>2</motion.span>
+                     </div>
+                     <div className="w-9 h-10 rounded-xl border-2 border-primary/50 bg-background flex items-center justify-center font-mono text-lg font-bold text-primary shadow-inner">
+                       <motion.span animate={{ opacity: [0, 1, 0] }} transition={{ duration: 0.1, delay: 3, times: [0, 0.5, 1] }}>
+                         <motion.div animate={{ opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2.5 h-2.5 bg-primary rounded-full" />
+                       </motion.span>
+                       <motion.span animate={{ opacity: [0, 1, 1, 0] }} transition={{ duration: 4, times: [0, 0.75, 0.8, 1], repeat: Infinity, repeatDelay: 1 }} className="absolute">7</motion.span>
+                     </div>
+                   </div>
+                   
+                   <div className="relative w-full h-9 rounded-xl overflow-hidden mt-1">
+                     {/* Default Button State */}
+                     <motion.div 
+                        className="absolute inset-0 bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider"
+                        animate={{ opacity: [1, 1, 0, 0, 1] }}
+                        transition={{ duration: 4, times: [0, 0.75, 0.76, 0.99, 1], repeat: Infinity, repeatDelay: 1 }}
+                     >
+                        Esperando PIN...
+                     </motion.div>
+                     {/* Success State */}
+                     <motion.div 
+                        className="absolute inset-0 bg-green-500 text-white flex items-center justify-center text-[10px] font-bold uppercase tracking-wider gap-1.5 shadow-lg"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: [0, 0, 1, 1, 0], y: [20, 20, 0, 0, -20] }}
+                        transition={{ duration: 4, times: [0, 0.75, 0.8, 0.95, 1], repeat: Infinity, repeatDelay: 1 }}
+                     >
+                        <ShieldCheck className="w-3.5 h-3.5" /> Entregado
+                     </motion.div>
+                   </div>
+                </div>
+              </motion.div>
+              {/* Box 5: Full Width (3 cols) - Proactive Notifications */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="md:col-span-3 bg-card rounded-[2rem] p-8 md:p-12 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-12"
+              >
+                <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell-ring w-6 h-6"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>
                   </div>
-                  
-                  {/* Decorative Real UI element */}
-                  <div className="mt-6 flex items-end gap-1.5 h-24 w-full opacity-80 group-hover:opacity-100 transition-opacity duration-500 pt-6">
-                    {[40, 70, 45, 90, 65, 100, 80].map((height, i) => (
-                      <div key={i} className="flex-1 rounded-t-sm relative group/bar flex flex-col justify-end h-full">
-                        <motion.div 
-                          className="w-full bg-zinc-800 group-hover/bar:bg-zinc-600 transition-colors rounded-t-sm"
-                          initial={{ height: 0 }}
-                          whileInView={{ height: `${height}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.8, delay: 0.5 + (i * 0.1) }}
-                        >
-                          <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity shadow-lg">
-                            {height}%
-                          </div>
-                        </motion.div>
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">Alertas Proactivas en Vivo</h3>
+                  <p className="text-muted-foreground text-lg mb-6">El sistema informa automáticamente a tus clientes de cada hito importante del viaje, sin que tengas que levantar el teléfono o enviar correos manuales.</p>
+                  <ul className="space-y-3">
+                    <li className="flex items-center gap-3 text-sm text-foreground font-medium"><div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs">✓</div> Alertas de ingreso a puerto y salida</li>
+                    <li className="flex items-center gap-3 text-sm text-foreground font-medium"><div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs">✓</div> Avisos instantáneos de demoras</li>
+                    <li className="flex items-center gap-3 text-sm text-foreground font-medium"><div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center text-xs">✓</div> Notificaciones de confirmación de entrega</li>
+                  </ul>
+                </div>
+                
+                {/* Decorative Real UI element - Smartphone Notifications */}
+                <div className="relative z-10 w-full md:w-1/2 h-72 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-zinc-900 dark:to-zinc-800 rounded-3xl border border-border/50 overflow-hidden shadow-inner flex flex-col items-center justify-center p-6">
+                   
+                   {/* Smartphone Frame */}
+                   <div className="relative w-64 h-[340px] bg-background border-[6px] border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-2xl overflow-hidden translate-y-12 group-hover:translate-y-8 transition-transform duration-700">
+                      {/* Notch */}
+                      <div className="absolute top-0 inset-x-0 h-5 bg-zinc-200 dark:border-zinc-800 rounded-b-xl w-32 mx-auto z-20"></div>
+                      
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                      
+                      <div className="relative z-10 p-4 pt-10 flex flex-col gap-3">
+                         
+                         {/* Notification 1 */}
+                         <motion.div 
+                           className="bg-card/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-border/50"
+                           initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                           animate={{ opacity: 1, y: 0, scale: 1 }}
+                           transition={{ duration: 0.5, delay: 1 }}
+                         >
+                            <div className="flex gap-3 items-start">
+                               <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <Truck className="w-4 h-4 text-blue-500" />
+                               </div>
+                               <div>
+                                  <div className="flex justify-between items-center w-full mb-0.5">
+                                     <span className="text-xs font-bold text-foreground">Vorian Tracker</span>
+                                     <span className="text-[10px] text-muted-foreground">Ahora</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground leading-tight">El camión CX-9020 ha ingresado exitosamente al <b>Puerto de San Antonio</b>.</p>
+                               </div>
+                            </div>
+                         </motion.div>
+                         
+                         {/* Notification 2 */}
+                         <motion.div 
+                           className="bg-card/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-border/50"
+                           initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                           animate={{ opacity: 1, y: 0, scale: 1 }}
+                           transition={{ duration: 0.5, delay: 3 }}
+                         >
+                            <div className="flex gap-3 items-start">
+                               <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <Clock className="w-4 h-4 text-yellow-500" />
+                               </div>
+                               <div>
+                                  <div className="flex justify-between items-center w-full mb-0.5">
+                                     <span className="text-xs font-bold text-foreground">Alerta de Sistema</span>
+                                     <span className="text-[10px] text-muted-foreground">2 min</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground leading-tight">Se detecta una espera prolongada en zona de carga. ETA actualizado a <b>17:30 hrs</b>.</p>
+                               </div>
+                            </div>
+                         </motion.div>
+                         
+                         {/* Notification 3 */}
+                         <motion.div 
+                           className="bg-card/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-border/50"
+                           initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                           animate={{ opacity: 1, y: 0, scale: 1 }}
+                           transition={{ duration: 0.5, delay: 5.5 }}
+                         >
+                            <div className="flex gap-3 items-start">
+                               <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                               </div>
+                               <div>
+                                  <div className="flex justify-between items-center w-full mb-0.5">
+                                     <span className="text-xs font-bold text-foreground">Entrega Confirmada</span>
+                                     <span className="text-[10px] text-muted-foreground">15 min</span>
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground leading-tight">Carga descargada y validada con PIN correctamente.</p>
+                               </div>
+                            </div>
+                         </motion.div>
+
                       </div>
-                    ))}
-                  </div>
+                   </div>
                 </div>
               </motion.div>
             </div>

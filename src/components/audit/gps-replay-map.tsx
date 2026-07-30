@@ -16,6 +16,18 @@ interface GpsReplayControlsProps {
     onUpdate: (point: LocationHistoryPoint | null, history: LocationHistoryPoint[]) => void;
 }
 
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
 export function GpsReplayControls({ shipmentId, onUpdate }: GpsReplayControlsProps) {
     const animationRef = useRef<number | null>(null);
     const { supabase } = useSupabase();
@@ -44,18 +56,31 @@ export function GpsReplayControls({ shipmentId, onUpdate }: GpsReplayControlsPro
                     console.error("Error fetching gps history:", error);
                     setLocationHistory([]);
                 } else if (data && data.length > 0) {
-                    // Map to expected format
-                    setLocationHistory(data.map(d => ({
-                        id: d.id,
-                        latitude: d.latitude,
-                        longitude: d.longitude,
-                        timestamp: d.created_at,
-                        speed: 0,
-                        accuracy: 10,
-                        provider: "gps",
-                        heading: 0,
-                        status_context: "REAL_TRACKING"
-                    })));
+                    // Map to expected format and calculate dynamic speed
+                    const mappedData = data.map((d, index) => {
+                        let speedKmH = 0;
+                        if (index > 0) {
+                            const prev = data[index - 1];
+                            const distKm = getDistanceFromLatLonInKm(Number(prev.latitude), Number(prev.longitude), Number(d.latitude), Number(d.longitude));
+                            const timeDiffHours = (new Date(d.created_at).getTime() - new Date(prev.created_at).getTime()) / (1000 * 60 * 60);
+                            if (timeDiffHours > 0) {
+                                speedKmH = Math.min(Math.round(distKm / timeDiffHours), 140); // Capped at 140 km/h to ignore GPS jumps
+                            }
+                        }
+                        
+                        return {
+                            id: d.id,
+                            latitude: Number(d.latitude),
+                            longitude: Number(d.longitude),
+                            timestamp: d.created_at,
+                            speed: speedKmH,
+                            accuracy: 10,
+                            provider: "gps",
+                            heading: 0,
+                            status_context: "REAL_TRACKING"
+                        };
+                    });
+                    setLocationHistory(mappedData);
                 } else {
                     // Si no hay datos reales, array vacio, no fake mock
                     setLocationHistory([]);

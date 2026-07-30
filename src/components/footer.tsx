@@ -98,8 +98,8 @@ export function Footer() {
             © {new Date().getFullYear()} Vorian Global. Todos los derechos reservados.
           </p>
           <div className="flex gap-6 text-sm">
-            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Términos de Servicio</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</Link>
+            <Link href="/terminos" className="text-muted-foreground hover:text-foreground transition-colors">Términos de Servicio</Link>
+            <Link href="/privacidad" className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</Link>
           </div>
         </div>
       </div>
