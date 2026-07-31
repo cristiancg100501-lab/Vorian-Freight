@@ -23,16 +23,15 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
   const map = useRef<mapboxgl.Map | null>(null);
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
-  const { resolvedTheme } = useTheme();
+  const { theme } = useTheme();
 
   const isPending = status === "Pending" || status === "PENDING";
-  const mapStyle = resolvedTheme === "dark" 
-    ? "mapbox://styles/vorianglobal/cms98zfnl00dr01s6a3f83a2e" 
-    : "mapbox://styles/vorianglobal/cms99ny3300dz01s6acsca4vx";
+  const mapStyle = theme === "dark" 
+    ? "mapbox://styles/mapbox/dark-v11" 
+    : "mapbox://styles/mapbox/light-v11";
 
   const [mapError, setMapError] = useState<string | null>(null);
   const [debugStatus, setDebugStatus] = useState<string>("Component mounted");
-  const [mapLoaded, setMapLoaded] = useState(false);
 
   // Inicializar mapa
   useEffect(() => {
@@ -53,12 +52,13 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         style: mapStyle,
         center: origin || [-70.64827, -33.45694], // Centro por defecto (Santiago)
         zoom: 11,
-        pitch: 60,
-        maxPitch: 85,
-        bearing: -17.6,
-        dragRotate: true,
-        pitchWithRotate: true,
+        pitch: 0,
+        bearing: 0,
+        dragRotate: false,
+        pitchWithRotate: false,
       });
+      map.current.touchZoomRotate.disableRotation();
+      map.current.keyboard.disable(); // Previene rotar con las flechas
       
       setDebugStatus("Map instance created, waiting for load...");
     } catch (e: any) {
@@ -70,16 +70,12 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
 
     map.current.on('load', () => {
       setDebugStatus("Map loaded completely!");
-      setMapLoaded(true);
       
       // Ajustar vista para incluir origen y destino
       if (origin && destination) {
         const bounds = new mapboxgl.LngLatBounds(origin, origin);
         bounds.extend(destination);
-        const camera = map.current?.cameraForBounds(bounds, { padding: 80, pitch: 60, bearing: -17.6 });
-        if (camera) {
-          map.current?.flyTo({ ...camera, pitch: 60, bearing: -17.6, duration: 1000 });
-        }
+        map.current?.fitBounds(bounds, { padding: 80, duration: 1000 });
       }
 
       // Dibujar ruta (solo si showRoute es true)
@@ -102,7 +98,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
             'line-cap': 'round'
           },
           paint: {
-            'line-color': resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb',
+            'line-color': theme === 'dark' ? '#3b82f6' : '#2563eb',
             'line-width': 4,
             'line-opacity': 0.7
           }
@@ -131,7 +127,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
 
   // Actualizar estilo del mapa cuando cambia el tema (Dark/Light mode)
   useEffect(() => {
-    if (map.current && mapLoaded) {
+    if (map.current && map.current.isStyleLoaded()) {
       map.current.setStyle(mapStyle);
       
       // Asegurar que la capa de la ruta se vuelva a agregar después de cambiar el estilo
@@ -155,53 +151,15 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
               'line-cap': 'round'
             },
             paint: {
-              'line-color': resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb',
+              'line-color': theme === 'dark' ? '#3b82f6' : '#2563eb',
               'line-width': 4,
               'line-opacity': 0.7
             }
           });
         }
-        
-        // Ensure 3D buildings are enabled
-        if (map.current && map.current.getSource('composite') && !map.current.getLayer('3d-buildings')) {
-          const layers = map.current.getStyle()?.layers || [];
-          const labelLayerId = layers.find(
-            (layer) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
-          )?.id;
-
-          map.current.addLayer(
-            {
-              id: '3d-buildings',
-              source: 'composite',
-              'source-layer': 'building',
-              filter: ['==', 'extrude', 'true'],
-              type: 'fill-extrusion',
-              minzoom: 14,
-              paint: {
-                'fill-extrusion-color': resolvedTheme === 'dark' ? '#1e293b' : '#e2e8f0',
-                'fill-extrusion-height': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  14, 0,
-                  14.05, ['get', 'height']
-                ],
-                'fill-extrusion-base': [
-                  'interpolate',
-                  ['linear'],
-                  ['zoom'],
-                  14, 0,
-                  14.05, ['get', 'min_height']
-                ],
-                'fill-extrusion-opacity': resolvedTheme === 'dark' ? 0.8 : 0.6
-              }
-            },
-            labelLayerId
-          );
-        }
       });
     }
-  }, [mapStyle, resolvedTheme, routeGeometry, mapLoaded]);
+  }, [mapStyle, theme, routeGeometry]);
 
   // Reaccionar a routeGeometry que llega después del montaje (ej. fallback Mapbox Directions)
   useEffect(() => {
@@ -237,7 +195,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
             'line-cap': 'round'
           },
           paint: {
-            'line-color': resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb',
+            'line-color': theme === 'dark' ? '#3b82f6' : '#2563eb',
             'line-width': 4,
             'line-opacity': 0.7
           }
@@ -249,10 +207,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         const coords = geojson.coordinates;
         const bounds = new mapboxgl.LngLatBounds(coords[0], coords[0]);
         coords.forEach((c: [number, number]) => bounds.extend(c));
-        const camera = map.current.cameraForBounds(bounds, { padding: 80, pitch: 60, bearing: -17.6 });
-        if (camera) {
-          map.current.flyTo({ ...camera, pitch: 60, bearing: -17.6, duration: 1500 });
-        }
+        map.current.fitBounds(bounds, { padding: 80, duration: 1500 });
       }
     };
 
@@ -261,11 +216,14 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
     } else {
       map.current.on('load', addRoute);
     }
-  }, [routeGeometry, resolvedTheme]);
+  }, [routeGeometry, theme]);
 
   // Actualizar estilo del mapa si cambia el tema
-  // Este useEffect estaba duplicado y ahora se maneja arriba con styledata.
-  // Pero lo comentaremos o removeremos, ya que el de arriba hace setStyle y restore de ruta.
+  useEffect(() => {
+    if (map.current && map.current.isStyleLoaded()) {
+      map.current.setStyle(mapStyle);
+    }
+  }, [theme, mapStyle]);
 
   // Manejar el Radar y el Origen
   useEffect(() => {
@@ -287,7 +245,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         <div class="absolute w-16 h-16 bg-blue-500/40 rounded-full animate-pulse"></div>
         <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
       `;
-      map.current.flyTo({ center: origin, zoom: 14, speed: 0.5, pitch: 60, bearing: -17.6 });
+      map.current.flyTo({ center: origin, zoom: 14, speed: 0.5 });
     } else {
       // Origen estático
       el.className = 'w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg';
@@ -333,14 +291,11 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         
       // Hacer zoom inicial hacia el conductor y el origen
       if (isTripActive) {
-         map.current.flyTo({ center: driverLocation, zoom: 14, speed: 1.5, pitch: 60, bearing: -17.6 });
+         map.current.flyTo({ center: driverLocation, zoom: 14, speed: 1.5 });
       } else if (origin) {
          const bounds = new mapboxgl.LngLatBounds(origin, origin);
          bounds.extend(driverLocation);
-         const camera = map.current.cameraForBounds(bounds, { padding: 100, pitch: 60, bearing: -17.6 });
-         if (camera) {
-           map.current.flyTo({ ...camera, pitch: 60, bearing: -17.6, duration: 2000 });
-         }
+         map.current.fitBounds(bounds, { padding: 100, duration: 2000 });
       }
     } else {
       // Interpolación simple controlada
