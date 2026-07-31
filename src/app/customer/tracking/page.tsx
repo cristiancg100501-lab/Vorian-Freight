@@ -175,7 +175,7 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
     const isDark = resolvedTheme === "dark";
-    const styleUrl = isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11";
+    const styleUrl = isDark ? "mapbox://styles/vorianglobal/cms98zfnl00dr01s6a3f83a2e" : "mapbox://styles/vorianglobal/cms99ny3300dz01s6acsca4vx";
     currentStyleRef.current = isDark ? "dark" : "light";
     const center: [number, number] = origin ?? destination ?? [-70.6506, -33.4372];
     const m = new mapboxgl.Map({
@@ -183,12 +183,55 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
       style: styleUrl,
       center,
       zoom: 11,
+      pitch: 60,
+      maxPitch: 85,
+      bearing: -17.6,
+      dragRotate: true,
+      pitchWithRotate: true,
       attributionControl: false,
     });
     mapRef.current = m;
     
     m.on('style.load', () => {
       setStyleReloadCounter(c => c + 1);
+      
+      // Ensure 3D buildings are enabled
+      if (m.getSource('composite') && !m.getLayer('3d-buildings')) {
+        const styleLayers = m.getStyle()?.layers || [];
+        const labelLayerId = styleLayers.find(
+          (layer) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
+        )?.id;
+
+        m.addLayer(
+          {
+            id: '3d-buildings',
+            source: 'composite',
+            'source-layer': 'building',
+            filter: ['==', 'extrude', 'true'],
+            type: 'fill-extrusion',
+            minzoom: 14,
+            paint: {
+              'fill-extrusion-color': currentStyleRef.current === 'dark' ? '#1e293b' : '#e2e8f0',
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                14, 0,
+                14.05, ['get', 'height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                14, 0,
+                14.05, ['get', 'min_height']
+              ],
+              'fill-extrusion-opacity': currentStyleRef.current === 'dark' ? 0.8 : 0.6
+            }
+          },
+          labelLayerId
+        );
+      }
     });
 
     return () => { m.remove(); mapRef.current = null; };
@@ -202,7 +245,7 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     const targetStyle = isDark ? "dark" : "light";
     if (currentStyleRef.current !== targetStyle) {
       currentStyleRef.current = targetStyle;
-      m.setStyle(isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11");
+      m.setStyle(isDark ? "mapbox://styles/vorianglobal/cms98zfnl00dr01s6a3f83a2e" : "mapbox://styles/vorianglobal/cms99ny3300dz01s6acsca4vx");
     }
   }, [resolvedTheme]);
 
@@ -219,7 +262,10 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
         (b: mapboxgl.LngLatBounds, c: [number, number]) => b.extend(c),
         new mapboxgl.LngLatBounds(coords[0], coords[0])
       );
-      m.fitBounds(bounds, { padding: 100, duration: 1000 });
+      const camera = m.cameraForBounds(bounds, { padding: 100, pitch: 60, bearing: -17.6 });
+      if (camera) {
+        m.flyTo({ ...camera, pitch: 60, bearing: -17.6, duration: 1000 });
+      }
     }
   }, [shipment?.id, origin, destination]);
 
@@ -323,7 +369,7 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     
     // Auto-pan to follow audit replay
     if (auditPoint) {
-      m.panTo(displayLocation, { animate: true });
+      m.easeTo({ center: displayLocation, pitch: 60, bearing: -17.6, duration: 1000 });
     }
 
     return () => {

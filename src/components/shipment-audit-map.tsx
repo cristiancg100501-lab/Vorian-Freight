@@ -85,14 +85,14 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr",
+      style: resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cms98zfnl00dr01s6a3f83a2e" : "mapbox://styles/vorianglobal/cms99ny3300dz01s6acsca4vx",
       center: [-70.64, -33.44], // Santiago aprox
       zoom: 13,
-      pitch: 0,
-      maxPitch: 0,
-      bearing: 0,
-      dragRotate: false,
-      pitchWithRotate: false,
+      pitch: 60,
+      maxPitch: 85,
+      bearing: -17.6,
+      dragRotate: true,
+      pitchWithRotate: true,
     });
     
     const mapInstance = map.current;
@@ -107,19 +107,14 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
         for (const layer of layers) {
             if (
                 layer.id.includes('poi') || 
-                layer.id.includes('building') || 
                 layer.id.includes('park') ||
-                layer.id.includes('landuse') ||
-                layer.type === 'fill-extrusion'
+                layer.id.includes('landuse')
             ) {
                 mapInstance.setLayoutProperty(layer.id, 'visibility', 'none');
             }
         }
         
-        // Disable rotation and keyboard pitch
-        mapInstance.dragRotate.disable();
-        mapInstance.touchZoomRotate.disableRotation();
-        mapInstance.keyboard.disable();
+        
         
         // Remove atmosphere if present
         if (mapInstance.getStyle().layers) {
@@ -151,28 +146,67 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
 
       // 2. Add Actual History Route Layer (Naranja - Real o Simulado)
       // Usamos un placeholder y luego actualizamos vía setData para evitar race conditions
-      if (!mapInstance.getSource("actual-route")) {
-        mapInstance.addSource("actual-route", {
-          type: "geojson",
+      if (!mapInstance.getSource('route-source')) {
+        mapInstance.addSource('route-source', {
+          type: 'geojson',
           data: {
-            type: "Feature",
-            properties: {},
-            geometry: { type: "LineString", coordinates: [] },
-          },
+            type: 'FeatureCollection',
+            features: []
+          }
         });
 
         mapInstance.addLayer({
-          id: "actual-route-layer",
-          type: "line",
-          source: "actual-route",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: {
-            "line-color": resolvedTheme === "dark" ? "#3b82f6" : "#2563eb", // Azul Eléctrico (Vorian Audit)
-            "line-width": 5,
-            "line-opacity": 1,
-            "line-blur": 1,
+          id: 'route-layer',
+          type: 'line',
+          source: 'route-source',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
           },
+          paint: {
+            'line-color': resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb', // primary blue
+            'line-width': 4,
+            'line-opacity': 0.8
+          }
         });
+      }
+      
+      // Ensure 3D buildings are enabled
+      if (mapInstance.getSource('composite') && !mapInstance.getLayer('3d-buildings')) {
+        const styleLayers = mapInstance.getStyle()?.layers || [];
+        const labelLayerId = styleLayers.find(
+          (layer) => layer.type === 'symbol' && layer.layout && layer.layout['text-field']
+        )?.id;
+
+        mapInstance.addLayer(
+          {
+            id: '3d-buildings',
+            source: 'composite',
+            'source-layer': 'building',
+            filter: ['==', 'extrude', 'true'],
+            type: 'fill-extrusion',
+            minzoom: 14,
+            paint: {
+              'fill-extrusion-color': resolvedTheme === 'dark' ? '#1e293b' : '#e2e8f0',
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                14, 0,
+                14.05, ['get', 'height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                14, 0,
+                14.05, ['get', 'min_height']
+              ],
+              'fill-extrusion-opacity': resolvedTheme === 'dark' ? 0.8 : 0.6
+            }
+          },
+          labelLayerId
+        );
       }
 
       // 3. Create Truck Marker
@@ -238,7 +272,7 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
   // Theme Update
   useEffect(() => {
     if (!map.current || !mapReady) return;
-    const style = resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cmqivdlco006p01r34g0lhrmv" : "mapbox://styles/vorianglobal/cmqiz50lq004601s65k48addr";
+    const style = resolvedTheme === "dark" ? "mapbox://styles/vorianglobal/cms98zfnl00dr01s6a3f83a2e" : "mapbox://styles/vorianglobal/cms99ny3300dz01s6acsca4vx";
     
     const handleStyleLoad = () => {
       const m = map.current;
@@ -248,7 +282,6 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
         for (const layer of layers) {
             if (
                 layer.id.includes('poi') || 
-                layer.id.includes('building') || 
                 layer.id.includes('park') ||
                 layer.id.includes('landuse')
             ) {
@@ -313,7 +346,7 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
     
     map.current.setStyle(style);
     map.current.once('style.load', handleStyleLoad);
-  }, [resolvedTheme]);
+  }, [resolvedTheme, mapReady]);
 
   // Render Planned Route dynamically when fetched
   useEffect(() => {
@@ -449,7 +482,10 @@ const ShipmentAuditMap = ({ history, originCoords, destinationCoords }: Shipment
     if (destinationCoords) bounds.extend(destinationCoords);
     
     if (!bounds.isEmpty()) {
-       m.fitBounds(bounds, { padding: 80, maxZoom: 15 });
+       const camera = m.cameraForBounds(bounds, { padding: 80, maxZoom: 15, pitch: 60, bearing: -17.6 });
+       if (camera) {
+         m.flyTo({ ...camera, pitch: 60, bearing: -17.6 });
+       }
     }
 
   }, [plannedRoute, mapReady, historyStr])  // Playback Loop
