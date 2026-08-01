@@ -26,7 +26,8 @@ import {
   Zap,
   MessageCircle,
   ShieldCheck,
-  Inbox
+  Inbox,
+  PackageSearch
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -85,8 +86,7 @@ const companyNavItems: NavItem[] = [
 
 const customerNavItems: NavItem[] = [
     { group: "GENERAL", href: "/customer", icon: LayoutDashboard, label: "Dashboard" },
-    { group: "GENERAL", href: "/customer/envios", icon: List, label: "Mis Envíos" },
-    { group: "GENERAL", href: "/customer/new", icon: PlusCircle, label: "Crear Envío" },
+    { group: "GENERAL", href: "/customer/envios", icon: PackageSearch, label: "Mis Envíos" },
     { group: "GENERAL", href: "/customer/tracking", icon: Map, label: "Seguimiento Real" },
     { group: "OTROS", href: "#", icon: Users, label: "Mi Perfil" },
 ];
