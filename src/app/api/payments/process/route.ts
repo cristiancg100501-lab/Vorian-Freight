@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import crypto from 'crypto';
 
 const client = new MercadoPagoConfig({ 
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '', 
@@ -32,6 +33,9 @@ export async function POST(req: NextRequest) {
           email: payer.email,
           identification: payer.identification
         }
+      },
+      requestOptions: {
+        idempotencyKey: crypto.randomUUID()
       }
     });
 
