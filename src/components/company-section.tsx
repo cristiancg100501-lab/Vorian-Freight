@@ -20,13 +20,7 @@ export function CompanySection() {
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
           
           {/* Text Content */}
-          <motion.div 
-            initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="w-full lg:w-1/2"
-          >
+          <div className="w-full lg:w-1/2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted border border-border text-muted-foreground text-sm mb-6">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
               Nuestra Compañía
@@ -57,26 +51,16 @@ export function CompanySection() {
                 apasionado por resolver la logística chilena.
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Stats Grid */}
-          <motion.div 
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="w-full lg:w-1/2"
-          >
+          <div className="w-full lg:w-1/2">
             <div className="grid grid-cols-2 gap-4 md:gap-6">
               {stats.map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
-                  <motion.div 
+                  <div 
                     key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.3 + (idx * 0.1) }}
                     className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 hover:bg-accent/50 transition-colors group relative overflow-hidden"
                   >
                     <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-2xl -translate-y-1/2 translate-x-1/2 rounded-full group-hover:scale-150 transition-transform duration-500`}></div>
@@ -87,11 +71,11 @@ export function CompanySection() {
                       <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">{stat.value}</div>
                       <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

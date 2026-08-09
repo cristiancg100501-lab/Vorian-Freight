@@ -444,14 +444,9 @@ export function LandingClient() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min">
               {/* Box 1: Large (2 cols, 1 row) - Tracking */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5 }}
+              <div
                 className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col md:flex-row gap-8 items-center"
               >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-zinc-500/20 transition-colors duration-500"></div>
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div>
                     <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-6 backdrop-blur-sm shadow-sm">
@@ -534,17 +529,12 @@ export function LandingClient() {
                       </div>
                    </motion.div>
                 </div>
-              </motion.div>
+              </div>
               
               {/* Box 2: Small (1 col, 1 row) - Fleet Management */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: 0.1 }}
+              <div
                 className="md:col-span-1 bg-gradient-to-br from-card to-muted/30 rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
               >
-                <div className="absolute bottom-0 left-0 w-full h-1/2 bg-zinc-500/5 blur-[80px] group-hover:bg-zinc-500/10 transition-colors duration-500"></div>
                 <div className="relative z-10 flex-1 flex flex-col">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
                     <Clock className="w-6 h-6" />
@@ -562,26 +552,19 @@ export function LandingClient() {
                       <div key={i} className="space-y-1.5">
                         <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</div>
                         <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                          <motion.div 
+                          <div 
                             className={`h-full ${stat.color} rounded-full`}
-                            initial={{ width: 0 }}
-                            whileInView={{ width: stat.width.replace('w-[', '').replace(']', '') }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1, delay: 0.5 + (i * 0.2) }}
-                          ></motion.div>
+                            style={{ width: stat.width.replace('w-[', '').replace(']', '') + '%' }}
+                          ></div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Box 3: Medium (2 cols, 1 row) - Audit (formerly Box 4) */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+              <div
                 className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-8"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
@@ -679,14 +662,10 @@ export function LandingClient() {
                       
                    </div>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Box 4: Small (1 col, 1 row) - Security (formerly Box 3) */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: 0.3 }}
+              <div
                 className="md:col-span-1 bg-background rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col items-center text-center gap-6 justify-center"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-zinc-800/40 via-transparent to-transparent opacity-50"></div>
@@ -735,13 +714,9 @@ export function LandingClient() {
                      </motion.div>
                    </div>
                 </div>
-              </motion.div>
+              </div>
               {/* Box 5: Full Width (3 cols) - Proactive Notifications */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: 0.5 }}
+              <div
                 className="md:col-span-3 bg-card rounded-[2rem] p-8 md:p-12 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-12"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
@@ -835,7 +810,7 @@ export function LandingClient() {
                       </div>
                    </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>
@@ -844,11 +819,7 @@ export function LandingClient() {
         <section id="plataforma" className="py-20 md:py-32 bg-background overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
-              <motion.div
-                initial={{ opacity: 0, x: -40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
+              <div
                 className="w-full lg:w-1/2"
               >
                 <div className="aspect-square max-w-md mx-auto lg:mx-0 relative">
@@ -927,13 +898,9 @@ export function LandingClient() {
                     </motion.div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
+              <div
                 className="w-full lg:w-1/2"
               >
                 <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
@@ -972,7 +939,7 @@ export function LandingClient() {
                     </div>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>

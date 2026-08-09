@@ -27,11 +27,7 @@ export function GalacticCTA() {
       </div>
 
       <div className="container relative z-10 mx-auto px-4 md:px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
+        <div
           className="max-w-4xl mx-auto"
         >
           <div className="inline-block mb-6 px-4 py-1.5 rounded-full border border-zinc-500/30 bg-zinc-500/10 backdrop-blur-md">
@@ -61,7 +57,7 @@ export function GalacticCTA() {
               </Button>
             </Link>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
