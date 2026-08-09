@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, Map, Sun, Moon, Laptop, CheckCircle2, Ship, Anchor, Plane, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VorianLogo from "@/assets/vorian_logo.png";
@@ -37,11 +37,6 @@ const LandingMap = dynamic(() => import('@/components/landing-map').then(mod => 
 });
 
 export function LandingClient() {
-  const { scrollY } = useScroll();
-  const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-  const heroScale = useTransform(scrollY, [0, 400], [1, 0.95]);
-  const heroY = useTransform(scrollY, [0, 400], [0, 100]);
-
   const { resolvedTheme, theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -254,9 +249,9 @@ export function LandingClient() {
       </nav>
 
       <main className="relative">
-        {/* Dynamic Background Glowing Orbs */}
-        <div className="absolute top-0 left-[20%] w-[500px] h-[500px] bg-foreground/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-[pulse_8s_ease-in-out_infinite]"></div>
-        <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-foreground/5 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-[pulse_10s_ease-in-out_infinite_reverse]"></div>
+        {/* Static Background Glows (Optimized for performance) */}
+        <div className="absolute top-0 left-[20%] w-[500px] h-[500px] bg-foreground/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-foreground/5 rounded-full blur-[100px] pointer-events-none"></div>
 
 
         {/* Hero Section */}
