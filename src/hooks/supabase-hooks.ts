@@ -24,7 +24,7 @@ export interface UseCollectionResult<T> {
 export function useSupabaseCollection<T = any>(
   table: string,
   queryFn?: (query: any) => any,
-  options?: { realtime?: boolean }
+  options?: { realtime?: boolean, select?: string }
 ): UseCollectionResult<T> {
   const { supabase } = useSupabase()
   const [data, setData] = useState<T[] | null>(null)
@@ -46,7 +46,7 @@ export function useSupabaseCollection<T = any>(
 
     const fetchData = async () => {
       setIsLoading(true)
-      let baseQuery = supabase.from(table).select('*')
+      let baseQuery = supabase.from(table).select(options?.select || '*')
       if (queryFn) {
         baseQuery = queryFn(baseQuery)
       }
@@ -160,7 +160,13 @@ export function useSupabaseDoc<T = any>(
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table, filter: `id=eq.${id}` },
-        () => { fetchData() }
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            setData(null)
+          } else {
+            setData((prev) => ({ ...prev, ...payload.new } as T))
+          }
+        }
       )
       .subscribe()
 

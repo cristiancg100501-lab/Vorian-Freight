@@ -366,7 +366,7 @@ export default function Home() {
               <p className="text-[11px] text-zinc-500 mt-2">
                 Al ingresar o registrarte, aceptas nuestros{" "}
                 <Link
-                  href="/terms"
+                  href="/terminos"
                   target="_blank"
                   className="text-zinc-400 hover:text-white underline transition-colors"
                 >

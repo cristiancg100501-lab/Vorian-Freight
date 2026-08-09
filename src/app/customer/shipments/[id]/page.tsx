@@ -10,8 +10,6 @@ import { ArrowLeft, Package, MapPin, Truck, CheckCircle, Clock } from "lucide-re
 import ShipmentTrackingMap from "@/components/shipment-tracking-map";
 import { PriorityBoostModal } from "@/components/priority-boost-modal";
 import confetti from "canvas-confetti";
-import MercadoPagoBrick from "@/components/mercadopago-brick";
-import { motion } from "framer-motion";
 
 export default function ShipmentTrackingPage({ params }: { params: Promise<{ id: string }> }) {
   const unwrappedParams = use(params);
@@ -204,59 +202,6 @@ export default function ShipmentTrackingPage({ params }: { params: Promise<{ id:
   }
 
   const isPending = shipment.status === "Pending" || shipment.status === "PENDING";
-  const needsPayment = shipment.payment_status === "pending";
-
-  const handlePaymentSuccess = () => {
-    // Cuando el pago es exitoso, forzamos la recarga de datos en Supabase 
-    // mutando el estado local o simplemente recargando la página si realtime falla.
-    setShipment((prev: any) => ({ ...prev, payment_status: "approved", status: "published" }));
-    confetti({
-      particleCount: 150,
-      spread: 90,
-      origin: { y: 0.6 },
-      colors: ['#22c55e', '#3b82f6', '#f59e0b']
-    });
-  };
-
-  if (needsPayment) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] py-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-2xl"
-        >
-          <Card className="border-border shadow-xl bg-background/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="text-center bg-gradient-to-r from-vorian-blue/10 to-transparent pb-6">
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-vorian-blue to-primary bg-clip-text text-transparent">
-                Pago Pendiente
-              </CardTitle>
-              <CardDescription className="text-base">
-                Se ha cotizado tu envío #{shipment.id.substring(0, 8)}. Completa el pago de forma segura para publicarlo en la red de transportistas Vorian.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 flex justify-between items-center px-8">
-                <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Monto a Pagar</div>
-                <div className="text-3xl font-mono font-bold text-foreground">
-                  CLP {Number(shipment.estimatedPrice || 0).toLocaleString('es-CL')}
-                </div>
-              </div>
-              
-              <div className="mt-8">
-                <MercadoPagoBrick 
-                  shipmentId={shipment.id}
-                  amount={shipment.estimatedPrice || 0}
-                  onPaymentSuccess={handlePaymentSuccess}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useTheme } from "next-themes";
-import { Truck } from "lucide-react";
+import { Truck, Activity, Navigation, Clock } from "lucide-react";
 
 // Token público (idealmente debe venir de env var)
 mapboxgl.accessToken = "pk.eyJ1Ijoidm9yaWFuZ2xvYmFsIiwiYSI6ImNtbGpzZnkxeTAzN3kzaG9lZzZodTBvdDcifQ.nx2V98U4hprFaH6XO0avjQ";
@@ -24,6 +24,11 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
   const driverMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const { theme } = useTheme();
+
+  // Telemetría state
+  const [speed, setSpeed] = useState<number>(0);
+  const lastDriverLocationRef = useRef<[number, number] | null>(null);
+  const lastTimestampRef = useRef<number | null>(null);
 
   const isPending = status === "Pending" || status === "PENDING";
   const mapStyle = theme === "dark" 
@@ -268,6 +273,22 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
     
     let animationFrameId: number;
 
+    // Calcular velocidad
+    if (lastDriverLocationRef.current && lastTimestampRef.current) {
+      const now = Date.now();
+      const timeDiffH = (now - lastTimestampRef.current) / 3600000; // horas
+      if (timeDiffH > 0 && timeDiffH < 1) { // ignorar saltos enormes
+        const distKm = haversineMeters(
+          lastDriverLocationRef.current[0], lastDriverLocationRef.current[1],
+          driverLocation[0], driverLocation[1]
+        ) / 1000;
+        const currentSpeed = distKm / timeDiffH;
+        setSpeed(prev => Math.round(prev * 0.4 + currentSpeed * 0.6)); // Suavizado
+      }
+    }
+    lastDriverLocationRef.current = driverLocation;
+    lastTimestampRef.current = Date.now();
+
     if (!driverMarkerRef.current) {
       // Crear marcador del camión
       // Importante: NO usar transition-all porque pelea con requestAnimationFrame y el arrastre del mapa
@@ -291,7 +312,7 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         
       // Hacer zoom inicial hacia el conductor y el origen
       if (isTripActive) {
-         map.current.flyTo({ center: driverLocation, zoom: 14, speed: 1.5 });
+         map.current.flyTo({ center: driverLocation, zoom: 14, speed: 1.2, curve: 1.42, pitch: 45, duration: 2500 });
       } else if (origin) {
          const bounds = new mapboxgl.LngLatBounds(origin, origin);
          bounds.extend(driverLocation);
@@ -313,6 +334,11 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
         
         if (progress < 1) {
           animationFrameId = requestAnimationFrame(animateMarker);
+        } else {
+           // Si el camión se movió, que la cámara lo siga suavemente si estamos en tránsito
+           if (isTripActive && map.current) {
+               map.current.easeTo({ center: [lng, lat], duration: 300, easing: (t) => t });
+           }
         }
       };
       
@@ -348,6 +374,44 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
           <span className="font-semibold text-sm">Buscando transportista en la red...</span>
         </div>
       )}
+
+      {/* Telemetry Overlay */}
+      {driverLocation && ['EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'IN_TRANSIT'].includes(status || '') && (
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-3">
+          <div className="bg-background/80 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl p-4 flex flex-col gap-3 min-w-[200px]">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+              <Activity className="h-4 w-4 text-green-500 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Telemetría en Vivo</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-1"><Navigation className="h-3 w-3"/> Velocidad</span>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl font-black font-mono">{speed > 0 ? speed : '--'}</span>
+                  <span className="text-xs text-muted-foreground font-semibold">km/h</span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground uppercase flex items-center gap-1"><Clock className="h-3 w-3"/> Últ. Señal</span>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-sm font-bold mt-1 text-green-500">Activa</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+// Función auxiliar
+function haversineMeters(lon1: number, lat1: number, lon2: number, lat2: number): number {
+  const R = 6371000;
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }

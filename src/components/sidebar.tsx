@@ -26,8 +26,7 @@ import {
   Zap,
   MessageCircle,
   ShieldCheck,
-  Inbox,
-  PackageSearch
+  Inbox
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSupabase } from "./providers/supabase-provider";
@@ -59,6 +58,7 @@ const adminNavItems: NavItem[] = [
   { group: "OTROS", href: "/admin/rates/tolls-map", icon: Map, label: "Mapa de Pórticos" },
   { group: "OTROS", href: "/admin/rates/tolls", icon: Waypoints, label: "Gestión de Peajes (TAG)" },
   { group: "OTROS", href: "/admin/rates/avo", icon: Waypoints, label: "Gestión AVO" },
+  { group: "OTROS", href: "/admin/pricing", icon: DollarSign, label: "Motor de Precios (Quotes)" },
   { group: "OTROS", href: "/admin/rates", icon: DollarSign, label: "APIs y tarifas" },
   { group: "OTROS", href: "/admin/testing", icon: Mail, label: "Simulador Mails" },
   { group: "OTROS", href: "/admin/reportes", icon: LineChart, label: "Reportes" },
@@ -86,7 +86,8 @@ const companyNavItems: NavItem[] = [
 
 const customerNavItems: NavItem[] = [
     { group: "GENERAL", href: "/customer", icon: LayoutDashboard, label: "Dashboard" },
-    { group: "GENERAL", href: "/customer/envios", icon: PackageSearch, label: "Mis Envíos" },
+    { group: "GENERAL", href: "/customer/envios", icon: List, label: "Mis Envíos" },
+    { group: "GENERAL", href: "/customer/new", icon: PlusCircle, label: "Crear Envío" },
     { group: "GENERAL", href: "/customer/tracking", icon: Map, label: "Seguimiento Real" },
     { group: "OTROS", href: "#", icon: Users, label: "Mi Perfil" },
 ];

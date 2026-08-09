@@ -12,6 +12,7 @@ import Image from "next/image";
 import VorianLogo from "@/assets/vorian_logo.png";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
+import { RealtimeNotifier } from "@/components/realtime-notifier";
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -113,6 +114,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           
           <div className="flex-1 flex flex-col h-screen relative overflow-hidden">
             <Header />
+            {user?.id && <RealtimeNotifier clientId={user.id} />}
             
             <main className="flex-1 overflow-y-auto p-4 lg:p-6">
               <PageTransition>

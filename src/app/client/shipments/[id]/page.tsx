@@ -246,23 +246,23 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
       {/* Geofence Arrival Alert Banner */}
       {geofenceAlert && (
         <div
-          className="relative flex items-start gap-4 p-4 rounded-xl border-2 animate-pulse"
+          className="relative flex items-start gap-4 p-5 rounded-2xl border border-white/40 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-500"
           style={{
             background: geofenceAlert.type === 'pickup'
-              ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
-              : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-            borderColor: geofenceAlert.type === 'pickup' ? '#f59e0b' : '#10b981',
+              ? 'linear-gradient(135deg, rgba(254,243,199,0.9) 0%, rgba(253,230,138,0.9) 100%)'
+              : 'linear-gradient(135deg, rgba(209,250,229,0.9) 0%, rgba(167,243,208,0.9) 100%)',
+            borderColor: geofenceAlert.type === 'pickup' ? 'rgba(245,158,11,0.5)' : 'rgba(16,185,129,0.5)',
           }}
         >
           <div
-            className="flex-shrink-0 h-12 w-12 rounded-full flex items-center justify-center"
+            className="flex-shrink-0 h-14 w-14 rounded-full flex items-center justify-center shadow-inner"
             style={{ background: geofenceAlert.type === 'pickup' ? '#fbbf24' : '#10b981' }}
           >
             {geofenceAlert.type === 'pickup'
-              ? <Truck className="h-6 w-6 text-white" />
-              : <CheckCircle className="h-6 w-6 text-white" />}
+              ? <Truck className="h-7 w-7 text-white drop-shadow-md" />
+              : <CheckCircle className="h-7 w-7 text-white drop-shadow-md" />}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 pt-1">
             <p className="font-bold text-lg" style={{ color: geofenceAlert.type === 'pickup' ? '#92400e' : '#065f46' }}>
               {geofenceAlert.type === 'pickup' ? '🚛 ¡El camión llegó al punto de recogida!' : '✅ ¡El camión llegó al destino!'}
             </p>
@@ -277,9 +277,9 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
           </div>
           <button
             onClick={() => setGeofenceAlert(null)}
-            className="absolute top-3 right-3 opacity-60 hover:opacity-100 transition-opacity"
+            className="absolute top-4 right-4 p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/5 transition-all"
           >
-            <X className="h-4 w-4" style={{ color: geofenceAlert.type === 'pickup' ? '#92400e' : '#065f46' }} />
+            <X className="h-5 w-5" style={{ color: geofenceAlert.type === 'pickup' ? '#92400e' : '#065f46' }} />
           </button>
         </div>
       )}
@@ -292,10 +292,12 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
               <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Mis Envíos
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Package className="h-7 w-7" />
+          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Package className="h-7 w-7 text-primary" />
+            </div>
             Envío {shipment.id}
-            <span className={`text-sm px-3 py-1 rounded-full font-medium ${statusStyles[shipment.status] || 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-sm px-4 py-1.5 rounded-full font-bold shadow-sm ${statusStyles[shipment.status] || 'bg-muted text-muted-foreground'}`}>
               {statusLabels[shipment.status] || shipment.status}
             </span>
           </h1>
@@ -305,11 +307,13 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Panel lateral de información */}
-        <div className="space-y-4 lg:col-span-1">
+        <div className="space-y-6 lg:col-span-1">
           {/* Ruta */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Detalles del Envío</CardTitle>
+          <Card className="bg-background/60 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden rounded-2xl">
+            <CardHeader className="pb-3 bg-muted/30 border-b border-border/50">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> Detalles del Envío
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="flex gap-3">
@@ -340,13 +344,13 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
           </Card>
 
           {/* Financiero */}
-          <Card>
-            <CardHeader className="pb-3">
+          <Card className="bg-background/60 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden rounded-2xl">
+            <CardHeader className="pb-3 bg-muted/30 border-b border-border/50">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-4 w-4" /> Resumen Financiero
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 text-sm pt-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Precio neto:</span>
                 <span className="font-medium">
@@ -378,22 +382,22 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
             const code = isPickupPin ? shipment.pickup_code : isDeliveryPin ? shipment.delivery_code : null;
             if (!code) return null;
             return (
-              <Card className="border-primary/30 shadow-md shadow-primary/5">
-                <CardHeader className="pb-3 bg-primary/5 rounded-t-lg">
-                  <CardTitle className="text-base flex items-center gap-2 text-primary">
-                    <KeyRound className="h-4 w-4" />
+              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-xl shadow-primary/5 rounded-2xl overflow-hidden">
+                <CardHeader className="pb-3 bg-primary/10 border-b border-primary/10">
+                  <CardTitle className="text-base flex items-center gap-2 text-primary font-bold">
+                    <KeyRound className="h-5 w-5" />
                     {isPickupPin ? 'PIN de Recogida' : 'PIN de Entrega'}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
-                  <p className="text-xs text-muted-foreground mb-3">
+                <CardContent className="pt-5">
+                  <p className="text-xs text-muted-foreground mb-4">
                     {isPickupPin
                       ? 'Comparta este código con el transportista al momento del retiro de la carga.'
                       : 'Comparta este código con el transportista para confirmar la entrega.'}
                   </p>
-                  <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-primary/10 border border-primary/20">
-                    <Lock className="h-5 w-5 text-primary" />
-                    <span className="font-mono text-3xl font-black tracking-[0.25em] text-primary">{code}</span>
+                  <div className="flex items-center justify-center gap-3 py-4 px-4 rounded-xl bg-background border border-primary/20 shadow-inner">
+                    <Lock className="h-6 w-6 text-primary/60" />
+                    <span className="font-mono text-4xl font-black tracking-[0.3em] text-primary drop-shadow-sm">{code}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -402,37 +406,37 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
 
           {/* Transportista */}
           {(shipment.driver || shipment.effectiveDriverId || shipment.status === 'ACCEPTED' || shipment.status === 'IN_TRANSIT' || shipment.status === 'EN_ROUTE_TO_PICKUP') ? (
-            <Card className="border-green-200">
-              <CardHeader className="bg-green-50/50 pb-3 rounded-t-lg flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2 text-green-800">
-                  <CheckCircle className="h-4 w-4" />
+            <Card className="bg-gradient-to-br from-green-50/80 to-emerald-50/80 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/50 shadow-xl rounded-2xl overflow-hidden backdrop-blur-md">
+              <CardHeader className="bg-green-500/10 dark:bg-green-500/5 pb-3 border-b border-green-200/30 flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2 text-green-800 dark:text-green-400 font-bold">
+                  <CheckCircle className="h-5 w-5" />
                   Transportista Asignado
                 </CardTitle>
                 <SignalIndicator lastUpdatedMs={lastGpsUpdate} />
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Truck className="h-5 w-5 text-green-700" />
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-green-500/20 flex items-center justify-center shadow-sm">
+                      <Truck className="h-6 w-6 text-green-700 dark:text-green-400" />
                     </div>
                     <div>
-                      <div className="font-semibold">{shipment.driver?.name || 'Transportista Vorian'}</div>
-                      <div className="text-xs text-muted-foreground">Conductor asignado</div>
+                      <div className="font-bold text-lg">{shipment.driver?.name || 'Transportista Vorian'}</div>
+                      <div className="text-sm text-green-700/80 dark:text-green-400/80 font-medium">Conductor asignado</div>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ) : isPending ? (
-            <Card className="border-orange-200">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center animate-pulse">
-                    <Clock className="h-6 w-6 text-orange-600" />
+            <Card className="bg-gradient-to-br from-orange-50/80 to-amber-50/80 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200/50 shadow-xl rounded-2xl overflow-hidden backdrop-blur-md">
+              <CardContent className="pt-8 pb-8">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="h-16 w-16 rounded-full bg-orange-500/20 flex items-center justify-center animate-pulse shadow-inner">
+                    <Clock className="h-8 w-8 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <div className="font-bold">En proceso de asignación</div>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="font-black text-xl text-orange-900 dark:text-orange-300">En proceso de asignación</div>
+                  <p className="text-sm text-orange-800/70 dark:text-orange-200/70 max-w-[250px] mx-auto">
                     El equipo de Vorian está coordinando el transportista para tu envío.
                   </p>
                 </div>
@@ -442,7 +446,7 @@ export default function ClientShipmentDetailPage({ params }: { params: Promise<{
         </div>
 
         {/* Mapa Interactivo */}
-        <div className="lg:col-span-2 h-[500px] lg:h-[650px] rounded-xl overflow-hidden border shadow-sm relative">
+        <div className="lg:col-span-2 h-[500px] lg:h-[650px] rounded-2xl overflow-hidden border border-white/20 shadow-2xl relative">
           <ShipmentTrackingMap
             origin={originCoords}
             destination={destCoords}

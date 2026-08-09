@@ -36,22 +36,15 @@ export default function MissionControlPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
 
-  // Fetch all driver profiles for real-time tracking
-  const { data: rawDrivers, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles");
-
-  // Fetch user profiles to get names
-  const filterUsers = useCallback((q: any) => {
-    return q.eq("role", "driver");
-  }, []);
-  const { data: users, isLoading: isLoadingUsers } = useSupabaseCollection("userProfiles", filterUsers);
+  // Fetch all driver profiles with their user names via join for real-time tracking
+  const { data: rawDrivers, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles", undefined, { select: '*, userProfiles(firstName, lastName)' });
 
   const drivers = useMemo(() => {
     // If we have no raw driver profiles, we have nothing to show
     if (!rawDrivers) return null;
 
-    // We can show drivers even if user profiles are missing, we'll just have no names
     return rawDrivers.map(profile => {
-      const u = users?.find(u => u.id === profile.id);
+      const u = profile.userProfiles;
       
       // PARSE COORDINATES: Supabase numeric fields sometimes come as strings
       const lat = typeof profile.currentLatitude === 'string' ? parseFloat(profile.currentLatitude) : profile.currentLatitude;
@@ -88,7 +81,7 @@ export default function MissionControlPage() {
         heading: profile.heading || 0
       };
     });
-  }, [rawDrivers, users]);
+  }, [rawDrivers]);
 
   // Fetch active shipments
   const filterActiveShipments = useCallback((q: any) => {
@@ -201,7 +194,7 @@ export default function MissionControlPage() {
           </div>
           
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {(isLoadingDrivers || isLoadingUsers) ? (
+            {isLoadingDrivers ? (
               <div className="p-2 space-y-3">
                 {[1,2,3,4,5].map(i => (
                   <div key={i} className="h-14 bg-muted/50 animate-pulse rounded-xl" />

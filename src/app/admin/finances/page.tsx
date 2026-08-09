@@ -25,7 +25,7 @@ import { DollarSign, Truck, TrendingUp, CheckCircle, Clock } from "lucide-react"
 import { supabase } from "@/lib/supabase";
 
 export default function AdminFinancesPage() {
-  const { data: shipments, isLoading, refresh } = useSupabaseCollection("shipments");
+  const { data: shipments, isLoading, refetch } = useSupabaseCollection("shipments");
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   
@@ -67,7 +67,7 @@ export default function AdminFinancesPage() {
       if (error) throw error;
       
       setSelectedShipment(null);
-      refresh();
+      refetch();
     } catch (e) {
       console.error("Error updating finances:", e);
       alert("Error al actualizar finanzas.");

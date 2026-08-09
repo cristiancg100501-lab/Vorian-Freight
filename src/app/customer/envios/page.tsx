@@ -53,13 +53,6 @@ const statusStyles: { [key: string]: { bg: string, text: string, label: string }
   "CANCELLED":         { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Cancelado" },
 };
 
-function getDisplayStatus(shipment: any) {
-  if (shipment.payment_status === 'pending') {
-    return { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", label: "Pendiente de Pago" };
-  }
-  return statusStyles[shipment.status] || { bg: "bg-muted", text: "text-muted-foreground", label: shipment.status };
-}
-
 export default function CustomerMyShipmentsPage() {
     const { user } = useUser();
     // View mode is always list for now, we will redesign it.
@@ -151,6 +144,15 @@ export default function CustomerMyShipmentsPage() {
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Mis Envíos Activos</h1>
                     <p className="text-muted-foreground mt-1">Supervisa y gestiona todos los envíos que has solicitado.</p>
                 </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    {/* Grid/List toggle removed per user request */}
+                    <Link href="/customer/new" className="w-full md:w-auto">
+                        <Button className="w-full md:w-auto shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all">
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Nuevo Envío
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {isLoading ? (
@@ -196,7 +198,7 @@ export default function CustomerMyShipmentsPage() {
                                             const destination = (shipment.destinationAddress || shipment.delivery_address || '').split(',')[0] || 'Desconocido';
                                             const price = shipment.client_price || shipment.clientPrice || shipment.estimatedPrice || shipment.price || 0;
                                             const date = shipment.pickup_date ? new Date(shipment.pickup_date) : new Date(shipment.createdAt);
-                                            const status = getDisplayStatus(shipment);
+                                            const status = statusStyles[shipment.status] || { bg: "bg-muted", text: "text-muted-foreground", label: shipment.status };
                                             
                                             return (
                                                 <Fragment key={shipment.id}>
@@ -330,10 +332,10 @@ export default function CustomerMyShipmentsPage() {
                                         <div className="flex items-center justify-between">
                                             <span className="font-mono text-xs text-muted-foreground">#{selectedShipmentDetail.id}</span>
                                             <span className={cn("px-3 py-1 rounded-full text-xs font-bold", 
-                                                getDisplayStatus(selectedShipmentDetail).bg, 
-                                                getDisplayStatus(selectedShipmentDetail).text
+                                                (statusStyles[selectedShipmentDetail.status] || { bg: "bg-muted", text: "text-muted-foreground" }).bg, 
+                                                (statusStyles[selectedShipmentDetail.status] || { bg: "bg-muted", text: "text-muted-foreground" }).text
                                             )}>
-                                                {getDisplayStatus(selectedShipmentDetail).label}
+                                                {(statusStyles[selectedShipmentDetail.status] || { label: selectedShipmentDetail.status }).label}
                                             </span>
                                         </div>
 
@@ -432,16 +434,8 @@ export default function CustomerMyShipmentsPage() {
                                         <div className="flex flex-col gap-2 pt-2">
                                             {["Pending", "PENDING", "ACCEPTED", "EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "IN_TRANSIT", "ARRIVED_AT_DROPOFF"].includes(selectedShipmentDetail.status) && (
                                                 <Link href={`/customer/shipments/${selectedShipmentDetail.id}`} className="w-full">
-                                                    <Button className={cn("w-full gap-2", selectedShipmentDetail.payment_status === 'pending' && "bg-[#0055FF] hover:bg-[#0044CC] text-white")}>
-                                                        {selectedShipmentDetail.payment_status === 'pending' ? (
-                                                            <>
-                                                                <DollarSign className="h-4 w-4" /> Pagar Envío
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Navigation className="h-4 w-4" /> Rastreo GPS en Mapa
-                                                            </>
-                                                        )}
+                                                    <Button className="w-full gap-2">
+                                                        <Navigation className="h-4 w-4" /> Rastreo GPS en Mapa
                                                     </Button>
                                                 </Link>
                                             )}
