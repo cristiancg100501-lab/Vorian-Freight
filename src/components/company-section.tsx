@@ -14,7 +14,7 @@ export function CompanySection() {
   return (
     <section id="compania" className="py-24 md:py-32 bg-background relative overflow-hidden">
       {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+      {/* Removed huge blur for performance */}
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
@@ -63,7 +63,7 @@ export function CompanySection() {
                     key={idx}
                     className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 hover:bg-accent/50 transition-colors group relative overflow-hidden"
                   >
-                    <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bg} blur-2xl -translate-y-1/2 translate-x-1/2 rounded-full group-hover:scale-150 transition-transform duration-500`}></div>
+                    {/* Removed blur-2xl for performance */}
                     <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-6 relative z-10`}>
                       <Icon className="w-6 h-6" />
                     </div>

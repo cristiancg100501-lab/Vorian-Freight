@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, Map, Sun, Moon, Laptop, CheckCircle2, Ship, Anchor, Plane, MessageCircle } from "lucide-react";
+import { ArrowRight, Truck, ShieldCheck, Clock, Menu, X, Map, Sun, Moon, Laptop, CheckCircle2, Ship, Anchor, Plane, MessageCircle, Navigation, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import VorianLogo from "@/assets/vorian_logo.png";
 import { FAQ } from "@/components/faq";
@@ -250,8 +250,7 @@ export function LandingClient() {
 
       <main className="relative">
         {/* Static Background Glows (Optimized for performance) */}
-        <div className="absolute top-0 left-[20%] w-[500px] h-[500px] bg-foreground/5 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-foreground/5 rounded-full blur-[100px] pointer-events-none"></div>
+        {/* Removed heavy blur background elements for performance */}
 
 
         {/* Hero Section */}
@@ -450,7 +449,7 @@ export function LandingClient() {
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div>
                     <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-6 backdrop-blur-sm shadow-sm">
-                      <Map className="w-6 h-6" />
+                      <Navigation className="w-6 h-6" fill="currentColor" />
                     </div>
                     <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">Rastreo de Contenedores y Carga</h3>
                     <p className="text-muted-foreground text-lg mb-6">Mantén el control total de tus importaciones/exportaciones con actualizaciones precisas de ubicación y estado 24/7 desde el momento en que tu carga pisa tierra.</p>
@@ -569,7 +568,7 @@ export function LandingClient() {
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
-                     <ShieldCheck className="w-6 h-6" />
+                     <Fingerprint className="w-6 h-6" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground mb-4">Auditoría Inmutable de Rutas</h3>
                   <p className="text-muted-foreground text-sm mb-6">Historial exacto con telemetría GPS para máxima transparencia ante tus clientes.</p>

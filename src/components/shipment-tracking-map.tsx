@@ -113,7 +113,15 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
       // Marcador de Destino (Rojo)
       if (destination) {
         const el = document.createElement('div');
-        el.className = 'w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg';
+        el.innerHTML = `
+          <div class="relative flex flex-col items-center justify-center">
+            <div class="w-[28px] h-[28px] bg-black dark:bg-white rounded-[4px] shadow-lg flex items-center justify-center z-10">
+              <div class="w-[10px] h-[10px] bg-white dark:bg-black rounded-[2px]"></div>
+            </div>
+            <div class="w-[2px] h-[16px] bg-black dark:bg-white z-0"></div>
+            <div class="w-[8px] h-[2px] bg-black dark:bg-white rounded-full -mt-[1px] z-0"></div>
+          </div>
+        `;
         new mapboxgl.Marker(el).setLngLat(destination).addTo(map.current!);
       }
     });
@@ -246,15 +254,25 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
       // Animación de radar (Buscando Conductor)
       el.className = 'relative flex items-center justify-center';
       el.innerHTML = `
-        <div class="absolute w-24 h-24 bg-blue-500/20 rounded-full animate-ping"></div>
-        <div class="absolute w-16 h-16 bg-blue-500/40 rounded-full animate-pulse"></div>
-        <div class="relative w-5 h-5 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+        <div class="relative flex flex-col items-center justify-center">
+          <div class="absolute w-[60px] h-[60px] bg-black/20 dark:bg-white/20 rounded-full animate-ping"></div>
+          <div class="absolute w-[40px] h-[40px] bg-black/30 dark:bg-white/30 rounded-full animate-pulse"></div>
+          <div class="relative w-[20px] h-[20px] bg-black dark:bg-white rounded-full border-[3px] border-white dark:border-black shadow-[0_0_15px_rgba(0,0,0,0.4)] dark:shadow-[0_0_15px_rgba(255,255,255,0.4)] z-10"></div>
+        </div>
       `;
       map.current.flyTo({ center: origin, zoom: 14, speed: 0.5 });
     } else {
       // Origen estático
-      el.className = 'w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg';
-      el.innerHTML = ''; // Limpiar radar
+      el.className = '';
+      el.innerHTML = `
+        <div class="relative flex flex-col items-center justify-center">
+          <div class="w-[28px] h-[28px] bg-black dark:bg-white rounded-full shadow-lg flex items-center justify-center z-10">
+            <div class="w-[10px] h-[10px] bg-white dark:bg-black rounded-full"></div>
+          </div>
+          <div class="w-[2px] h-[16px] bg-black dark:bg-white z-0"></div>
+          <div class="w-[8px] h-[2px] bg-black dark:bg-white rounded-full -mt-[1px] z-0"></div>
+        </div>
+      `;
     }
   }, [isPending, origin]);
 
@@ -294,16 +312,10 @@ export default function ShipmentTrackingMap({ origin, destination, routeGeometry
       // Importante: NO usar transition-all porque pelea con requestAnimationFrame y el arrastre del mapa
       const el = document.createElement('div');
       el.innerHTML = `
-        <div class="relative flex flex-col items-center justify-center">
-          <div class="relative w-10 h-10 rounded-xl bg-primary border-[3px] border-background shadow-xl flex items-center justify-center text-primary-foreground z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="16" height="16" x="4" y="4" rx="2" />
-              <path d="M9 10L12 13L15 10" />
-              <path d="M12 13V7" />
-            </svg>
-            <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
-          </div>
-          <div class="w-0 h-0 border-l-[5px] border-r-[5px] border-l-transparent border-r-transparent border-t-[7px] border-t-primary -mt-1 z-0"></div>
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-[60px] h-[60px] bg-black/20 dark:bg-white/20 rounded-full animate-ping"></div>
+          <div class="absolute w-[40px] h-[40px] bg-black/30 dark:bg-white/30 rounded-full animate-pulse"></div>
+          <div class="relative w-[20px] h-[20px] bg-black dark:bg-white rounded-full border-[3px] border-white dark:border-black shadow-[0_0_15px_rgba(0,0,0,0.4)] dark:shadow-[0_0_15px_rgba(255,255,255,0.4)] z-10"></div>
         </div>`;
       
       driverMarkerRef.current = new mapboxgl.Marker(el)

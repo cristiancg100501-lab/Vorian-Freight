@@ -51,7 +51,7 @@ export function QuoteCalculator() {
   return (
     <div className="w-full max-w-md mx-auto relative group">
       {/* Glow Effect */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 to-blue-500/30 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+      {/* Removed blur-xl for performance */}
       
       <div className="relative bg-card/80 backdrop-blur-xl border border-border shadow-2xl rounded-2xl p-6 overflow-hidden min-h-[280px] flex flex-col justify-center text-left">
         <AnimatePresence mode="wait">

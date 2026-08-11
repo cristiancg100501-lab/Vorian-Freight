@@ -86,7 +86,7 @@ export function IndustriesSection() {
               className={`bg-card rounded-[2rem] border ${activeTab.bgBorder} p-8 md:p-12 shadow-2xl relative overflow-hidden`}
             >
               {/* Background Glow */}
-              <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-40 pointer-events-none ${activeTab.bgLight.replace('/10', '')}`} />
+              {/* Removed blur for performance */}
               
               <div className="relative z-10 flex flex-col gap-6">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${activeTab.bgLight} border ${activeTab.bgBorder}`}>

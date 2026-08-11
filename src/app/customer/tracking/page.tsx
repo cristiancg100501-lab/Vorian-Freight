@@ -284,15 +284,10 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
       const el = document.createElement("div");
       
       el.innerHTML = `
-        <div class="relative flex flex-col items-center justify-center">
-          <div class="absolute inset-0 rounded-full bg-primary/40 blur-md animate-pulse scale-150"></div>
-          <div class="relative w-12 h-12 rounded-xl bg-primary border-4 border-background shadow-[0_0_15px_rgba(0,0,0,0.3)] flex items-center justify-center text-primary-foreground z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"/><path d="M14 17h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
-            </svg>
-            <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
-          </div>
-          <div class="w-0 h-0 border-l-[6px] border-r-[6px] border-l-transparent border-r-transparent border-t-[8px] border-t-primary -mt-1 z-0 relative"></div>
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-[60px] h-[60px] bg-black/20 dark:bg-white/20 rounded-full animate-ping"></div>
+          <div class="absolute w-[40px] h-[40px] bg-black/30 dark:bg-white/30 rounded-full animate-pulse"></div>
+          <div class="relative w-[20px] h-[20px] bg-black dark:bg-white rounded-full border-[3px] border-white dark:border-black shadow-[0_0_15px_rgba(0,0,0,0.4)] dark:shadow-[0_0_15px_rgba(255,255,255,0.4)] z-10"></div>
         </div>`;
       
       driverMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
@@ -333,6 +328,37 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     };
   }, [displayLocation, auditPoint]);
 
+  const [snappedAuditRoute, setSnappedAuditRoute] = useState<any[]>([]);
+
+  // Fetch optimal snapped route via Mapbox Map Matching API
+  useEffect(() => {
+    if (!auditHistory || auditHistory.length < 2) {
+      setSnappedAuditRoute([]);
+      return;
+    }
+    const fetchSnappedRoute = async () => {
+      try {
+        const sampled = auditHistory.length > 100 ? auditHistory.filter((_, i) => i % Math.ceil(auditHistory.length / 100) === 0) : auditHistory;
+        const points = sampled.map((p: any) => `${p.longitude},${p.latitude}`).join(';');
+        const radiuses = sampled.map(() => 25).join(';');
+        
+        const res = await fetch(
+          `https://api.mapbox.com/matching/v5/mapbox/driving/${points}?geometries=geojson&radiuses=${radiuses}&access_token=${mapboxgl.accessToken}`
+        );
+        const data = await res.json();
+        
+        if (data.matchings && data.matchings[0]) {
+          setSnappedAuditRoute(data.matchings[0].geometry.coordinates);
+        } else {
+          setSnappedAuditRoute(auditHistory.map(p => [Number(p.longitude), Number(p.latitude)]));
+        }
+      } catch (e) {
+        setSnappedAuditRoute(auditHistory.map(p => [Number(p.longitude), Number(p.latitude)]));
+      }
+    };
+    fetchSnappedRoute();
+  }, [auditHistory]);
+
   // Draw Audit History Route
   useEffect(() => {
     const m = mapRef.current;
@@ -347,21 +373,22 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     
     function updateAuditLine() {
       if (!m) return;
+      const coords = snappedAuditRoute.length > 0 ? snappedAuditRoute : (auditHistory || []).map(p => [Number(p.longitude), Number(p.latitude)]);
       if (m.getSource("audit-route")) {
         const src = m.getSource("audit-route") as mapboxgl.GeoJSONSource;
-        if (auditHistory && auditHistory.length > 0) {
+        if (coords.length > 0) {
           src.setData({
             type: "Feature",
             properties: {},
             geometry: {
               type: "LineString",
-              coordinates: auditHistory.map(p => [Number(p.longitude), Number(p.latitude)])
+              coordinates: coords
             }
           });
         } else {
           src.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: [] } });
         }
-      } else if (auditHistory && auditHistory.length > 0) {
+      } else if (coords.length > 0) {
         m.addSource("audit-route", {
           type: "geojson",
           data: {
@@ -369,7 +396,7 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
             properties: {},
             geometry: {
               type: "LineString",
-              coordinates: auditHistory.map(p => [Number(p.longitude), Number(p.latitude)])
+              coordinates: coords
             }
           }
         });
@@ -379,14 +406,14 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
           source: "audit-route",
           layout: { "line-join": "round", "line-cap": "round" },
           paint: {
-            "line-color": "#3b82f6", // Blue
+            "line-color": resolvedTheme === "dark" ? "#ffffff" : "#000000",
             "line-width": 6,
             "line-opacity": 0.8
           }
         });
       }
     }
-  }, [auditHistory, styleReloadCounter]);
+  }, [snappedAuditRoute, auditHistory, styleReloadCounter, resolvedTheme]);
 
   // Bouncing origin marker (3D Floating Box Badge 📦)
   useEffect(() => {
@@ -395,52 +422,14 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     originMarkerRef.current?.remove();
     const el = document.createElement("div");
     el.innerHTML = `
-      <div style="
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        animation: floatOrigin 1.8s ease-in-out infinite alternate;
-      ">
-        <!-- Main Floating Badge -->
-        <div style="
-          position: relative;
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          border: 3px solid #ffffff;
-          box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5), 0 0 0 4px rgba(16, 185, 129, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-        ">
-          <!-- Package Box SVG -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-            <line x1="12" y1="22.08" x2="12" y2="12" />
-          </svg>
+      <div class="relative flex flex-col items-center justify-center">
+        <div class="w-[28px] h-[28px] bg-black dark:bg-white rounded-full shadow-lg flex items-center justify-center z-10">
+          <div class="w-[10px] h-[10px] bg-white dark:bg-black rounded-full"></div>
         </div>
-
-        <!-- Pointer Pin Tail -->
-        <div style="
-          width: 0;
-          height: 0;
-          border-left: 7px solid transparent;
-          border-right: 7px solid transparent;
-          border-top: 9px solid #059669;
-          margin-top: -1px;
-        "></div>
+        <div class="w-[2px] h-[16px] bg-black dark:bg-white z-0"></div>
+        <div class="w-[8px] h-[2px] bg-black dark:bg-white rounded-full -mt-[1px] z-0"></div>
       </div>
-      <style>
-        @keyframes floatOrigin {
-          from { transform: translateY(0px) scale(1); }
-          to   { transform: translateY(-10px) scale(1.05); }
-        }
-      </style>`;
+    `;
     originMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
       .setLngLat(origin)
       .addTo(m);
@@ -454,53 +443,14 @@ function TrackingMap({ shipment, auditPoint, auditHistory }: { shipment: any | n
     destMarkerRef.current?.remove();
     const el = document.createElement("div");
     el.innerHTML = `
-      <div style="
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        animation: floatDest 1.8s ease-in-out infinite alternate 0.3s;
-      ">
-        <!-- Main Floating Badge -->
-        <div style="
-          position: relative;
-          width: 44px;
-          height: 44px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          border: 3px solid #ffffff;
-          box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5), 0 0 0 4px rgba(239, 68, 68, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-        ">
-          <!-- Forklift SVG -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 12H5a2 2 0 0 0-2 2v5" />
-            <circle cx="5" cy="19" r="2" />
-            <circle cx="13" cy="19" r="2" />
-            <path d="M8 12V5h3m3 7v7M21 5v14h-3M16 19h2" />
-          </svg>
+      <div class="relative flex flex-col items-center justify-center">
+        <div class="w-[28px] h-[28px] bg-black dark:bg-white rounded-[4px] shadow-lg flex items-center justify-center z-10">
+          <div class="w-[10px] h-[10px] bg-white dark:bg-black rounded-[2px]"></div>
         </div>
-
-        <!-- Pointer Pin Tail -->
-        <div style="
-          width: 0;
-          height: 0;
-          border-left: 7px solid transparent;
-          border-right: 7px solid transparent;
-          border-top: 9px solid #dc2626;
-          margin-top: -1px;
-        "></div>
+        <div class="w-[2px] h-[16px] bg-black dark:bg-white z-0"></div>
+        <div class="w-[8px] h-[2px] bg-black dark:bg-white rounded-full -mt-[1px] z-0"></div>
       </div>
-      <style>
-        @keyframes floatDest {
-          from { transform: translateY(0px) scale(1); }
-          to   { transform: translateY(-10px) scale(1.05); }
-        }
-      </style>`;
+    `;
     destMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
       .setLngLat(destination)
       .addTo(m);

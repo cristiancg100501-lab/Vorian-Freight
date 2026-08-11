@@ -21,8 +21,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { RateCardGenerator } from "@/components/admin/rate-card-generator";
+import { FileText } from "lucide-react";
 
 export default function PricingEnginePage() {
+  const [activeTab, setActiveTab] = useState<"engine" | "pdf">("engine");
   const { supabase } = useSupabase();
   const { data: pricingRules, isLoading, refetch } = useSupabaseCollection("pricing_rules");
 
@@ -84,20 +87,47 @@ export default function PricingEnginePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-10">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-          <DollarSign className="w-8 h-8 text-primary" />
-          Motor de Precios
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Configura las tarifas dinámicas que verán tus clientes en el Cotizador Rápido del Landing Page.
-        </p>
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <DollarSign className="w-8 h-8 text-primary" />
+            Pricing & Tarifarios
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Gestiona las tarifas dinámicas del cotizador o genera tarifarios oficiales en PDF.
+          </p>
+        </div>
+        
+        {/* Custom Tabs */}
+        <div className="flex bg-muted p-1 rounded-lg">
+          <button 
+            onClick={() => setActiveTab("engine")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeTab === "engine" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <DollarSign className="w-4 h-4" />
+            Motor Dinámico
+          </button>
+          <button 
+            onClick={() => setActiveTab("pdf")}
+            className={cn(
+              "px-4 py-2 text-sm font-medium rounded-md transition-all flex items-center gap-2",
+              activeTab === "pdf" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            Generador PDF
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Formulario de Creación */}
-        <div className="lg:col-span-1">
+      {activeTab === "engine" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Formulario de Creación */}
+          <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Nueva Tarifa</CardTitle>
@@ -245,6 +275,11 @@ export default function PricingEnginePage() {
           </Card>
         </div>
       </div>
+      )}
+
+      {activeTab === "pdf" && (
+        <RateCardGenerator />
+      )}
     </div>
   );
 }
