@@ -173,8 +173,16 @@ export default function SignatureGeneratorPage() {
                       placeholder="https://..." 
                       value={logoUrl} 
                       onChange={e => {
-                        setLogoUrl(e.target.value);
-                        if (e.target.value) setLogoBase64(""); // Clear base64 if typing URL
+                        let val = e.target.value;
+                        // Corrección automática de enlaces de Google Drive a formato de imagen directa
+                        if (val.includes("drive.google.com/file/d/")) {
+                          const match = val.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                          if (match && match[1]) {
+                            val = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                          }
+                        }
+                        setLogoUrl(val);
+                        if (val) setLogoBase64(""); // Clear base64 if typing URL
                       }} 
                     />
                   </div>
