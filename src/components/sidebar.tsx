@@ -40,7 +40,7 @@ import { useSupabaseDoc } from "@/hooks/supabase-hooks";
 
 type NavItem = {
   href: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   group: "GENERAL" | "OTROS";
 };
@@ -60,6 +60,7 @@ const adminNavItems: NavItem[] = [
   { group: "OTROS", href: "/admin/rates/avo", icon: Waypoints, label: "Gestión AVO" },
   { group: "OTROS", href: "/admin/pricing", icon: DollarSign, label: "Motor de Precios (Quotes)" },
   { group: "OTROS", href: "/admin/rates", icon: DollarSign, label: "APIs y tarifas" },
+  { group: "OTROS", href: "/admin/signature", icon: Mail, label: "Generador Firma Correo" },
   { group: "OTROS", href: "/admin/testing", icon: Mail, label: "Simulador Mails" },
   { group: "OTROS", href: "/admin/reportes", icon: LineChart, label: "Reportes" },
 ];
