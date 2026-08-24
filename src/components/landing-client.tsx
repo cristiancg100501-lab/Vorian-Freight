@@ -16,6 +16,8 @@ import dynamic from 'next/dynamic';
 import { QuoteCalculator } from "./landing/quote-calculator";
 import { IndustriesSection } from "./landing/industries-section";
 import { InteractiveContainer3D } from "./landing/interactive-container";
+import { DynamicMetrics } from "./landing/dynamic-metrics";
+import { TrackingSimulator } from "./landing/tracking-simulator";
 
 function AnimatedSpeed() {
   const [speed, setSpeed] = useState(64);
@@ -272,9 +274,9 @@ export function LandingClient() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground max-w-4xl mb-6 leading-tight"
+            className="text-5xl md:text-7xl font-quicksand tracking-tight text-foreground max-w-4xl mb-6 leading-tight"
           >
-            Tu socio logístico con <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-700 to-zinc-950 dark:from-zinc-300 dark:to-zinc-100">trazabilidad</span> en tiempo real
+            <span className="font-medium text-foreground/80">Tu socio logístico con</span> <span className="font-black">trazabilidad en tiempo real</span>
           </motion.h1>
 
           <motion.p
@@ -294,7 +296,7 @@ export function LandingClient() {
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="flex flex-col gap-4 w-full max-w-md lg:max-w-none lg:w-1/2 items-center lg:items-start text-center lg:text-left"
             >
-              <h3 className="text-2xl font-bold text-foreground">¿Listo para optimizar tu logística?</h3>
+              <h3 className="text-2xl text-foreground"><span className="font-medium text-foreground/80">¿Listo para</span> <span className="font-black">optimizar tu logística?</span></h3>
               <p className="text-muted-foreground">Obtén tarifas competitivas al instante y comienza a mover tu carga con total visibilidad hoy mismo.</p>
               <div className="flex flex-col sm:flex-row gap-4 w-full mt-4">
                 <Link href="/contacto" className="w-full sm:w-auto">
@@ -309,11 +311,11 @@ export function LandingClient() {
                 </Link>
               </div>
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-6 text-sm text-foreground/70 font-bold">
-                <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-foreground/90" /> Tarifas garantizadas</div>
+                <div className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-emerald-500" /> Tarifas garantizadas</div>
                 <div className="hidden sm:block text-border">•</div>
-                <div className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-foreground/90" /> Sin costos ocultos</div>
+                <div className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Sin costos ocultos</div>
                 <div className="hidden sm:block text-border">•</div>
-                <div className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-foreground/90" /> Red certificada</div>
+                <div className="flex items-center gap-1.5"><Truck className="w-4 h-4 text-blue-500" /> Red certificada</div>
               </div>
             </motion.div>
             
@@ -429,12 +431,15 @@ export function LandingClient() {
           </div>
         </section>
 
+        <DynamicMetrics />
+        <TrackingSimulator />
+
         {/* Features Grid */}
         <section id="soluciones" className="py-20 md:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center max-w-3xl mx-auto mb-16 md:mb-24">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground mb-6">
-                Todo lo que necesitas para mover tu carga
+              <h2 className="text-3xl md:text-5xl tracking-tight text-foreground mb-6">
+                <span className="font-medium text-foreground/80">Todo lo que necesitas para</span> <span className="font-black">mover tu carga</span>
               </h2>
               <p className="text-lg text-muted-foreground">
                 Herramientas diseñadas para simplificar la logística, reducir costos y mantener tu negocio en movimiento.
@@ -443,7 +448,11 @@ export function LandingClient() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min">
               {/* Box 1: Large (2 cols, 1 row) - Tracking */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6 }}
                 className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col md:flex-row gap-8 items-center"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
@@ -451,7 +460,7 @@ export function LandingClient() {
                     <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-6 backdrop-blur-sm shadow-sm">
                       <Navigation className="w-6 h-6" fill="currentColor" />
                     </div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">Rastreo de Contenedores y Carga</h3>
+                    <h3 className="text-2xl md:text-3xl text-foreground mb-4"><span className="font-medium text-foreground/80">Rastreo de</span> <span className="font-black">Contenedores y Carga</span></h3>
                     <p className="text-muted-foreground text-lg mb-6">Mantén el control total de tus importaciones/exportaciones con actualizaciones precisas de ubicación y estado 24/7 desde el momento en que tu carga pisa tierra.</p>
                   </div>
                 </div>
@@ -528,17 +537,21 @@ export function LandingClient() {
                       </div>
                    </motion.div>
                 </div>
-              </div>
+              </motion.div>
               
               {/* Box 2: Small (1 col, 1 row) - Fleet Management */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: 0.1 }}
                 className="md:col-span-1 bg-gradient-to-br from-card to-muted/30 rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
               >
                 <div className="relative z-10 flex-1 flex flex-col">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground mb-2">Especialistas en Puertos</h3>
+                  <h3 className="text-xl text-foreground mb-2"><span className="font-black">Especialistas</span> <span className="font-medium text-foreground/80">en Puertos</span></h3>
                   <p className="text-muted-foreground text-sm mb-6">Transportistas certificados y procesos optimizados para el retiro de carga desde San Antonio, Valparaíso y SCL.</p>
                   
                   {/* Decorative element: Stats Bars */}
@@ -560,17 +573,21 @@ export function LandingClient() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Box 3: Medium (2 cols, 1 row) - Audit (formerly Box 4) */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6 }}
                 className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-8"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
                      <Fingerprint className="w-6 h-6" />
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">Auditoría Inmutable de Rutas</h3>
+                  <h3 className="text-2xl text-foreground mb-4"><span className="font-black">Auditoría Inmutable</span> <span className="font-medium text-foreground/80">de Rutas</span></h3>
                   <p className="text-muted-foreground text-sm mb-6">Historial exacto con telemetría GPS para máxima transparencia ante tus clientes.</p>
                   <ul className="space-y-3">
                     <li className="flex items-center gap-3 text-xs text-foreground font-medium"><div className="w-4 h-4 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-[10px]">✓</div> Datos sellados criptográficamente</li>
@@ -661,15 +678,19 @@ export function LandingClient() {
                       
                    </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Box 4: Small (1 col, 1 row) - Security (formerly Box 3) */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: 0.1 }}
                 className="md:col-span-1 bg-background rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col items-center text-center gap-6 justify-center"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-zinc-800/40 via-transparent to-transparent opacity-50"></div>
                 <div className="relative z-10 w-full">
-                  <h3 className="text-xl font-bold text-foreground mb-2">Entregas con PIN</h3>
+                  <h3 className="text-xl text-foreground mb-2"><span className="font-black">Entregas</span> <span className="font-medium text-foreground/80">con PIN</span></h3>
                   <p className="text-muted-foreground text-sm">Validación estricta para recepción y entrega.</p>
                 </div>
                 
@@ -704,7 +725,7 @@ export function LandingClient() {
                      </motion.div>
                      {/* Success State */}
                      <motion.div 
-                        className="absolute inset-0 bg-foreground text-background flex items-center justify-center text-[10px] font-bold uppercase tracking-wider gap-1.5 shadow-lg"
+                        className="absolute inset-0 bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold uppercase tracking-wider gap-1.5 shadow-lg"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: [0, 0, 1, 1, 0], y: [20, 20, 0, 0, -20] }}
                         transition={{ duration: 4, times: [0, 0.75, 0.8, 0.95, 1], repeat: Infinity, repeatDelay: 1 }}
@@ -713,16 +734,20 @@ export function LandingClient() {
                      </motion.div>
                    </div>
                 </div>
-              </div>
+               </motion.div>
               {/* Box 5: Full Width (3 cols) - Proactive Notifications */}
-              <div
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6 }}
                 className="md:col-span-3 bg-card rounded-[2rem] p-8 md:p-12 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-12"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell-ring w-6 h-6"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/><path d="M22 8c0-2.3-.8-4.3-2-6"/></svg>
                   </div>
-                  <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4">Alertas Proactivas en Vivo</h3>
+                  <h3 className="text-2xl md:text-3xl text-foreground mb-4"><span className="font-black">Alertas Proactivas</span> <span className="font-medium text-foreground/80">en Vivo</span></h3>
                   <p className="text-muted-foreground text-lg mb-6">El sistema informa automáticamente a tus clientes de cada hito importante del viaje, sin que tengas que levantar el teléfono o enviar correos manuales.</p>
                   <ul className="space-y-4">
                     <li className="flex items-center gap-3 text-sm text-foreground font-medium"><div className="w-5 h-5 rounded-full bg-foreground/10 text-foreground flex items-center justify-center text-xs">✓</div> Alertas de ingreso a puerto y salida</li>
@@ -751,8 +776,8 @@ export function LandingClient() {
                            transition={{ duration: 0.5, delay: 1 }}
                          >
                             <div className="flex gap-3 items-start">
-                               <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <Truck className="w-4 h-4 text-foreground" />
+                               <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <Truck className="w-4 h-4 text-blue-500" />
                                </div>
                                <div>
                                   <div className="flex justify-between items-center w-full mb-0.5">
@@ -772,8 +797,8 @@ export function LandingClient() {
                            transition={{ duration: 0.5, delay: 3 }}
                          >
                             <div className="flex gap-3 items-start">
-                               <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center shadow-sm">
-                                  <ShieldCheck className="w-4 h-4 text-foreground" />
+                               <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shadow-sm">
+                                  <ShieldCheck className="w-4 h-4 text-amber-500" />
                                </div>
                                <div>
                                   <div className="flex justify-between items-center w-full mb-0.5">
@@ -793,8 +818,8 @@ export function LandingClient() {
                            transition={{ duration: 0.5, delay: 5.5 }}
                          >
                             <div className="flex gap-3 items-start">
-                               <div className="w-8 h-8 rounded-full bg-foreground/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <CheckCircle2 className="w-4 h-4 text-foreground" />
+                               <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                </div>
                                <div>
                                   <div className="flex justify-between items-center w-full mb-0.5">
@@ -809,7 +834,7 @@ export function LandingClient() {
                       </div>
                    </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>

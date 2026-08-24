@@ -5,11 +5,13 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import * as turf from "@turf/turf";
 import { Truck } from "lucide-react";
+import { useTheme } from "next-themes";
 
 // Set your Mapbox token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
-export function LandingMap({ theme }: { theme?: string }) {
+export function LandingMap({ className, onComplete }: { className?: string, onComplete?: () => void }) {
+  const { resolvedTheme } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const reqRef = useRef<number | null>(null);
@@ -18,24 +20,24 @@ export function LandingMap({ theme }: { theme?: string }) {
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    const isDark = theme !== "light";
+    const isDark = resolvedTheme === "dark";
 
     // 1. Initialize Mapbox (Static Camera)
     const map = new mapboxgl.Map({
       container: mapContainer.current,
       style: isDark ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
-      center: [-70.6182, -33.4272],
-      zoom: 11.5,
+      center: [-71.2000, -33.5000],
+      zoom: 8.5,
       pitch: 45,
-      bearing: -20,
+      bearing: 10,
       interactive: false,
     });
 
     mapRef.current = map;
 
     map.on("load", async () => {
-      // 2. Fetch a single real route
-      const routeStr = "-70.5891,-33.4144;-70.6506,-33.4526"; // From Costanera to Centro
+      // 2. Fetch a single real route (San Antonio to Pudahuel)
+      const routeStr = "-71.6117,-33.5855;-70.7936,-33.4372"; 
       
       try {
         const res = await fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${routeStr}?geometries=geojson&access_token=${mapboxgl.accessToken}`);
@@ -43,16 +45,9 @@ export function LandingMap({ theme }: { theme?: string }) {
         
         if (data.routes && data.routes[0]) {
           const coords = data.routes[0].geometry.coordinates;
-          const line = turf.lineString(coords);
-          const distance = turf.length(line);
+          const route = turf.lineString(coords);
+          const distance = turf.length(route);
           
-          const resampledCoords = [];
-          const steps = 800; // Smooth frames
-          for (let i = 0; i <= steps; i++) {
-            const segment = turf.along(line, (i / steps) * distance);
-            resampledCoords.push(segment.geometry.coordinates as [number, number]);
-          }
-
           // Draw the route line
           map.addSource("route", {
             type: "geojson",
@@ -65,6 +60,46 @@ export function LandingMap({ theme }: { theme?: string }) {
               }
             }
           });
+
+          // Set fixed frames for a ~8s animation (at 60fps)
+          const frames = 480;
+          
+          // Create the moving Truck marker
+          const truckEl = document.createElement('div');
+          truckEl.className = isDark 
+            ? 'w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.8)]' 
+            : 'w-8 h-8 rounded-full bg-white text-black border-2 border-slate-950 flex items-center justify-center shadow-lg';
+          truckEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11h1"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`;
+          
+          const truckMarker = new mapboxgl.Marker({ element: truckEl, anchor: 'center' })
+            .setLngLat(coords[0] as [number, number])
+            .addTo(map);
+
+          markerRef.current = truckMarker;
+        
+          let counter = 0;
+          function animate() {
+            if (!mapRef.current) return;
+            const point = turf.along(route, (counter / frames) * distance);
+            
+            if (markerRef.current) {
+              markerRef.current.setLngLat(point.geometry.coordinates as [number, number]);
+            }
+            
+            // Gently pan camera with the truck
+            mapRef.current.easeTo({
+              center: point.geometry.coordinates as [number, number],
+              duration: 0 // instantaneous for smooth animation
+            });
+            
+            if (counter < frames) {
+              reqRef.current = requestAnimationFrame(animate);
+              counter++;
+            } else {
+              if (onComplete) onComplete();
+            }
+          }
+          animate();
 
           map.addLayer({
             id: "route-layer",
@@ -118,39 +153,7 @@ export function LandingMap({ theme }: { theme?: string }) {
             .setLngLat(coords[coords.length - 1] as [number, number])
             .addTo(map);
 
-          // Create the moving Truck marker
-          const truckEl = document.createElement('div');
-          truckEl.className = isDark 
-            ? 'w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.8)]' 
-            : 'w-8 h-8 rounded-full bg-white text-black border-2 border-slate-950 flex items-center justify-center shadow-lg';
-          truckEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11h1"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`;
-          
-          const truckMarker = new mapboxgl.Marker({ element: truckEl, anchor: 'center' })
-            .setLngLat(resampledCoords[0])
-            .addTo(map);
 
-          markerRef.current = truckMarker;
-
-          // Animate the truck
-          let currentStep = 0;
-          const animate = () => {
-            currentStep = (currentStep + 1) % steps;
-            
-            // Calculate bearing to point the truck in the right direction
-            if (currentStep < steps - 1) {
-                const current = resampledCoords[currentStep];
-                const next = resampledCoords[currentStep + 1];
-                const bearing = turf.bearing(turf.point(current), turf.point(next));
-                
-                truckMarker.setLngLat(current);
-                // We can rotate the truck icon based on bearing, but usually the truck icon is fine pointing right or we can rotate it:
-                // truckEl.style.transform = `rotate(${bearing - 90}deg)`; 
-            }
-
-            reqRef.current = requestAnimationFrame(animate);
-          };
-
-          animate();
         }
       } catch (e) {
         console.error("Failed to load route for animation", e);
@@ -162,12 +165,12 @@ export function LandingMap({ theme }: { theme?: string }) {
       if (markerRef.current) markerRef.current.remove();
       map.remove();
     };
-  }, [theme]);
+  }, [resolvedTheme]);
 
   return (
     <div
       ref={mapContainer}
-      className="absolute inset-0 w-full h-full opacity-60 pointer-events-none"
+      className={`${className || "absolute inset-0 w-full h-full opacity-60 pointer-events-none"} grayscale contrast-125`}
     />
   );
 }

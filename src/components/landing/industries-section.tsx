@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Snowflake, Pickaxe, ShoppingBag, ArrowRight } from "lucide-react";
+import { HardHat, Pickaxe, ShoppingBag, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const industries = [
@@ -27,11 +27,11 @@ const industries = [
     bgBorder: "border-orange-500/20"
   },
   {
-    id: "frio",
-    title: "Cadena de Frío (Reefer)",
-    icon: Snowflake,
-    description: "Exportación impecable de frutas y salmones. Asegura que tus contenedores Reefer mantengan la cadena de frío perfecta hasta su embarque.",
-    features: ["Monitoreo de temperatura en tránsito", "Alertas automáticas de desconexión", "Prioridad en puerto (Stacking)"],
+    id: "proyectos",
+    title: "Cargas Proyecto",
+    icon: HardHat,
+    description: "Movimiento de piezas sobredimensionadas, maquinaria pesada y cargas especiales para minería, energía y construcción.",
+    features: ["Rutas pre-evaluadas y escoltas", "Coordinación con autoridades (Vialidad)", "Visibilidad integral del convoy"],
     color: "text-green-500",
     bgLight: "bg-green-500/10",
     bgBorder: "border-green-500/20"
