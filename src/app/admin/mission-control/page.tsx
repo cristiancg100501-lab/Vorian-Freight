@@ -52,17 +52,21 @@ export default function MissionControlPage() {
 
       // Calcular presencia real con heartbeat
       const lastPingStr = profile.last_ping;
+      const lastLocationStr = profile.lastLocationUpdate;
       let isOnlineNow = profile.isAvailable || false;
       
       if (isOnlineNow) {
-        if (!lastPingStr) {
-          isOnlineNow = false; // Fantasma viejo
+        // Check last_ping first (most reliable heartbeat)
+        if (lastPingStr) {
+          const minutesSincePing = (Date.now() - new Date(lastPingStr).getTime()) / 60000;
+          if (minutesSincePing > 10) isOnlineNow = false; // 10 min grace window
+        } else if (lastLocationStr) {
+          // Fallback: driver just went online, ping hasn't fired yet — use last GPS update
+          const minutesSinceLocation = (Date.now() - new Date(lastLocationStr).getTime()) / 60000;
+          if (minutesSinceLocation > 10) isOnlineNow = false;
         } else {
-          const lastPingTime = new Date(lastPingStr).getTime();
-          const minutesSincePing = (new Date().getTime() - lastPingTime) / (1000 * 60);
-          if (minutesSincePing > 5) {
-            isOnlineNow = false;
-          }
+          // No ping and no location — truly stale
+          isOnlineNow = false;
         }
       }
 
