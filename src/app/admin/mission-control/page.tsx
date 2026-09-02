@@ -36,15 +36,19 @@ export default function MissionControlPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
 
-  // Fetch all driver profiles with their user names via join for real-time tracking
-  const { data: rawDrivers, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles", undefined, { select: '*, userProfiles(firstName, lastName)' });
+  // Fetch all driver profiles (removed failing join, will use fallback name or fetch separately)
+  const { data: rawDrivers, isLoading: isLoadingDrivers } = useSupabaseCollection("driverProfiles", undefined, { select: '*' });
+  
+  // Fetch user profiles separately to map names (since foreign key join fails)
+  const { data: userProfiles } = useSupabaseCollection("userProfiles", undefined, { select: 'id, firstName, lastName', realtime: false });
 
   const drivers = useMemo(() => {
     // If we have no raw driver profiles, we have nothing to show
     if (!rawDrivers) return null;
 
     return rawDrivers.map(profile => {
-      const u = profile.userProfiles;
+      // Find matching user profile
+      const u = userProfiles?.find(up => up.id === profile.id);
       
       // PARSE COORDINATES: Supabase numeric fields sometimes come as strings
       const lat = typeof profile.currentLatitude === 'string' ? parseFloat(profile.currentLatitude) : profile.currentLatitude;
@@ -73,7 +77,7 @@ export default function MissionControlPage() {
       return {
         ...profile,
         id: profile.id,
-        fullName: u ? `${u.firstName} ${u.lastName}` : `Conductor (${profile.id.substring(0,5)})`,
+        fullName: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : `Conductor (${profile.id.substring(0,5)})`,
         vehiclePlate: profile.vehiclePlate || profile.licensePlate || "S/P",
         isAvailable: isOnlineNow,
         currentLatitude: lat,
