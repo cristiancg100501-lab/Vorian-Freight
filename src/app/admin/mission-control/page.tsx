@@ -59,15 +59,29 @@ export default function MissionControlPage() {
       const lastLocationStr = profile.lastLocationUpdate;
       let isOnlineNow = profile.isAvailable || false;
       
+      const parseTime = (d: string) => {
+        if (!d) return 0;
+        // Fix Safari bug: Postgres returns 6-digit fractional seconds (.123456) which Safari rejects.
+        // We trim it to 3 digits (.123).
+        const safeStr = d.replace(/\.(\d{3})\d+/, '.$1');
+        const t = new Date(safeStr).getTime();
+        return isNaN(t) ? 0 : t;
+      };
+
       if (isOnlineNow) {
-        // Check last_ping first (most reliable heartbeat)
+        let newestTime = 0;
         if (lastPingStr) {
-          const minutesSincePing = (Date.now() - new Date(lastPingStr).getTime()) / 60000;
-          if (minutesSincePing > 10) isOnlineNow = false; // 10 min grace window
-        } else if (lastLocationStr) {
-          // Fallback: driver just went online, ping hasn't fired yet — use last GPS update
-          const minutesSinceLocation = (Date.now() - new Date(lastLocationStr).getTime()) / 60000;
-          if (minutesSinceLocation > 10) isOnlineNow = false;
+          newestTime = Math.max(newestTime, parseTime(lastPingStr));
+        }
+        if (lastLocationStr) {
+          newestTime = Math.max(newestTime, parseTime(lastLocationStr));
+        }
+
+        if (newestTime > 0) {
+          const minutesSinceLatest = (Date.now() - newestTime) / 60000;
+          if (minutesSinceLatest > 10) {
+            isOnlineNow = false; // 10 min grace window
+          }
         } else {
           // No ping and no location — truly stale
           isOnlineNow = false;
