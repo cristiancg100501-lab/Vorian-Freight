@@ -30,7 +30,7 @@ export default function RootLayout({
       <head>
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
       </head>
-      <body className={quicksand.variable}>
+      <body className={`${quicksand.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
