@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
@@ -38,6 +38,59 @@ const LandingMap = dynamic(() => import('@/components/landing-map').then(mod => 
   loading: () => <div className="w-full h-full bg-card animate-pulse"></div>
 });
 
+function NoiseOverlay() {
+  return (
+    <div className="pointer-events-none fixed inset-0 z-50 h-full w-full opacity-[0.04] mix-blend-overlay dark:opacity-[0.05]">
+      <svg className="absolute inset-0 h-full w-full">
+        <filter id="noiseFilter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.6" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+      </svg>
+    </div>
+  );
+}
+
+function SpotlightCard({ children, className = "", ...props }: React.ComponentProps<typeof motion.div>) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current || isFocused) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleFocus = () => { setIsFocused(true); setOpacity(1); };
+  const handleBlur = () => { setIsFocused(false); setOpacity(0); };
+  const handleMouseEnter = () => { setOpacity(1); };
+  const handleMouseLeave = () => { setOpacity(0); };
+
+  return (
+    <motion.div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative overflow-hidden rounded-[2rem] border border-border hover:border-border/80 bg-card shadow-lg transition-all duration-300 group flex ${className}`}
+      {...props}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 z-50"
+        style={{
+          opacity,
+          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(255,255,255,0.06), transparent 40%)`,
+        }}
+      />
+      {children}
+    </motion.div>
+  );
+}
+
 export function LandingClient() {
   const { resolvedTheme, theme, setTheme } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -67,6 +120,7 @@ export function LandingClient() {
 
   return (
     <div className="min-h-screen bg-background font-sans selection:bg-primary selection:text-primary-foreground">
+      <NoiseOverlay />
       {/* Navigation */}
       <nav 
         className={`fixed w-full z-50 transition-all duration-500 ease-in-out ${
@@ -300,14 +354,18 @@ export function LandingClient() {
               <p className="text-muted-foreground">Obtén tarifas competitivas al instante y comienza a mover tu carga con total visibilidad hoy mismo.</p>
               <div className="flex flex-col sm:flex-row gap-4 w-full mt-4">
                 <Link href="/contacto" className="w-full sm:w-auto">
-                  <Button className="w-full h-14 px-8 rounded-full text-base font-semibold bg-foreground text-background hover:bg-foreground/90 hover:scale-105 transition-all shadow-xl dark:shadow-white/5">
-                    Cotizar con ejecutivo <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button className="w-full h-14 px-8 rounded-full text-base font-semibold bg-foreground text-background shadow-xl dark:shadow-white/5">
+                      Cotizar con ejecutivo <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </motion.div>
                 </Link>
                 <Link href="#como-funciona" className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full h-14 px-8 rounded-full text-base font-semibold border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-all">
-                    Conoce más
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button variant="outline" className="w-full h-14 px-8 rounded-full text-base font-semibold border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-all">
+                      Conoce más
+                    </Button>
+                  </motion.div>
                 </Link>
               </div>
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-6 text-sm text-foreground/70 font-bold">
@@ -408,7 +466,7 @@ export function LandingClient() {
                   {/* Map / Tracking View */}
                   <div className="flex-1 bg-card border border-border rounded-[1.5rem] relative overflow-hidden flex min-h-[200px]">
                     <div className="absolute inset-0 pointer-events-none">
-                      <LandingMap theme={resolvedTheme} />
+                      <LandingMap />
                     </div>
                   </div>
                 </div>
@@ -448,12 +506,12 @@ export function LandingClient() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-min">
               {/* Box 1: Large (2 cols, 1 row) - Tracking */}
-              <motion.div
+              <SpotlightCard
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6 }}
-                className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col md:flex-row gap-8 items-center"
+                className="md:col-span-2 p-8 md:p-10 flex-col md:flex-row gap-8 items-center"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div>
@@ -537,15 +595,15 @@ export function LandingClient() {
                       </div>
                    </motion.div>
                 </div>
-              </motion.div>
+              </SpotlightCard>
               
               {/* Box 2: Small (1 col, 1 row) - Fleet Management */}
-              <motion.div
+              <SpotlightCard
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="md:col-span-1 bg-gradient-to-br from-card to-muted/30 rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 overflow-hidden relative group shadow-lg flex flex-col"
+                className="md:col-span-1 bg-gradient-to-br from-card to-muted/30 p-8 flex-col"
               >
                 <div className="relative z-10 flex-1 flex flex-col">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4 backdrop-blur-sm">
@@ -573,15 +631,15 @@ export function LandingClient() {
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </SpotlightCard>
 
               {/* Box 3: Medium (2 cols, 1 row) - Audit (formerly Box 4) */}
-              <motion.div
+              <SpotlightCard
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6 }}
-                className="md:col-span-2 bg-card rounded-[2rem] p-8 md:p-10 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-8"
+                className="md:col-span-2 p-8 md:p-10 flex-col md:flex-row items-center gap-8"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
@@ -678,15 +736,15 @@ export function LandingClient() {
                       
                    </div>
                 </div>
-              </motion.div>
+              </SpotlightCard>
 
               {/* Box 4: Small (1 col, 1 row) - Security (formerly Box 3) */}
-              <motion.div
+              <SpotlightCard
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="md:col-span-1 bg-background rounded-[2rem] p-8 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col items-center text-center gap-6 justify-center"
+                className="md:col-span-1 p-8 flex-col items-center text-center gap-6 justify-center"
               >
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-zinc-800/40 via-transparent to-transparent opacity-50"></div>
                 <div className="relative z-10 w-full">
@@ -734,14 +792,14 @@ export function LandingClient() {
                      </motion.div>
                    </div>
                 </div>
-               </motion.div>
+               </SpotlightCard>
               {/* Box 5: Full Width (3 cols) - Proactive Notifications */}
-              <motion.div
+              <SpotlightCard
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6 }}
-                className="md:col-span-3 bg-card rounded-[2rem] p-8 md:p-12 border border-border hover:border-border/80 hover:shadow-sm transition-all duration-300 relative group shadow-lg overflow-hidden flex flex-col md:flex-row items-center gap-12"
+                className="md:col-span-3 p-8 md:p-12 flex-col md:flex-row items-center gap-12"
               >
                 <div className="relative z-10 w-full md:w-1/2 flex flex-col justify-center">
                   <div className="w-12 h-12 rounded-xl bg-accent border border-border flex items-center justify-center text-foreground mb-4">
@@ -834,7 +892,7 @@ export function LandingClient() {
                       </div>
                    </div>
                 </div>
-              </motion.div>
+              </SpotlightCard>
             </div>
           </div>
         </section>
@@ -842,9 +900,9 @@ export function LandingClient() {
         {/* How it Works / Split Section */}
         <section id="plataforma" className="py-20 md:py-32 bg-background overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+            <div className="flex flex-col lg:flex-row items-start gap-16 lg:gap-24 relative">
               <div
-                className="w-full lg:w-1/2"
+                className="w-full lg:w-1/2 lg:sticky lg:top-32 h-fit"
               >
                 <div className="aspect-square max-w-md mx-auto lg:mx-0 relative">
                   <div className="absolute inset-0 bg-green-500/10 rounded-full blur-[80px] opacity-50 transform translate-x-10 translate-y-10 pointer-events-none"></div>
